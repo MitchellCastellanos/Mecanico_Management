@@ -3,6 +3,7 @@
 
 import { Resend } from "resend";
 import { ServiceReminderEmail } from "@/emails/ServiceReminderEmail";
+import { AccountingNotificationEmail } from "@/emails/AccountingNotificationEmail";
 import React from "react";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -33,5 +34,33 @@ export async function sendReminderEmail(data: ReminderEmailData) {
 
   if (error) {
     throw new Error(`Error enviando email: ${error.message}`);
+  }
+}
+
+// ── Notificación a la contadora ───────────────────────────────
+
+interface AccountingEmailData {
+  shopName: string;
+  uploaderName: string;
+  files: { fileName: string; category: string; driveUrl?: string }[];
+  driveFolderUrl?: string;
+}
+
+export async function sendAccountantEmail(data: AccountingEmailData) {
+  const to = process.env.ACCOUNTANT_EMAIL;
+  if (!to) throw new Error("ACCOUNTANT_EMAIL no está configurado");
+
+  const element = React.createElement(AccountingNotificationEmail, data);
+  const fileCount = data.files.length;
+
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM ?? "Mecanico <noreply@mecanico.app>",
+    to,
+    subject: `${data.shopName} — ${fileCount} documento${fileCount !== 1 ? "s" : ""} nuevo${fileCount !== 1 ? "s" : ""}`,
+    react: element,
+  });
+
+  if (error) {
+    throw new Error(`Error enviando email a contadora: ${error.message}`);
   }
 }

@@ -65,3 +65,16 @@ export const reminderSchema = z.object({
 });
 
 export type ReminderFormData = z.infer<typeof reminderSchema>;
+
+// ── Documentos contables ──────────────────────────────────────
+
+export const DOC_CATEGORIES = [
+  { value: "INVOICES", label: "Facturas" },
+  { value: "RECEIPTS", label: "Recibos" },
+  { value: "PAYROLL", label: "Nómina" },
+  { value: "TAX_DOCUMENTS", label: "Documentos Fiscales" },
+  { value: "BANK_STATEMENTS", label: "Estados de Cuenta" },
+  { value: "OTHER", label: "Otros" },
+] as const;
+
+export type DocCategory = (typeof DOC_CATEGORIES)[number]["value"];
