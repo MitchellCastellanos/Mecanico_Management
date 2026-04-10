@@ -1,12 +1,29 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import bcrypt from "bcryptjs";
+import { execSync } from "child_process";
 
-// Endpoint de setup inicial — crea el shop y usuario demo si la BD está vacía.
+// Extend the serverless function timeout so prisma db push has time to complete
+export const maxDuration = 60;
+
+// Endpoint de setup inicial — sincroniza el schema y crea shop/usuario demo.
 // Visitar UNA VEZ después del primer deploy: https://tu-app.vercel.app/api/setup
 // Después de crear el usuario, este endpoint devuelve "Ya configurado" y no hace nada más.
 
 export async function GET() {
+  // Sync DB schema at runtime (Vercel build servers can't reach Supabase port 5432)
+  try {
+    execSync("node_modules/.bin/prisma db push --accept-data-loss", {
+      env: { ...process.env },
+      stdio: "pipe",
+      timeout: 55000,
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("prisma db push failed:", msg);
+    // If tables already exist this is a no-op; proceed anyway
+  }
+
   const userCount = await db.user.count();
 
   if (userCount > 0) {
