@@ -13,6 +13,7 @@
 import { useDropzone } from "react-dropzone";
 import { useState, useCallback, useTransition } from "react";
 import { UploadCloud, CheckCircle, AlertCircle, X } from "lucide-react";
+import { toast } from "sonner";
 import type { DocCategory } from "@/lib/validations";
 
 interface UploadZoneProps {
@@ -68,7 +69,12 @@ export function UploadZone({ category, onUpload, onSuccess }: UploadZoneProps) {
             )
           );
 
-          if (result.success) onSuccess();
+          if (result.success) {
+            toast.success(`${file.name} subido a Drive`);
+            onSuccess();
+          } else {
+            toast.error(result.error ?? "Error al subir el archivo");
+          }
         }
       });
     },

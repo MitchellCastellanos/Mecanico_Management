@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowLeft, Download, FileText } from "lucide-react";
-import { getInvoiceById, markInvoiceAsSent, markInvoiceAsPaid, cancelInvoice } from "@/actions/invoices";
+import { ArrowLeft, Download } from "lucide-react";
+import { getInvoiceById } from "@/actions/invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { InvoiceActions } from "@/components/invoices/InvoiceActions";
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
@@ -75,56 +76,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Descargar PDF</span>
           </a>
-
-          {/* Status transitions */}
-          {invoice.status === "DRAFT" && (
-            <form
-              action={async () => {
-                "use server";
-                await markInvoiceAsSent(invoice.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                Marcar como enviada
-              </button>
-            </form>
-          )}
-
-          {invoice.status === "SENT" && (
-            <form
-              action={async () => {
-                "use server";
-                await markInvoiceAsPaid(invoice.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                Marcar como pagada
-              </button>
-            </form>
-          )}
-
-          {(invoice.status === "DRAFT" || invoice.status === "SENT") && (
-            <form
-              action={async () => {
-                "use server";
-                await cancelInvoice(invoice.id);
-              }}
-            >
-              <button
-                type="submit"
-                className="px-3 py-2 border border-red-200 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors"
-              >
-                Cancelar
-              </button>
-            </form>
-          )}
+          {/* Status transitions con toast */}
+          <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
         </div>
       </div>
 
