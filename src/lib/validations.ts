@@ -53,3 +53,15 @@ export const invoiceSchema = z.object({
 });
 
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;
+
+// ── Recordatorio de servicio ──────────────────────────────────
+
+export const reminderSchema = z.object({
+  vehicleId: z.string().min(1, "Selecciona un vehículo"),
+  serviceType: z.string().min(1, "El tipo de servicio es requerido").max(100),
+  dueDate: z.string().optional().or(z.literal("")), // ISO date string
+  dueMileage: z.number().int().min(0).optional().nullable(),
+  notes: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type ReminderFormData = z.infer<typeof reminderSchema>;
