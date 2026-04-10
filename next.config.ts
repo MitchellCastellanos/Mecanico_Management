@@ -14,8 +14,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  /** @type {import('next').NextConfig} */
-const nextConfig = {
+
+  // Ignorar errores de TypeScript para build (solo para demo)
   typescript: {
     ignoreBuildErrors: true,
   },
