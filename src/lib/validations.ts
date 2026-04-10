@@ -11,7 +11,6 @@ export const clientSchema = z.object({
   address: z.string().max(255).optional().or(z.literal("")),
   notes: z.string().max(1000).optional().or(z.literal("")),
 });
-
 export type ClientFormData = z.infer<typeof clientSchema>;
 
 export const vehicleSchema = z.object({
@@ -27,5 +26,30 @@ export const vehicleSchema = z.object({
   color: z.string().max(30).optional().or(z.literal("")),
   mileageUnit: z.enum(["KM", "MILES"]),
 });
-
 export type VehicleFormData = z.infer<typeof vehicleSchema>;
+
+// ── Factura ──────────────────────────────────────────────────
+
+export const lineItemSchema = z.object({
+  description: z.string().min(1, "La descripción es requerida").max(255),
+  quantity: z.number().positive("La cantidad debe ser mayor a 0"),
+  unitPrice: z.number().min(0, "El precio no puede ser negativo"),
+  itemType: z.enum(["LABOUR", "PART", "OTHER"]),
+});
+
+export type LineItemData = z.infer<typeof lineItemSchema>;
+
+export const invoiceSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  vehicleId: z.string().min(1, "Selecciona un vehículo"),
+  lineItems: z
+    .array(lineItemSchema)
+    .min(1, "Agrega al menos una línea de servicio"),
+  taxRate: z.number().min(0).max(1), // 0.14975 = TPS+TVQ Quebec
+  notes: z.string().max(1000).optional().or(z.literal("")),
+  mileageIn: z.number().int().min(0).optional().nullable(),
+  mileageOut: z.number().int().min(0).optional().nullable(),
+  dueAt: z.string().optional().or(z.literal("")), // ISO date string
+});
+
+export type InvoiceFormData = z.infer<typeof invoiceSchema>;

@@ -1,12 +1,32 @@
-// Fase 2 — placeholder
-export default function NewInvoicePage() {
+import { redirect } from "next/navigation";
+import { InvoiceForm } from "@/components/invoices/InvoiceForm";
+import { createInvoice } from "@/actions/invoices";
+import { getInvoiceFormData } from "@/actions/invoices";
+import { type InvoiceFormData } from "@/lib/validations";
+
+export default async function NewInvoicePage() {
+  const { clients } = await getInvoiceFormData();
+
+  if (clients.length === 0) {
+    redirect("/clients/new?hint=invoice");
+  }
+
   return (
     <div className="max-w-4xl">
-      <h1 className="text-2xl font-bold text-slate-900 mb-1">Nueva factura</h1>
-      <p className="text-slate-500 text-sm mb-6">Se implementa en la Fase 2</p>
-      <div className="bg-white rounded-xl border border-slate-200 p-8 text-center text-slate-400">
-        Constructor de factura con líneas — Fase 2
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Nueva factura</h1>
+        <p className="text-slate-500 text-sm mt-1">
+          Completa los datos para crear una factura electrónica
+        </p>
       </div>
+
+      <InvoiceForm
+        clients={clients}
+        onSubmit={async (data: InvoiceFormData) => {
+          "use server";
+          return createInvoice(data);
+        }}
+      />
     </div>
   );
 }
