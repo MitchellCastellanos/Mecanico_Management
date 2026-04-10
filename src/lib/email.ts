@@ -6,7 +6,15 @@ import { ServiceReminderEmail } from "@/emails/ServiceReminderEmail";
 import { AccountingNotificationEmail } from "@/emails/AccountingNotificationEmail";
 import React from "react";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy: no instanciar en tiempo de carga del módulo — Resend lanza error
+// si la API key no existe, lo que rompe el build de Next.js al evaluar módulos.
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key || key === "re_placeholder") {
+    throw new Error("RESEND_API_KEY no está configurado");
+  }
+  return new Resend(key);
+}
 
 interface ReminderEmailData {
   clientName: string;
@@ -25,7 +33,7 @@ interface ReminderEmailData {
 export async function sendReminderEmail(data: ReminderEmailData) {
   const element = React.createElement(ServiceReminderEmail, data);
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.EMAIL_FROM ?? "Mecanico <noreply@mecanico.app>",
     to: data.clientEmail,
     subject: `Recordatorio de servicio: ${data.serviceType} — ${data.vehicleDescription}`,
@@ -53,7 +61,7 @@ export async function sendAccountantEmail(data: AccountingEmailData) {
   const element = React.createElement(AccountingNotificationEmail, data);
   const fileCount = data.files.length;
 
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.EMAIL_FROM ?? "Mecanico <noreply@mecanico.app>",
     to,
     subject: `${data.shopName} — ${fileCount} documento${fileCount !== 1 ? "s" : ""} nuevo${fileCount !== 1 ? "s" : ""}`,
