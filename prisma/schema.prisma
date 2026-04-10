@@ -1,0 +1,250 @@
+// Prisma Schema — Mecanico Management
+// Documentación: https://pris.ly/d/prisma-schema
+
+// Prisma v7: motor WASM, conexión via @prisma/adapter-pg (ver src/lib/db.ts)
+// La URL se provee en el constructor de PrismaClient, no aquí
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// SHOP — Multi-tenant root
+// ─────────────────────────────────────────
+model Shop {
+  id        String   @id @default(cuid())
+  name      String
+  logoUrl   String?
+  address   String?
+  phone     String?
+  email     String?
+  taxId     String?      // NEQ / TPS / TVQ
+  currency  String   @default("CAD")
+  createdAt DateTime @default(now())
+
+  users     User[]
+  clients   Client[]
+  invoices  Invoice[]
+  reminders ServiceReminder[]
+  documents AccountingDocument[]
+}
+
+// ─────────────────────────────────────────
+// USER — Mechanic shop staff
+// ─────────────────────────────────────────
+model User {
+  id           String   @id @default(cuid())
+  shopId       String
+  shop         Shop     @relation(fields: [shopId], references: [id])
+  name         String
+  email        String   @unique
+  passwordHash String?
+  role         Role     @default(MECHANIC)
+  createdAt    DateTime @default(now())
+
+  // NextAuth required
+  accounts Account[]
+  sessions Session[]
+}
+
+enum Role {
+  OWNER
+  MECHANIC
+  VIEWER
+}
+
+// ─────────────────────────────────────────
+// NEXTAUTH — Required tables
+// ─────────────────────────────────────────
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────
+// CLIENT
+// ─────────────────────────────────────────
+model Client {
+  id        String   @id @default(cuid())
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  firstName String
+  lastName  String
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  vehicles Vehicle[]
+  invoices Invoice[]
+}
+
+// ─────────────────────────────────────────
+// VEHICLE
+// ─────────────────────────────────────────
+model Vehicle {
+  id           String      @id @default(cuid())
+  clientId     String
+  client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  make         String
+  model        String
+  year         Int
+  licensePlate String
+  vin          String?
+  color        String?
+  mileageUnit  MileageUnit @default(KM)
+  createdAt    DateTime    @default(now())
+
+  invoices  Invoice[]
+  reminders ServiceReminder[]
+}
+
+enum MileageUnit {
+  KM
+  MILES
+}
+
+// ─────────────────────────────────────────
+// INVOICE
+// ─────────────────────────────────────────
+model Invoice {
+  id            String        @id @default(cuid())
+  shopId        String
+  shop          Shop          @relation(fields: [shopId], references: [id])
+  clientId      String
+  client        Client        @relation(fields: [clientId], references: [id])
+  vehicleId     String
+  vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
+  invoiceNumber String        // e.g. "INV-0042" — unique per shop
+  status        InvoiceStatus @default(DRAFT)
+  issuedAt      DateTime      @default(now())
+  dueAt         DateTime?
+  paidAt        DateTime?
+  subtotal      Decimal       @db.Decimal(10, 2)
+  taxRate       Decimal       @db.Decimal(5, 4) // 0.14975 = TPS+TVQ Quebec
+  taxAmount     Decimal       @db.Decimal(10, 2)
+  total         Decimal       @db.Decimal(10, 2)
+  notes         String?       @db.Text
+  pdfUrl        String?       // Supabase Storage URL
+  mileageIn     Int?
+  mileageOut    Int?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  lineItems InvoiceLineItem[]
+
+  @@unique([shopId, invoiceNumber])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model InvoiceLineItem {
+  id          String       @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  quantity    Decimal      @db.Decimal(8, 2)
+  unitPrice   Decimal      @db.Decimal(10, 2)
+  lineTotal   Decimal      @db.Decimal(10, 2)
+  itemType    LineItemType @default(LABOUR)
+  sortOrder   Int          @default(0)
+}
+
+enum LineItemType {
+  LABOUR
+  PART
+  OTHER
+}
+
+// ─────────────────────────────────────────
+// SERVICE REMINDER
+// ─────────────────────────────────────────
+model ServiceReminder {
+  id          String         @id @default(cuid())
+  shopId      String
+  shop        Shop           @relation(fields: [shopId], references: [id])
+  vehicleId   String
+  vehicle     Vehicle        @relation(fields: [vehicleId], references: [id])
+  serviceType String         // "Cambio de aceite", "Frenos", etc.
+  dueMileage  Int?
+  dueDate     DateTime?
+  notes       String?
+  status      ReminderStatus @default(PENDING)
+  sentAt      DateTime?
+  createdAt   DateTime       @default(now())
+}
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  ACKNOWLEDGED
+  DISMISSED
+}
+
+// ─────────────────────────────────────────
+// ACCOUNTING DOCUMENT
+// ─────────────────────────────────────────
+model AccountingDocument {
+  id            String      @id @default(cuid())
+  shopId        String
+  shop          Shop        @relation(fields: [shopId], references: [id])
+  category      DocCategory
+  fileName      String
+  storagePath   String      // Supabase Storage path (backup)
+  driveFileId   String?     // Google Drive file ID
+  driveFolderId String?
+  uploadedAt    DateTime    @default(now())
+  uploadedById  String?
+  notes         String?
+}
+
+enum DocCategory {
+  INVOICES
+  RECEIPTS
+  PAYROLL
+  TAX_DOCUMENTS
+  BANK_STATEMENTS
+  OTHER
+}
