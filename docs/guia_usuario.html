@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mecanico — Guía de Usuario | GABAN Solutions</title>
+  <style>
+    /* ── Reset ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    /* ── Variables ─────────────────────────────────────── */
+    :root {
+      --gold:    #C9A84C;
+      --gold-lt: #E2C97E;
+      --dark:    #0D0D0D;
+      --dark2:   #161616;
+      --dark3:   #1E1E1E;
+      --text:    #1A1A1A;
+      --muted:   #666;
+      --border:  #E5E5E5;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: #fff;
+    }
+
+    /* ════════════════════════════════════════════════════
+       PORTADA
+    ════════════════════════════════════════════════════ */
+    .cover {
+      background: var(--dark);
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 60px;
+      page-break-after: always;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Hexagon background decoration */
+    .cover::before {
+      content: '';
+      position: absolute;
+      right: -120px;
+      top: -120px;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .cover::after {
+      content: '';
+      position: absolute;
+      left: -80px;
+      bottom: -80px;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(201,168,76,0.05) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+
+    .cover-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    /* Logo area */
+    .logo-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-hex {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, var(--gold) 0%, #8B6914 100%);
+      clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-hex-inner {
+      width: 28px;
+      height: 28px;
+      background: var(--dark);
+      clip-path: polygon(50% 8%, 88% 28%, 88% 72%, 50% 92%, 12% 72%, 12% 28%);
+    }
+    .logo-text-block { display: flex; flex-direction: column; }
+    .logo-name {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .logo-sub {
+      font-size: 9px;
+      color: var(--gold);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-top: 1px;
+    }
+
+    .cover-badge {
+      background: rgba(201,168,76,0.12);
+      border: 1px solid rgba(201,168,76,0.3);
+      color: var(--gold-lt);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      border-radius: 2px;
+    }
+
+    /* Main title */
+    .cover-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 0 60px;
+    }
+    .cover-eyebrow {
+      font-size: 12px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 24px;
+    }
+    .cover-title {
+      font-size: 64px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.05;
+      margin-bottom: 16px;
+    }
+    .cover-title span { color: var(--gold); }
+    .cover-subtitle {
+      font-size: 20px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 300;
+      margin-bottom: 48px;
+    }
+    .cover-divider {
+      width: 64px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+    }
+
+    /* Feature pills */
+    .cover-pills {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 40px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.7);
+      font-size: 12px;
+      padding: 8px 16px;
+      border-radius: 100px;
+    }
+
+    /* Footer */
+    .cover-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 28px;
+    }
+    .cover-footer-label { font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 1px; }
+    .cover-footer-url {
+      font-size: 13px;
+      color: var(--gold);
+      letter-spacing: 1px;
+      text-decoration: none;
+    }
+    .cover-url-block { text-align: right; }
+    .cover-app-url { font-size: 12px; color: rgba(255,255,255,0.3); margin-top: 4px; }
+
+    /* ════════════════════════════════════════════════════
+       PÁGINAS DE CONTENIDO
+    ════════════════════════════════════════════════════ */
+    .page {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 64px 72px;
+      page-break-before: always;
+    }
+
+    /* Header de página */
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 24px;
+      border-bottom: 2px solid var(--dark);
+      margin-bottom: 48px;
+    }
+    .page-header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-logo-hex {
+      width: 28px;
+      height: 28px;
+      background: linear-gradient(135deg, var(--gold) 0%, #8B6914 100%);
+      clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+      flex-shrink: 0;
+    }
+    .page-logo-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--dark);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .page-section-tag {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    /* Section heading */
+    .section-number {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 8px;
+    }
+    h1.section-title {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--dark);
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .section-intro {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+      border-left: 3px solid var(--gold);
+      padding-left: 20px;
+      margin-bottom: 40px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 36px 0 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h2::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--gold);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      margin: 24px 0 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    p {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    /* Numbered steps */
+    ol.steps {
+      list-style: none;
+      counter-reset: steps;
+      margin: 16px 0 24px;
+    }
+    ol.steps li {
+      counter-increment: steps;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #333;
+    }
+    ol.steps li::before {
+      content: counter(steps);
+      min-width: 28px;
+      height: 28px;
+      background: var(--dark);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* Tip box */
+    .tip {
+      background: #FFFBF0;
+      border: 1px solid #E8D5A3;
+      border-left: 4px solid var(--gold);
+      padding: 14px 18px;
+      border-radius: 4px;
+      font-size: 13px;
+      color: #5A4A1E;
+      line-height: 1.6;
+      margin: 16px 0;
+    }
+    .tip strong { color: #3D3010; }
+
+    /* Info table */
+    table.info-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13.5px;
+    }
+    table.info-table th {
+      background: var(--dark);
+      color: #fff;
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    table.info-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.5;
+    }
+    table.info-table tr:nth-child(even) td { background: #FAFAFA; }
+    table.info-table td:first-child { font-weight: 600; color: var(--dark); white-space: nowrap; }
+    table.info-table td.gold { color: var(--gold); font-weight: 700; }
+
+    /* Status badges */
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .badge-draft   { background: #F3F4F6; color: #374151; }
+    .badge-sent    { background: #EFF6FF; color: #1D4ED8; }
+    .badge-paid    { background: #F0FDF4; color: #15803D; }
+    .badge-overdue { background: #FEF2F2; color: #B91C1C; }
+
+    /* Feature grid */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 24px 0;
+    }
+    .feature-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .feature-card-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--dark);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      font-size: 16px;
+    }
+    .feature-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 6px;
+    }
+    .feature-card-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* Access box */
+    .access-box {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 32px;
+      color: #fff;
+      margin: 24px 0;
+    }
+    .access-box h3 { color: var(--gold); margin-top: 0; }
+    .access-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .access-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .access-label { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+    .access-value { font-size: 15px; color: #fff; font-weight: 600; font-family: monospace; }
+    .access-value.gold { color: var(--gold); }
+
+    /* FAQ */
+    .faq-item {
+      border-bottom: 1px solid var(--border);
+      padding: 18px 0;
+    }
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--dark);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .faq-q::before {
+      content: 'Q';
+      background: var(--gold);
+      color: var(--dark);
+      font-size: 10px;
+      font-weight: 800;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .faq-a {
+      font-size: 13.5px;
+      color: #444;
+      line-height: 1.7;
+      padding-left: 30px;
+    }
+
+    /* Page footer */
+    .page-footer {
+      margin-top: 60px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .page-footer-left { font-size: 11px; color: var(--muted); }
+    .page-footer-right { font-size: 11px; color: var(--muted); text-align: right; }
+
+    /* Support card */
+    .support-card {
+      border: 2px solid var(--dark);
+      border-radius: 10px;
+      padding: 32px;
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .support-left h3 { font-size: 20px; font-weight: 800; margin-bottom: 6px; margin-top: 0; text-transform: none; letter-spacing: 0; }
+    .support-left p { font-size: 13px; color: var(--muted); margin: 0; }
+    .support-right { text-align: right; }
+    .support-url {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+      text-decoration: none;
+    }
+    .support-tag { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    /* ════════════════════════════════════════════════════
+       PRINT STYLES
+    ════════════════════════════════════════════════════ */
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .cover { min-height: 100vh; }
+      .page { page-break-before: always; }
+      .no-break { page-break-inside: avoid; }
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+    @page :first { margin: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════
+     PORTADA
+══════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-top">
+    <div class="logo-block">
+      <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+      <div class="logo-text-block">
+        <span class="logo-name">GABAN</span>
+        <span class="logo-sub">Solutions Numériques</span>
+      </div>
+    </div>
+    <span class="cover-badge">Entrega de Proyecto · 2025</span>
+  </div>
+
+  <div class="cover-main">
+    <p class="cover-eyebrow">Sistema de Gestión de Taller</p>
+    <h1 class="cover-title">Mecanico<br /><span>Sistema</span><br />de Gestión</h1>
+    <p class="cover-subtitle">Guía completa de uso — Versión 1.0</p>
+    <div class="cover-divider"></div>
+    <div class="cover-pills">
+      <span class="pill">✦ Clientes &amp; Vehículos</span>
+      <span class="pill">✦ Facturas PDF</span>
+      <span class="pill">✦ Recordatorios Email</span>
+      <span class="pill">✦ Contabilidad Cloud</span>
+      <span class="pill">✦ Dashboard en tiempo real</span>
+    </div>
+  </div>
+
+  <div class="cover-footer">
+    <div>
+      <p class="cover-footer-label">Desarrollado por</p>
+      <a class="cover-footer-url" href="https://gabansolutions.ca">gabansolutions.ca</a>
+    </div>
+    <div class="cover-url-block">
+      <p class="cover-footer-label">Su sistema está en</p>
+      <p class="cover-footer-url">mecanico-management.vercel.app</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PÁGINA 1 — ¿Qué incluye?
+══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">
+      <div class="page-logo-hex"></div>
+      <span class="page-logo-name">GABAN</span>
+    </div>
+    <span class="page-section-tag">Visión general</span>
+  </div>
+
+  <p class="section-number">01 — Introducción</p>
+  <h1 class="section-title">¿Qué incluye<br />su sistema?</h1>
+  <p class="section-intro">
+    Su sistema de gestión le permite manejar todo su taller desde cualquier dispositivo —
+    computadora, tableta o celular — sin instalar nada. Todo funciona desde el navegador.
+  </p>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="feature-card-icon">👥</div>
+      <div class="feature-card-title">Clientes</div>
+      <div class="feature-card-desc">Registro completo con historial de vehículos y facturas por cliente.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">🚗</div>
+      <div class="feature-card-title">Vehículos</div>
+      <div class="feature-card-desc">Ficha por vehículo con marca, modelo, año, placa y kilometraje.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">🧾</div>
+      <div class="feature-card-title">Facturas PDF</div>
+      <div class="feature-card-desc">Facturas con TPS + TVQ automáticos, numeración y logo de su taller.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">📣</div>
+      <div class="feature-card-title">Recordatorios</div>
+      <div class="feature-card-desc">Avisos automáticos de servicio por email al cliente. Sin hacer nada.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">📁</div>
+      <div class="feature-card-title">Contabilidad Cloud</div>
+      <div class="feature-card-desc">Suba documentos directo a Google Drive para su contadora.</div>
+    </div>
+    <div class="feature-card">
+      <div class="feature-card-icon">📊</div>
+      <div class="feature-card-title">Dashboard</div>
+      <div class="feature-card-desc">Métricas del mes, ingresos, facturas pendientes y actividad reciente.</div>
+    </div>
+  </div>
+
+  <h2>Acceso al sistema</h2>
+  <div class="access-box">
+    <h3>Sus credenciales de acceso</h3>
+    <div class="access-row">
+      <span class="access-label">URL del sistema</span>
+      <span class="access-value gold">mecanico-management.vercel.app</span>
+    </div>
+    <div class="access-row">
+      <span class="access-label">Usuario (email)</span>
+      <span class="access-value">______________________________</span>
+    </div>
+    <div class="access-row">
+      <span class="access-label">Contraseña</span>
+      <span class="access-value">______________________________</span>
+    </div>
+  </div>
+  <div class="tip">
+    <strong>Consejo:</strong> Guarde la página en favoritos en su navegador para acceder en un clic.
+    Funciona en Chrome, Firefox, Safari y Edge — en computadora, tableta y celular.
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-left">Mecanico — Guía de Usuario v1.0</span>
+    <span class="page-footer-right">gabansolutions.ca</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PÁGINA 2 — Clientes y Vehículos
+══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">
+      <div class="page-logo-hex"></div>
+      <span class="page-logo-name">GABAN</span>
+    </div>
+    <span class="page-section-tag">Módulos 1 y 2</span>
+  </div>
+
+  <p class="section-number">02 — Módulo</p>
+  <h1 class="section-title">Clientes<br />&amp; Vehículos</h1>
+
+  <h2>Registrar un cliente nuevo</h2>
+  <ol class="steps">
+    <li>En el menú izquierdo, haga clic en <strong>Clientes</strong></li>
+    <li>Haga clic en el botón <strong>Nuevo cliente</strong> (arriba a la derecha)</li>
+    <li>Complete los datos: nombre, apellido, email, teléfono, dirección</li>
+    <li>Haga clic en <strong>Guardar cliente</strong></li>
+  </ol>
+
+  <h2>Buscar un cliente</h2>
+  <p>En la página de Clientes hay una barra de búsqueda. Puede buscar por nombre, apellido, email o teléfono. Los resultados aparecen automáticamente mientras escribe.</p>
+
+  <h2>Ver el historial de un cliente</h2>
+  <p>Haga clic en el nombre del cliente en la lista. Verá todos sus vehículos registrados y todas sus facturas anteriores.</p>
+
+  <h2>Agregar un vehículo a un cliente</h2>
+  <ol class="steps">
+    <li>Vaya a la página del cliente (haga clic en su nombre)</li>
+    <li>Haga clic en <strong>Agregar vehículo</strong></li>
+    <li>Complete: marca, modelo, año, placa, color, unidad de kilometraje</li>
+    <li>Haga clic en <strong>Guardar vehículo</strong></li>
+  </ol>
+  <div class="tip">
+    <strong>Nota:</strong> Un mismo cliente puede tener varios vehículos registrados.
+    Cada vehículo tiene su propio historial de servicios independiente.
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-left">Mecanico — Guía de Usuario v1.0</span>
+    <span class="page-footer-right">gabansolutions.ca</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PÁGINA 3 — Facturas
+══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">
+      <div class="page-logo-hex"></div>
+      <span class="page-logo-name">GABAN</span>
+    </div>
+    <span class="page-section-tag">Módulo 3</span>
+  </div>
+
+  <p class="section-number">03 — Módulo</p>
+  <h1 class="section-title">Facturas</h1>
+  <p class="section-intro">
+    El corazón del sistema. Cree facturas profesionales con los impuestos de Quebec calculados automáticamente — TPS (5%) + TVQ (9.975%) = 14.975%.
+  </p>
+
+  <h2>Crear una factura nueva</h2>
+  <ol class="steps">
+    <li>En el menú, haga clic en <strong>Facturas → Nueva factura</strong></li>
+    <li>Seleccione el <strong>cliente</strong> del menú desplegable</li>
+    <li>Seleccione el <strong>vehículo</strong> (se filtra automáticamente por cliente)</li>
+    <li>Ingrese el <strong>kilometraje de entrada</strong></li>
+    <li>Haga clic en <strong>Agregar línea</strong> para cada servicio o repuesto:
+      descripción · tipo (Mano de obra / Repuesto / Otro) · cantidad · precio</li>
+    <li>Los impuestos y el total se calculan solos</li>
+    <li>Agregue notas si es necesario y haga clic en <strong>Crear factura</strong></li>
+  </ol>
+
+  <h2>Descargar la factura en PDF</h2>
+  <p>Abra la factura y haga clic en <strong>Descargar PDF</strong>. El archivo incluye su logo, datos fiscales, datos del cliente y del vehículo, y todas las líneas de la factura.</p>
+
+  <h2>Estados de una factura</h2>
+  <table class="info-table">
+    <thead>
+      <tr><th>Estado</th><th>Significado</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="badge badge-draft">Borrador</span></td><td>En preparación, aún no enviada</td></tr>
+      <tr><td><span class="badge badge-sent">Enviada</span></td><td>El cliente la recibió</td></tr>
+      <tr><td><span class="badge badge-paid">Pagada</span></td><td>Trabajo pagado</td></tr>
+      <tr><td><span class="badge badge-overdue">Vencida</span></td><td>Pasó la fecha sin pago</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip">
+    <strong>Numeración automática:</strong> Las facturas se numeran solas: INV-0001, INV-0002, INV-0003...
+    No necesita llevar la cuenta — el sistema lo hace por usted.
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-left">Mecanico — Guía de Usuario v1.0</span>
+    <span class="page-footer-right">gabansolutions.ca</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PÁGINA 4 — Recordatorios + Contabilidad + Settings
+══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">
+      <div class="page-logo-hex"></div>
+      <span class="page-logo-name">GABAN</span>
+    </div>
+    <span class="page-section-tag">Módulos 4, 5 y 6</span>
+  </div>
+
+  <p class="section-number">04 — Módulo</p>
+  <h1 class="section-title">Recordatorios,<br />Contabilidad<br />&amp; Configuración</h1>
+
+  <h2>Recordatorios de servicio</h2>
+  <p>Envíe avisos por email a sus clientes cuando un vehículo necesite mantenimiento.</p>
+  <ol class="steps">
+    <li>Clic en <strong>Recordatorios → Nuevo recordatorio</strong></li>
+    <li>Seleccione el vehículo y el tipo de servicio (ej. "Cambio de aceite")</li>
+    <li>Indique la fecha límite o el kilometraje límite</li>
+    <li>Guarde. El sistema lo enviará automáticamente 7 días antes del vencimiento.</li>
+  </ol>
+  <div class="tip">
+    <strong>Automático:</strong> El sistema revisa todos los días a las 8am y envía los avisos que vencen en 7 días o menos. Usted no tiene que hacer nada.
+  </div>
+
+  <h2>Contabilidad — Documentos para su contadora</h2>
+  <p>Suba recibos, estados de cuenta y documentos fiscales directamente a Google Drive. Su contadora recibe un aviso por email automáticamente.</p>
+  <ol class="steps">
+    <li>Clic en <strong>Contabilidad</strong> en el menú</li>
+    <li>Seleccione la categoría del documento</li>
+    <li>Arrastre el archivo o haga clic para seleccionarlo</li>
+    <li>El sistema lo guarda y avisa a su contadora</li>
+  </ol>
+
+  <h2>Configuración del taller</h2>
+  <ol class="steps">
+    <li>Clic en <strong>Configuración</strong> en el menú</li>
+    <li>Actualice: nombre del taller, dirección, teléfono, email</li>
+    <li>Ingrese sus números fiscales: <strong>NEQ, TPS, TVQ</strong></li>
+    <li>Suba su logo (JPG o PNG)</li>
+    <li>Clic en <strong>Guardar cambios</strong></li>
+  </ol>
+  <div class="tip">
+    <strong>Importante:</strong> Sus números fiscales aparecen en todas las facturas PDF. Configúrelos antes de emitir facturas a clientes.
+  </div>
+
+  <div class="page-footer">
+    <span class="page-footer-left">Mecanico — Guía de Usuario v1.0</span>
+    <span class="page-footer-right">gabansolutions.ca</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     PÁGINA 5 — FAQ y Soporte
+══════════════════════════════════════════════════ -->
+<div class="page">
+  <div class="page-header">
+    <div class="page-header-logo">
+      <div class="page-logo-hex"></div>
+      <span class="page-logo-name">GABAN</span>
+    </div>
+    <span class="page-section-tag">Preguntas frecuentes</span>
+  </div>
+
+  <p class="section-number">05 — FAQ</p>
+  <h1 class="section-title">Preguntas<br />frecuentes</h1>
+
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Puedo usar el sistema desde mi celular?</div>
+    <div class="faq-a">Sí. Funciona en cualquier navegador de celular o tableta. No necesita instalar ninguna aplicación.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Qué pasa si se va el internet?</div>
+    <div class="faq-a">El sistema requiere conexión a internet. Sus datos están guardados en la nube — no se pierden si su computadora falla.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Mis datos están seguros?</div>
+    <div class="faq-a">Sí. El sistema usa cifrado SSL y los datos se guardan en servidores seguros certificados.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Qué impuestos calcula el sistema?</div>
+    <div class="faq-a">TPS (5%) + TVQ (9.975%) = 14.975%, la tasa combinada de Quebec. Aparece desglosada en cada factura.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Puedo tener más de un empleado usando el sistema?</div>
+    <div class="faq-a">Sí, se pueden crear cuentas adicionales. Contáctese con su desarrollador para agregar usuarios.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Puedo recuperar facturas viejas?</div>
+    <div class="faq-a">Sí. Todas las facturas quedan guardadas sin límite de tiempo. Puede buscarlas por cliente, fecha o número.</div>
+  </div>
+  <div class="faq-item no-break">
+    <div class="faq-q">¿Qué hago si olvidé mi contraseña?</div>
+    <div class="faq-a">Contáctese con su desarrollador para restablecerla. Se hace en menos de 5 minutos.</div>
+  </div>
+
+  <h2>Soporte técnico</h2>
+  <div class="support-card no-break">
+    <div class="support-left">
+      <h3>GABAN Solutions</h3>
+      <p>Soporte técnico, actualizaciones y nuevas funciones</p>
+    </div>
+    <div class="support-right">
+      <a class="support-url" href="https://gabansolutions.ca">gabansolutions.ca</a>
+      <p class="support-tag">Soluciones digitales para pequeñas empresas</p>
+    </div>
+  </div>
+
+  <div class="page-footer" style="margin-top: 40px;">
+    <span class="page-footer-left">Mecanico — Guía de Usuario v1.0 · © 2025 GABAN Solutions</span>
+    <span class="page-footer-right">gabansolutions.ca</span>
+  </div>
+</div>
+
+</body>
+</html>
