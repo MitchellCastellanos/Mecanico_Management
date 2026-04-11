@@ -12,19 +12,36 @@ export const maxDuration = 60;
 
 export async function GET() {
   // Sync DB schema at runtime (Vercel build servers can't reach Supabase port 5432)
+  let pushOutput = "";
+  let pushError = "";
   try {
-    execSync("node_modules/.bin/prisma db push --accept-data-loss", {
+    pushOutput = execSync("node_modules/.bin/prisma db push --accept-data-loss", {
       env: { ...process.env },
-      stdio: "pipe",
+      encoding: "utf-8",
       timeout: 55000,
     });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("prisma db push failed:", msg);
-    // If tables already exist this is a no-op; proceed anyway
+  } catch (err: unknown) {
+    const e = err as { message?: string; stderr?: string; stdout?: string };
+    pushError = e.stderr ?? e.stdout ?? e.message ?? String(err);
+    console.error("prisma db push failed:", pushError);
+    // Tables may already exist — attempt the seed queries anyway
   }
 
-  const userCount = await db.user.count();
+  let userCount: number;
+  try {
+    userCount = await db.user.count();
+  } catch (err) {
+    // Tables still don't exist — return diagnostic info
+    return NextResponse.json(
+      {
+        error: "DB tables missing. prisma db push may have failed.",
+        pushOutput: pushOutput.slice(0, 2000),
+        pushError: pushError.slice(0, 2000),
+        dbError: err instanceof Error ? err.message : String(err),
+      },
+      { status: 500 }
+    );
+  }
 
   if (userCount > 0) {
     return NextResponse.json({
