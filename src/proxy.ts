@@ -10,6 +10,7 @@ export default auth((req) => {
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/setup") ||
     pathname.startsWith("/api/debug") ||
+    pathname.startsWith("/api/version") ||
     pathname.startsWith("/api/webhooks");
 
   if (!req.auth && !isPublic) {
