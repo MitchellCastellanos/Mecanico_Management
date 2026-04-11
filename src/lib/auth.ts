@@ -1,24 +1,14 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { z } from "zod";
 import { db } from "@/lib/db";
 
-const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(6),
-});
-
 export const authConfig: NextAuthConfig = {
-  // Sin adapter — usamos JWT strategy con Credentials, no necesitamos
-  // persistir sesiones en DB. El PrismaAdapter causaba lookups extra
-  // en NextAuth v5 beta que fallaban silenciosamente tras el authorize.
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    // Embed shopId and role into the JWT so every request has tenant context
     async jwt({ token, user }) {
       if (user) {
         token.shopId = (user as { shopId?: string }).shopId;
@@ -38,41 +28,45 @@ export const authConfig: NextAuthConfig = {
   },
   providers: [
     Credentials({
-      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        const parsed = loginSchema.safeParse(credentials);
-        if (!parsed.success) return null;
+        try {
+          const email = credentials?.email as string | undefined;
+          const password = credentials?.password as string | undefined;
 
-        const { email, password } = parsed.data;
+          if (!email || !password) return null;
 
-        const user = await db.user.findUnique({
-          where: { email },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            passwordHash: true,
-            shopId: true,
-            role: true,
-          },
-        });
+          const user = await db.user.findUnique({
+            where: { email },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              passwordHash: true,
+              shopId: true,
+              role: true,
+            },
+          });
 
-        if (!user || !user.passwordHash) return null;
+          if (!user?.passwordHash) return null;
 
-        const isValid = await bcrypt.compare(password, user.passwordHash);
-        if (!isValid) return null;
+          const isValid = await bcrypt.compare(password, user.passwordHash);
+          if (!isValid) return null;
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          shopId: user.shopId,
-          role: user.role,
-        };
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            shopId: user.shopId,
+            role: user.role,
+          };
+        } catch (err) {
+          console.error("[authorize] error:", err);
+          return null;
+        }
       },
     }),
   ],
