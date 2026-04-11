@@ -1,44 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useActionState } from "react";
+import { loginAction } from "@/actions/auth";
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const formData = new FormData(e.currentTarget);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
-
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Email o contraseña incorrectos");
-        setLoading(false);
-        return;
-      }
-
-      router.push("/dashboard");
-      router.refresh();
-    } catch (err) {
-      setError(`Error: ${err instanceof Error ? err.message : String(err)}`);
-      setLoading(false);
-    }
-  }
+  const [error, formAction, pending] = useActionState(loginAction, null);
 
   return (
     <div className="w-full max-w-sm">
@@ -56,7 +22,7 @@ export default function LoginPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
         <h2 className="text-lg font-semibold text-slate-900 mb-6">Iniciar sesión</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={formAction} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
             <input id="email" name="email" type="email" autoComplete="email" required
@@ -77,9 +43,9 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button type="submit" disabled={loading}
+          <button type="submit" disabled={pending}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition-colors">
-            {loading ? "Entrando..." : "Entrar"}
+            {pending ? "Entrando..." : "Entrar"}
           </button>
         </form>
       </div>
