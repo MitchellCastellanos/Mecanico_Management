@@ -18,20 +18,25 @@ export default function LoginPage() {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    const result = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (result?.error) {
-      setError("Email o contraseña incorrectos");
+      if (result?.error) {
+        setError(`Error: ${result.error} | code: ${(result as { code?: string }).code ?? "—"}`);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(`Exception: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
-      return;
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
