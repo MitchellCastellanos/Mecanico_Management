@@ -4,10 +4,13 @@ import { NextResponse } from "next/server";
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  // Rutas públicas: login y API de auth
+  // Rutas públicas — no requieren sesión
   const isPublic =
     pathname.startsWith("/login") ||
-    pathname.startsWith("/api/auth");
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/setup") ||
+    pathname.startsWith("/api/debug") ||
+    pathname.startsWith("/api/webhooks");
 
   if (!req.auth && !isPublic) {
     const loginUrl = new URL("/login", req.url);
