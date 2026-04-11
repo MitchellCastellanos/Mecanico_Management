@@ -1,6 +1,5 @@
 import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -11,7 +10,9 @@ const loginSchema = z.object({
 });
 
 export const authConfig: NextAuthConfig = {
-  adapter: PrismaAdapter(db),
+  // Sin adapter — usamos JWT strategy con Credentials, no necesitamos
+  // persistir sesiones en DB. El PrismaAdapter causaba lookups extra
+  // en NextAuth v5 beta que fallaban silenciosamente tras el authorize.
   session: { strategy: "jwt" },
   pages: {
     signIn: "/login",
