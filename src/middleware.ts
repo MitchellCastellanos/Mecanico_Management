@@ -6,7 +6,7 @@ export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // Rutas públicas — nunca requieren auth
-  const publicPaths = ["/login", "/api/auth", "/api/setup", "/api/webhooks"];
+  const publicPaths = ["/login", "/api/auth", "/api/setup", "/api/webhooks", "/api/debug"];
   if (publicPaths.some((p) => pathname.startsWith(p))) {
     return NextResponse.next();
   }
