@@ -1,11 +1,21 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
-// Prisma v7 usa el motor WASM y requiere un driver adapter explícito.
-// PrismaPg conecta con cualquier PostgreSQL compatible (Supabase, local, etc.)
+// Prisma v7 usa el motor WASM con driver adapter explícito.
+// Usamos pg.Pool para poder configurar SSL — requerido por Supabase en producción.
 function createPrismaClient() {
   const connectionString = process.env.DATABASE_URL ?? "";
-  const adapter = new PrismaPg({ connectionString });
+
+  const pool = new Pool({
+    connectionString,
+    // Supabase (y la mayoría de Postgres en la nube) requiere SSL.
+    // rejectUnauthorized: false acepta el certificado auto-firmado de Supabase.
+    ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+  });
+
+  const adapter = new PrismaPg(pool);
+
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
