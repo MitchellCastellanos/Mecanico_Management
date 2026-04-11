@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import bcrypt from "bcryptjs";
 
 // Endpoint temporal de diagnóstico — borrar después del debug
 export async function GET() {
@@ -28,6 +29,20 @@ export async function GET() {
   } catch (err) {
     results.db_connected = false;
     results.db_error = err instanceof Error ? err.message : String(err);
+  }
+
+  // Simula exactamente el flujo de authorize de NextAuth
+  try {
+    const user = await db.user.findUnique({
+      where: { email: "demo@mecanico.com" },
+      select: { id: true, email: true, passwordHash: true, shopId: true, role: true },
+    });
+    results.user_found = !!user;
+    if (user?.passwordHash) {
+      results.bcrypt_result = await bcrypt.compare("demo123", user.passwordHash);
+    }
+  } catch (err) {
+    results.authorize_error = err instanceof Error ? err.message : String(err);
   }
 
   return NextResponse.json(results);
