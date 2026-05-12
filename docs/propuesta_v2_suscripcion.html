@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Propuesta — Mecanico Management App | GABAN Solutions</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:   #C9A84C;
+      --dark:   #0D0D0D;
+      --text:   #1A1A1A;
+      --muted:  #555;
+      --border: #E0E0E0;
+      --bg-lt:  #FAFAFA;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 13.5px;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    /* ── PAGE WRAPPER ───────────────────────────── */
+    .page {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 52px 64px;
+    }
+    .page + .page { page-break-before: always; }
+
+    /* ── HEADER ─────────────────────────────────── */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--gold);
+      margin-bottom: 36px;
+    }
+    .logo-row { display: flex; align-items: center; gap: 12px; }
+    .logo-hex {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--gold) 0%, #7A5E1A 100%);
+      clip-path: polygon(50% 0%,93% 25%,93% 75%,50% 100%,7% 75%,7% 25%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-hex-inner {
+      width: 24px; height: 24px; background: var(--dark);
+      clip-path: polygon(50% 8%,88% 28%,88% 72%,50% 92%,12% 72%,12% 28%);
+    }
+    .logo-name { font-size: 20px; font-weight: 800; color: var(--dark); letter-spacing: 1.5px; }
+    .logo-site { font-size: 11px; color: var(--muted); margin-top: 1px; }
+    .doc-date { font-size: 12px; color: var(--muted); text-align: right; margin-top: 4px; }
+
+    /* ── TITLE BLOCK ────────────────────────────── */
+    .title-block { text-align: center; margin-bottom: 32px; }
+    .title-block h1 { font-size: 22px; font-weight: 800; color: var(--dark); letter-spacing: 0.5px; }
+    .title-block h2 { font-size: 16px; font-weight: 600; color: var(--gold); margin-top: 6px; }
+    .title-block p  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* ── PRICING HERO ───────────────────────────── */
+    .pricing-hero {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      color: #fff;
+    }
+    .ph-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .ph-amount { font-size: 36px; font-weight: 800; color: #fff; line-height: 1; }
+    .ph-amount sup { font-size: 16px; font-weight: 400; vertical-align: super; }
+    .ph-amount span { font-size: 14px; font-weight: 400; color: rgba(255,255,255,0.5); }
+    .ph-desc { font-size: 12px; color: rgba(255,255,255,0.45); margin-top: 6px; }
+    .ph-divider { width: 1px; background: rgba(255,255,255,0.1); }
+    .ph-right { border-left: 1px solid rgba(255,255,255,0.1); padding-left: 24px; }
+
+    .pricing-note {
+      background: #FFFBF0;
+      border: 1px solid #E8D5A3;
+      border-left: 4px solid var(--gold);
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 12.5px;
+      color: #5A4A1E;
+      margin-bottom: 32px;
+    }
+
+    /* ── PLANS COMPARISON ───────────────────────── */
+    .plans {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .plan {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .plan.featured { border-color: var(--gold); }
+    .plan-head {
+      padding: 18px 20px 14px;
+      background: var(--bg-lt);
+      border-bottom: 1px solid var(--border);
+    }
+    .plan.featured .plan-head { background: var(--dark); }
+    .plan-tag {
+      font-size: 10px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+    }
+    .plan-name { font-size: 15px; font-weight: 800; color: var(--dark); }
+    .plan.featured .plan-name { color: #fff; }
+    .plan-price-row { display: flex; align-items: baseline; gap: 4px; margin-top: 10px; }
+    .plan-price { font-size: 28px; font-weight: 800; color: var(--dark); }
+    .plan.featured .plan-price { color: #fff; }
+    .plan-cadence { font-size: 12px; color: var(--muted); }
+    .plan.featured .plan-cadence { color: rgba(255,255,255,0.5); }
+    .plan-setup { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .plan.featured .plan-setup { color: rgba(255,255,255,0.45); }
+    .plan-body { padding: 16px 20px; }
+    .plan-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 12.5px; color: #333; padding: 6px 0;
+      border-bottom: 1px solid #F0F0F0;
+    }
+    .plan-item:last-child { border-bottom: none; }
+    .plan-item::before {
+      content: '✓'; color: var(--gold); font-weight: 700;
+      flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* ── SECTION HEADINGS ───────────────────────── */
+    .section { margin-bottom: 28px; }
+    .section-title {
+      font-size: 14px; font-weight: 800; color: var(--dark);
+      text-transform: uppercase; letter-spacing: 0.8px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--gold);
+      margin-bottom: 16px;
+    }
+    .section-title span { color: var(--gold); }
+
+    /* ── MODULE LIST ────────────────────────────── */
+    .mod-title {
+      font-size: 13px; font-weight: 700; color: var(--gold);
+      margin: 14px 0 6px;
+    }
+    ul.mod-list { list-style: none; padding: 0; }
+    ul.mod-list li {
+      font-size: 13px; color: #333; padding: 3px 0 3px 18px;
+      position: relative;
+    }
+    ul.mod-list li::before {
+      content: '—'; position: absolute; left: 0;
+      color: var(--gold); font-weight: 700;
+    }
+
+    /* ── GUARANTEE CARDS ────────────────────────── */
+    .guarantee-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .guarantee-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .guarantee-card-icon { font-size: 20px; margin-bottom: 8px; }
+    .guarantee-card-title { font-size: 13px; font-weight: 700; color: var(--dark); margin-bottom: 6px; }
+    .guarantee-card-text { font-size: 12px; color: var(--muted); line-height: 1.6; }
+
+    /* ── BUYOUT BOX ─────────────────────────────── */
+    .buyout-box {
+      background: var(--dark);
+      border-radius: 10px;
+      padding: 24px 28px;
+      color: #fff;
+      margin: 20px 0;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+    }
+    .buyout-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--gold); margin-bottom: 6px; }
+    .buyout-title { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+    .buyout-desc { font-size: 12px; color: rgba(255,255,255,0.55); line-height: 1.6; }
+    .buyout-price-col { text-align: right; }
+    .buyout-price { font-size: 32px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+    .buyout-once { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+    /* ── CONDITIONS TABLE ───────────────────────── */
+    table.cond {
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }
+    table.cond tr { border-bottom: 1px solid var(--border); }
+    table.cond tr:last-child { border-bottom: none; }
+    table.cond td { padding: 10px 12px; vertical-align: top; }
+    table.cond td:first-child {
+      font-weight: 700; color: var(--dark); width: 38%;
+      background: var(--bg-lt);
+    }
+    table.cond td:last-child { color: #333; }
+
+    /* ── NOT INCLUDED ───────────────────────────── */
+    ul.not-included {
+      list-style: none; padding: 0;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 4px;
+    }
+    ul.not-included li {
+      font-size: 12.5px; color: var(--muted);
+      padding: 4px 0 4px 16px; position: relative;
+    }
+    ul.not-included li::before {
+      content: '×'; position: absolute; left: 0;
+      color: #CCC; font-weight: 700;
+    }
+
+    /* ── SIGNATURE ──────────────────────────────── */
+    .sig-block {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+      margin-top: 36px;
+    }
+    .sig-line {
+      border-top: 1.5px solid var(--dark);
+      padding-top: 10px;
+    }
+    .sig-name { font-size: 13px; font-weight: 700; color: var(--dark); }
+    .sig-name.gold { color: var(--gold); }
+    .sig-role { font-size: 11.5px; color: var(--muted); }
+    .sig-date { font-size: 12px; color: var(--muted); margin-top: 20px; }
+
+    /* ── FOOTER ─────────────────────────────────── */
+    .doc-footer {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-between;
+      font-size: 11px; color: #AAA;
+    }
+
+    /* ── PRINT ──────────────────────────────────── */
+    @media print {
+      body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+      .page + .page { page-break-before: always; }
+    }
+    @page { size: A4; margin: 0; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     PÁGINA 1 — Presentación y Precios
+══════════════════════════════════ -->
+<div class="page">
+
+  <div class="doc-header">
+    <div class="logo-row">
+      <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+      <div>
+        <div class="logo-name">GABAN Solutions</div>
+        <div class="logo-site">gabansolutions.ca</div>
+      </div>
+    </div>
+    <div class="doc-date">
+      PROPUESTA DE DESARROLLO<br />
+      <strong>Mecanico Management App — v2</strong><br />
+      Fecha: mayo de 2026
+    </div>
+  </div>
+
+  <div class="title-block">
+    <h1>PROPUESTA DE DESARROLLO DE SOFTWARE</h1>
+    <h2>Mecánico Management App — Plan con Servicio Mensual</h2>
+    <p>Modalidad accesible: pago de instalación único + cuota mensual de soporte y operación</p>
+  </div>
+
+  <!-- PRICING HERO -->
+  <div class="pricing-hero">
+    <div>
+      <div class="ph-label">Pago de instalación</div>
+      <div class="ph-amount"><sup>$</sup>299<span> CAD</span></div>
+      <div class="ph-desc">Pago único al inicio — desarrollo, configuración y lanzamiento</div>
+    </div>
+    <div class="ph-right">
+      <div class="ph-label">Cuota mensual</div>
+      <div class="ph-amount"><sup>$</sup>79<span> CAD/mes</span></div>
+      <div class="ph-desc">Incluye hosting, soporte técnico, mantenimiento y actualizaciones</div>
+    </div>
+  </div>
+
+  <div class="pricing-note">
+    <strong>¿Por qué este modelo?</strong> — En lugar de pagar $1,100 de una sola vez,
+    usted pone $299 para arrancar y $79 al mes que cubren todos los costos de operación del sistema:
+    servidores, base de datos, servicio de email y soporte técnico continuo.
+    Sin sorpresas, sin facturas extras.
+  </div>
+
+  <!-- PLANES -->
+  <div class="section">
+    <div class="section-title">Opciones disponibles</div>
+
+    <div class="plans">
+      <!-- MENSUAL -->
+      <div class="plan">
+        <div class="plan-head">
+          <div class="plan-tag">Más flexible</div>
+          <div class="plan-name">Plan Mensual</div>
+          <div class="plan-price-row">
+            <div class="plan-price">$79</div>
+            <div class="plan-cadence">CAD / mes</div>
+          </div>
+          <div class="plan-setup">+ $299 instalación (única vez)</div>
+        </div>
+        <div class="plan-body">
+          <div class="plan-item">Sistema completo en operación</div>
+          <div class="plan-item">Hosting y base de datos incluidos</div>
+          <div class="plan-item">Soporte técnico por WhatsApp/email</div>
+          <div class="plan-item">Actualizaciones menores incluidas</div>
+          <div class="plan-item">Sus datos son suyos — exportables en cualquier momento</div>
+          <div class="plan-item">Sin contrato de permanencia — cancela cuando quiera</div>
+        </div>
+      </div>
+
+      <!-- ANUAL (featured) -->
+      <div class="plan featured">
+        <div class="plan-head">
+          <div class="plan-tag">⭐ Recomendado — Ahorra $200</div>
+          <div class="plan-name">Plan Anual</div>
+          <div class="plan-price-row">
+            <div class="plan-price">$749</div>
+            <div class="plan-cadence">CAD / año</div>
+          </div>
+          <div class="plan-setup">+ $299 instalación (única vez)</div>
+        </div>
+        <div class="plan-body">
+          <div class="plan-item">Todo lo del plan mensual</div>
+          <div class="plan-item">Equivale a $62.40/mes — ahorra ~$200</div>
+          <div class="plan-item">Prioridad en soporte técnico</div>
+          <div class="plan-item">1 actualización mayor de funciones al año</div>
+          <div class="plan-item">Revisión anual del sistema incluida</div>
+          <div class="plan-item">Sus datos son suyos — exportables en cualquier momento</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>GABAN Solutions • gabansolutions.ca</span>
+    <span>Propuesta válida por 15 días naturales • Página 1 de 3</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     PÁGINA 2 — Módulos + Garantías
+══════════════════════════════════ -->
+<div class="page">
+
+  <div class="doc-header">
+    <div class="logo-row">
+      <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+      <div>
+        <div class="logo-name">GABAN Solutions</div>
+        <div class="logo-site">gabansolutions.ca</div>
+      </div>
+    </div>
+    <div class="doc-date">Mecanico Management App<br />Alcance del Proyecto</div>
+  </div>
+
+  <!-- MÓDULOS -->
+  <div class="section">
+    <div class="section-title">Alcance del Proyecto — <span>6 módulos incluidos</span></div>
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">
+      El sistema desarrollado incluye exactamente los mismos módulos de la propuesta original —
+      el cambio de modalidad no afecta ninguna funcionalidad.
+    </p>
+
+    <div class="mod-title">MÓDULO 1 — Clientes y Vehículos</div>
+    <ul class="mod-list">
+      <li>Registro completo de clientes (nombre, email, teléfono, dirección, notas)</li>
+      <li>Registro de vehículos por cliente (marca, modelo, año, placa, VIN, color, km/millas)</li>
+      <li>Historial de servicios por vehículo · Búsqueda y filtros · Edición y eliminación</li>
+    </ul>
+
+    <div class="mod-title">MÓDULO 2 — Facturación Electrónica</div>
+    <ul class="mod-list">
+      <li>Facturas seriadas automáticamente (INV-0001, INV-0002…)</li>
+      <li>Constructor de factura con líneas dinámicas (mano de obra, repuestos, otros)</li>
+      <li>Cálculo automático: subtotal, TPS+TVQ (14.975%) y total — tasa editable</li>
+      <li>PDF profesional con logo, datos fiscales (NEQ/TPS/TVQ), cliente, vehículo y desglose</li>
+      <li>Estados: Borrador → Enviada → Pagada / Cancelada / Vencida</li>
+    </ul>
+
+    <div class="mod-title">MÓDULO 3 — Recordatorios de Servicio</div>
+    <ul class="mod-list">
+      <li>Recordatorios por fecha y/o kilometraje por vehículo</li>
+      <li>Envío manual con un clic + email automático nocturno (≤7 días al vencimiento)</li>
+      <li>Sistema idempotente — nunca envía correos duplicados</li>
+    </ul>
+
+    <div class="mod-title">MÓDULO 4 — Contabilidad para la Contadora</div>
+    <ul class="mod-list">
+      <li>Subida de documentos por categoría (Facturas, Recibos, Nómina, Fiscales, etc.)</li>
+      <li>Almacenamiento automático en Google Drive + backup en Supabase Storage</li>
+      <li>Email automático a la contadora con lista de archivos y links directos</li>
+    </ul>
+
+    <div class="mod-title">MÓDULO 5 — Dashboard con Métricas</div>
+    <ul class="mod-list">
+      <li>KPIs: clientes, facturas, ingresos del mes vs. anterior, recordatorios pendientes</li>
+      <li>Gráfica de barras (ingresos 6 meses) + gráfica donut (facturas por estado)</li>
+      <li>Top 5 clientes por ingresos + últimas 5 facturas</li>
+    </ul>
+
+    <div class="mod-title">MÓDULO 6 — Configuración del Taller</div>
+    <ul class="mod-list">
+      <li>Logo del taller (aplica en todos los PDFs), datos de contacto, NEQ/TPS/TVQ</li>
+      <li>Cambio de contraseña · Diseño responsive (PC, tablet y celular)</li>
+    </ul>
+  </div>
+
+  <!-- GARANTÍAS -->
+  <div class="section">
+    <div class="section-title">Sus Garantías — <span>Privacidad, Datos y Derechos</span></div>
+
+    <div class="guarantee-grid">
+      <div class="guarantee-card">
+        <div class="guarantee-card-icon">🔒</div>
+        <div class="guarantee-card-title">Sus datos son suyos — siempre</div>
+        <div class="guarantee-card-text">
+          Toda la información de su taller (clientes, vehículos, facturas) está almacenada
+          en su propia base de datos, aislada y accesible únicamente por usted.
+          GABAN Solutions <strong>no tiene acceso operativo a sus datos</strong> de negocio
+          bajo ninguna circunstancia.
+        </div>
+      </div>
+      <div class="guarantee-card">
+        <div class="guarantee-card-icon">🛡️</div>
+        <div class="guarantee-card-title">Privacidad garantizada</div>
+        <div class="guarantee-card-text">
+          Los datos de sus clientes (nombres, emails, direcciones, información de sus vehículos)
+          son <strong>estrictamente confidenciales</strong>. GABAN Solutions se compromete a nunca
+          compartirlos, venderlos, ni utilizarlos para ningún otro fin.
+        </div>
+      </div>
+      <div class="guarantee-card">
+        <div class="guarantee-card-icon">📦</div>
+        <div class="guarantee-card-title">Exportación total en cualquier momento</div>
+        <div class="guarantee-card-text">
+          Usted puede solicitar la exportación completa de todos sus datos
+          (clientes, facturas, historial) en formato estándar en cualquier momento,
+          <strong>sin costo adicional</strong> y en un plazo máximo de 5 días hábiles.
+        </div>
+      </div>
+      <div class="guarantee-card">
+        <div class="guarantee-card-icon">⚖️</div>
+        <div class="guarantee-card-title">Uso exclusivo de su sistema</div>
+        <div class="guarantee-card-text">
+          Su sistema tiene su propia URL, su propio logo y sus propios datos.
+          GABAN Solutions <strong>no puede reutilizar su configuración</strong>
+          ni datos en otro cliente. Su taller digital es único.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>GABAN Solutions • gabansolutions.ca</span>
+    <span>Propuesta válida por 15 días naturales • Página 2 de 3</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     PÁGINA 3 — Opción a Compra + Condiciones + Firma
+══════════════════════════════════ -->
+<div class="page">
+
+  <div class="doc-header">
+    <div class="logo-row">
+      <div class="logo-hex"><div class="logo-hex-inner"></div></div>
+      <div>
+        <div class="logo-name">GABAN Solutions</div>
+        <div class="logo-site">gabansolutions.ca</div>
+      </div>
+    </div>
+    <div class="doc-date">Mecanico Management App<br />Condiciones y Firma</div>
+  </div>
+
+  <!-- OPCIÓN A COMPRA -->
+  <div class="section">
+    <div class="section-title">Opción a Compra — <span>Adquiera el software en cualquier momento</span></div>
+
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">
+      Entendemos que muchos negocios prefieren ser dueños de su software. Por eso incluimos
+      una cláusula de opción a compra: en cualquier momento durante la suscripción, usted puede
+      liquidar el software y recibirá todos los derechos sobre él.
+    </p>
+
+    <div class="buyout-box">
+      <div>
+        <div class="buyout-label">Opción a compra — ejercible en cualquier momento</div>
+        <div class="buyout-title">Adquisición completa del software</div>
+        <div class="buyout-desc">
+          Al ejercer esta opción, GABAN Solutions le entrega:<br />
+          ✓ &nbsp;Código fuente completo del sistema<br />
+          ✓ &nbsp;Transferencia total de propiedad intelectual<br />
+          ✓ &nbsp;Documentación técnica del proyecto<br />
+          ✓ &nbsp;30 días de soporte de transición incluidos<br />
+          ✓ &nbsp;La suscripción mensual queda cancelada automáticamente
+        </div>
+      </div>
+      <div class="buyout-price-col">
+        <div class="buyout-price">$799 CAD</div>
+        <div class="buyout-once">Pago único al ejercer la opción</div>
+      </div>
+    </div>
+
+    <div class="pricing-note" style="margin-top:0;">
+      <strong>Crédito por tiempo suscrito:</strong> Si lleva 6 meses o más activo al momento
+      de ejercer la opción, se aplica un descuento de <strong>$100 CAD</strong> sobre el precio
+      de compra ($699 CAD en lugar de $799 CAD). Una forma de reconocer su lealtad.
+    </div>
+  </div>
+
+  <!-- QUÉ PASA AL CANCELAR -->
+  <div class="section">
+    <div class="section-title">¿Qué pasa si cancela la suscripción?</div>
+    <table class="cond">
+      <tr>
+        <td>Aviso de cancelación</td>
+        <td>El cliente notifica con 30 días de anticipación por escrito (WhatsApp o email)</td>
+      </tr>
+      <tr>
+        <td>Exportación de datos</td>
+        <td>GABAN Solutions entrega exportación completa de todos los datos en 5 días hábiles</td>
+      </tr>
+      <tr>
+        <td>Eliminación de datos</td>
+        <td>Los datos del cliente se eliminan permanentemente de los servidores en 30 días tras la cancelación</td>
+      </tr>
+      <tr>
+        <td>Acceso al sistema</td>
+        <td>El sistema permanece activo hasta el último día del período pagado</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- CONDICIONES GENERALES -->
+  <div class="section">
+    <div class="section-title">Condiciones Generales</div>
+    <table class="cond">
+      <tr>
+        <td>Pago de instalación</td>
+        <td>$299.00 CAD — requerido para iniciar el desarrollo (impuestos no incluidos)</td>
+      </tr>
+      <tr>
+        <td>Cuota mensual</td>
+        <td>$79.00 CAD/mes — cobro el primer día de cada mes tras la entrega</td>
+      </tr>
+      <tr>
+        <td>Plan anual alternativo</td>
+        <td>$749.00 CAD/año (equivale a $62.40/mes — ahorra ~$200 vs plan mensual)</td>
+      </tr>
+      <tr>
+        <td>Plazo de entrega</td>
+        <td>4 días hábiles a partir de la confirmación del pago de instalación</td>
+      </tr>
+      <tr>
+        <td>Soporte incluido</td>
+        <td>Correcciones de errores, mantenimiento del servidor y soporte por WhatsApp/email</td>
+      </tr>
+      <tr>
+        <td>Revisiones post-entrega</td>
+        <td>1 ronda de ajustes menor incluida en los primeros 30 días</td>
+      </tr>
+      <tr>
+        <td>Permanencia</td>
+        <td>Sin contrato de permanencia — puede cancelar en cualquier momento con aviso de 30 días</td>
+      </tr>
+      <tr>
+        <td>Opción a compra</td>
+        <td>Ejercible en cualquier momento por $799 CAD ($699 con 6+ meses de suscripción activa)</td>
+      </tr>
+      <tr>
+        <td>Propiedad de datos</td>
+        <td>El cliente es el único propietario de sus datos en todo momento. GABAN Solutions no los comparte ni comercializa bajo ninguna circunstancia.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- NO INCLUIDO -->
+  <div class="section">
+    <div class="section-title">No incluido en esta propuesta</div>
+    <ul class="not-included">
+      <li>App móvil nativa (iOS / Android)</li>
+      <li>Integración con sistemas de pago (Stripe)</li>
+      <li>Múltiples empleados / roles de usuario</li>
+      <li>Reportes exportables en Excel</li>
+      <li>Inventario de repuestos</li>
+      <li>Agenda / calendario de citas</li>
+    </ul>
+    <p style="font-size:12px;color:var(--muted);margin-top:10px;">
+      Estas funcionalidades pueden cotizarse por separado como actualizaciones del sistema.
+    </p>
+  </div>
+
+  <!-- FIRMA -->
+  <div class="section">
+    <div class="section-title">Aceptación y Firma</div>
+    <p style="font-size:13px;color:#333;margin-bottom:24px;">
+      Al firmar este documento, el cliente acepta el alcance, precio, condiciones de suscripción,
+      política de privacidad de datos y opción a compra descritos en esta propuesta.
+    </p>
+    <div class="sig-block">
+      <div>
+        <div class="sig-line">
+          <div class="sig-name">Cliente</div>
+          <div class="sig-role">Nombre completo y firma</div>
+        </div>
+        <div class="sig-date">Fecha: ________________________________</div>
+      </div>
+      <div>
+        <div class="sig-line">
+          <div class="sig-name gold">GABAN Solutions</div>
+          <div class="sig-role">Proveedor de servicios — gabansolutions.ca</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="doc-footer">
+    <span>GABAN Solutions • gabansolutions.ca • Este documento es válido por 15 días naturales.</span>
+    <span>Página 3 de 3</span>
+  </div>
+</div>
+
+</body>
+</html>
