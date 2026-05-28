@@ -11,6 +11,9 @@ CREATE TYPE "MileageUnit" AS ENUM ('KM', 'MILES');
 CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED');
 
 -- CreateEnum
+CREATE TYPE "InvoiceLanguage" AS ENUM ('ES', 'EN', 'FR');
+
+-- CreateEnum
 CREATE TYPE "LineItemType" AS ENUM ('LABOUR', 'PART', 'OTHER');
 
 -- CreateEnum
@@ -87,7 +90,7 @@ CREATE TABLE "Client" (
     "id" TEXT NOT NULL,
     "shopId" TEXT NOT NULL,
     "firstName" TEXT NOT NULL,
-    "lastName" TEXT NOT NULL,
+    "lastName" TEXT,
     "email" TEXT,
     "phone" TEXT,
     "address" TEXT,
@@ -126,9 +129,10 @@ CREATE TABLE "Invoice" (
     "dueAt" TIMESTAMP(3),
     "paidAt" TIMESTAMP(3),
     "subtotal" DECIMAL(10,2) NOT NULL,
-    "taxRate" DECIMAL(5,4) NOT NULL,
+    "taxRate" DECIMAL(6,5) NOT NULL,
     "taxAmount" DECIMAL(10,2) NOT NULL,
     "total" DECIMAL(10,2) NOT NULL,
+    "language" "InvoiceLanguage" NOT NULL DEFAULT 'ES',
     "notes" TEXT,
     "pdfUrl" TEXT,
     "mileageIn" INTEGER,
