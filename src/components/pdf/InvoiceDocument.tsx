@@ -75,8 +75,8 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 120;
-const LOGO_HEIGHT = 70;
+const LOGO_WIDTH = 132;
+const LOGO_HEIGHT = 96;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
@@ -453,6 +453,21 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   CANCELLED: { bg: SLATE_100, color: SLATE_400 },
 };
 
+// Separa un taxId tipo "TPS: 123...RT0001  TVQ: 456...TQ0001" en líneas
+// independientes para que cada número quede alineado junto a su etiqueta corta.
+// Si no reconoce el formato, retorna null para mostrarlo como una sola línea.
+function parseTaxRegistration(
+  taxId: string
+): { label: string; value: string }[] | null {
+  const re = /(TPS|TVQ|GST|QST|HST|TVH)\s*[:#]?\s*([A-Za-z0-9]+)/gi;
+  const segments: { label: string; value: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(taxId)) !== null) {
+    segments.push({ label: m[1].toUpperCase(), value: m[2] });
+  }
+  return segments.length > 0 ? segments : null;
+}
+
 function ContactLine({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
   const isLong = value.length > 42;
@@ -526,7 +541,18 @@ function InvoiceHeader({
             <ContactLine label={t.phone} value={invoice.shop.phone} />
             <ContactLine label={t.email} value={invoice.shop.email} />
             <ContactLine label={t.address} value={invoice.shop.address} />
-            <ContactLine label={t.taxRegistration} value={invoice.shop.taxId} />
+            {(() => {
+              if (!invoice.shop.taxId) return null;
+              const segments = parseTaxRegistration(invoice.shop.taxId);
+              if (!segments) {
+                return (
+                  <ContactLine label={t.taxRegistration} value={invoice.shop.taxId} />
+                );
+              }
+              return segments.map((seg) => (
+                <ContactLine key={seg.label} label={seg.label} value={seg.value} />
+              ));
+            })()}
           </View>
         </View>
 
