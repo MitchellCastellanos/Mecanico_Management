@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Bell, Plus, Send, X } from "lucide-react";
 import { getReminders, sendReminderNow, dismissReminder } from "@/actions/reminders";
 import { formatDate } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 
 const STATUS_TABS = [
   { value: "ALL", label: "Todos" },
@@ -114,7 +115,7 @@ export default async function RemindersPage({ searchParams }: PageProps) {
                 </div>
 
                 <p className="text-sm text-slate-600">
-                  {reminder.vehicle.client.firstName} {reminder.vehicle.client.lastName} —{" "}
+                  {formatClientName(reminder.vehicle.client)} —{" "}
                   {reminder.vehicle.year} {reminder.vehicle.make} {reminder.vehicle.model}
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">

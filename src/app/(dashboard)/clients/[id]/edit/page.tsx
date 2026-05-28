@@ -1,5 +1,6 @@
 import { getClientById, updateClient } from "@/actions/clients";
 import { ClientForm } from "@/components/clients/ClientForm";
+import { formatClientName } from "@/lib/client-name";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 
@@ -14,7 +15,7 @@ export default async function EditClientPage({ params }: Props) {
   // Preparamos los valores iniciales del formulario desde la DB
   const defaultValues = {
     firstName: client.firstName,
-    lastName: client.lastName,
+    lastName: client.lastName ?? "",
     email: client.email ?? "",
     phone: client.phone ?? "",
     address: client.address ?? "",
@@ -28,12 +29,12 @@ export default async function EditClientPage({ params }: Props) {
         className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4 transition-colors"
       >
         <ChevronLeft className="w-4 h-4" />
-        {client.firstName} {client.lastName}
+        {formatClientName(client)}
       </Link>
 
       <h1 className="text-2xl font-bold text-slate-900 mb-1">Editar cliente</h1>
       <p className="text-slate-500 text-sm mb-6">
-        Actualiza los datos de {client.firstName} {client.lastName}.
+        Actualiza los datos de {formatClientName(client)}.
       </p>
 
       <div className="bg-white rounded-xl border border-slate-200 p-6">

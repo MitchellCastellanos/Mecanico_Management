@@ -191,7 +191,7 @@ El sistema requiere conexión a internet para funcionar. Sus datos están guarda
 Sí. El sistema usa cifrado SSL (el candado verde que ve en el navegador) y los datos se guardan en servidores seguros en Canadá/EE.UU.
 
 **¿Puedo tener más de un empleado usando el sistema?**
-Sí, se pueden crear cuentas adicionales. Contáctese con su desarrollador para agregar usuarios.
+Sí. Si usted es el **dueño** del taller, vaya a **Configuración → Equipo del taller** para crear cuentas, asignar roles y restablecer contraseñas.
 
 **¿Qué impuestos calcula el sistema?**
 TPS (5%) + TVQ (9.975%) = 14.975%, que es la tasa combinada de Quebec. Aparece desglosada en cada factura.
@@ -216,17 +216,33 @@ Sus datos están en una base de datos estándar PostgreSQL. Puede exportarlos en
 | **Contraseña** | *(la que usted eligió)* |
 
 > **Guarde esta información en un lugar seguro.**
-> Si olvida su contraseña, contáctese con su desarrollador para restablecerla.
+> Si olvida su contraseña y es el dueño, puede restablecerla desde **Configuración → Equipo del taller**. Si es empleado, pida al dueño que la restablezca.
+
+---
+
+## Módulo 6 — Equipo del taller (solo dueño)
+
+Si su cuenta tiene rol **Dueño**, en **Configuración** verá la sección **Equipo del taller**:
+
+| Acción | Cómo hacerlo |
+|--------|----------------|
+| **Crear empleado** | Clic en **Nuevo usuario** → nombre, correo, contraseña temporal y rol |
+| **Restablecer contraseña** | Ícono de llave junto al usuario → nueva contraseña → **Guardar** |
+| **Cambiar permisos** | Menú desplegable de rol: Dueño / Mecánico / Solo lectura |
+| **Eliminar cuenta** | Ícono de papelera (no puede eliminarse a sí mismo) |
+
+**Roles:**
+- **Dueño** — acceso total, incluyendo esta sección
+- **Mecánico** — puede trabajar con clientes, facturas y recordatorios
+- **Solo lectura** — puede ver información pero no modificarla
 
 ---
 
 ## Soporte
 
-Para soporte técnico, cambios, o agregar nuevas funciones:
+Para soporte técnico, cambios o nuevas funciones, use el recuadro **¿Necesita ayuda?** al final de **Configuración**, o contacte:
 
-**Desarrollador:** *(tu nombre)*
-**Email:** *(tu email)*
-**WhatsApp:** *(tu número)*
+**GABAN Solutions** — [gabansolutions.ca](https://gabansolutions.ca)
 
 ---
 

@@ -39,3 +39,29 @@ export async function uploadToStorage(
 
   return { storagePath, publicUrl: data.publicUrl };
 }
+
+/** Sube o reemplaza el logo del taller (path fijo por shop). */
+export async function uploadShopLogoToStorage(
+  shopId: string,
+  buffer: Buffer,
+  mimeType: string,
+  ext: string
+): Promise<{ storagePath: string; publicUrl: string }> {
+  const supabase = getClient();
+  const storagePath = `logos/${shopId}/logo.${ext}`;
+
+  const { error } = await supabase.storage
+    .from("accounting")
+    .upload(storagePath, buffer, { contentType: mimeType, upsert: true });
+
+  if (error) {
+    const hint =
+      error.message.includes("Bucket not found") || error.message.includes("bucket")
+        ? ' Crea el bucket "accounting" en Supabase → Storage (público recomendado).'
+        : "";
+    throw new Error(`Supabase upload error: ${error.message}${hint}`);
+  }
+
+  const { data } = supabase.storage.from("accounting").getPublicUrl(storagePath);
+  return { storagePath, publicUrl: data.publicUrl };
+}

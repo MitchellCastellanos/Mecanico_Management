@@ -1,5 +1,6 @@
 import { getVehicleById, deleteVehicle } from "@/actions/vehicles";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 import Link from "next/link";
 import { ChevronLeft, Pencil, Car, FileText, Bell, Plus } from "lucide-react";
 import { DeleteVehicleButton } from "@/components/clients/DeleteVehicleButton";
@@ -22,7 +23,7 @@ export default async function VehicleDetailPage({ params }: Props) {
             className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-2 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
-            {vehicle.client.firstName} {vehicle.client.lastName}
+            {formatClientName(vehicle.client)}
           </Link>
           <h1 className="text-2xl font-bold text-slate-900">
             {vehicle.year} {vehicle.make} {vehicle.model}

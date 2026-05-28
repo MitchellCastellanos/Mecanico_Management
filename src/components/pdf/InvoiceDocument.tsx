@@ -1,16 +1,4 @@
 // PDF Template — @react-pdf/renderer
-//
-// IMPORTANTE: Este es un árbol React SEPARADO del DOM.
-// Aquí NO puedes usar:
-//   ❌ clases Tailwind
-//   ❌ elementos HTML (div, p, table...)
-//   ❌ hooks de React
-//   ❌ window/document
-//
-// Aquí SÍ puedes usar:
-//   ✅ <Document>, <Page>, <View>, <Text>, <Image> de @react-pdf/renderer
-//   ✅ StyleSheet.create() para los estilos (CSS subset)
-//   ✅ Props normales de React
 
 import {
   Document,
@@ -20,8 +8,11 @@ import {
   StyleSheet,
   Image,
 } from "@react-pdf/renderer";
+import { formatClientName } from "@/lib/client-name";
+import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
+import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
+import Decimal from "decimal.js";
 
-// Tipos para los datos que recibe el PDF
 interface LineItem {
   description: string;
   quantity: string | number;
@@ -41,11 +32,12 @@ interface InvoiceData {
   taxRate: string | number;
   taxAmount: string | number;
   total: string | number;
+  language?: InvoiceLanguage | string | null;
   notes?: string | null;
   lineItems: LineItem[];
   client: {
     firstName: string;
-    lastName: string;
+    lastName?: string | null;
     email?: string | null;
     phone?: string | null;
     address?: string | null;
@@ -67,7 +59,6 @@ interface InvoiceData {
   };
 }
 
-// Paleta de colores
 const BLUE = "#1d4ed8";
 const SLATE_900 = "#0f172a";
 const SLATE_600 = "#475569";
@@ -86,7 +77,6 @@ const styles = StyleSheet.create({
     paddingBottom: 60,
     paddingHorizontal: 48,
   },
-  // ── Header ──
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -99,15 +89,12 @@ const styles = StyleSheet.create({
   invoiceLabel: { fontSize: 28, fontFamily: "Helvetica-Bold", color: SLATE_100, textAlign: "right" },
   invoiceNumber: { fontSize: 14, fontFamily: "Helvetica-Bold", color: BLUE, textAlign: "right", marginTop: 2 },
   invoiceDate: { fontSize: 9, color: SLATE_600, textAlign: "right", marginTop: 4 },
-  // ── Divider ──
   divider: { height: 1, backgroundColor: SLATE_100, marginVertical: 16 },
-  // ── Bill To / Vehicle ──
   infoRow: { flexDirection: "row", gap: 24, marginBottom: 24 },
   infoBlock: { flex: 1 },
   infoLabel: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: SLATE_400, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 },
   infoValue: { fontSize: 9.5, color: SLATE_900, lineHeight: 1.6 },
   infoValueBold: { fontSize: 9.5, fontFamily: "Helvetica-Bold", color: SLATE_900 },
-  // ── Table ──
   table: { marginBottom: 20 },
   tableHeader: { flexDirection: "row", backgroundColor: BLUE, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 4 },
   tableHeaderCell: { fontSize: 8, fontFamily: "Helvetica-Bold", color: WHITE },
@@ -120,8 +107,7 @@ const styles = StyleSheet.create({
   colQty: { flex: 1, textAlign: "right" },
   colPrice: { flex: 1.5, textAlign: "right" },
   colTotal: { flex: 1.5, textAlign: "right" },
-  // ── Totals ──
-  totalsBlock: { alignSelf: "flex-end", width: 200, marginBottom: 24 },
+  totalsBlock: { alignSelf: "flex-end", width: 220, marginBottom: 24 },
   totalRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3 },
   totalLabel: { fontSize: 9, color: SLATE_600 },
   totalValue: { fontSize: 9, color: SLATE_900 },
@@ -129,7 +115,6 @@ const styles = StyleSheet.create({
   grandTotalRow: { flexDirection: "row", justifyContent: "space-between", backgroundColor: BLUE, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 4 },
   grandTotalLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: WHITE },
   grandTotalValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: WHITE },
-  // ── Notes & Footer ──
   notesBlock: { marginBottom: 24 },
   notesLabel: { fontSize: 8, fontFamily: "Helvetica-Bold", color: SLATE_400, textTransform: "uppercase", marginBottom: 4 },
   notesText: { fontSize: 9, color: SLATE_600, lineHeight: 1.5 },
@@ -143,15 +128,13 @@ const styles = StyleSheet.create({
   mileageValue: { fontSize: 8, color: SLATE_600 },
 });
 
-// Helpers de formato (sin Intl — no disponible en todos los entornos de PDF)
 function fmtCurrency(val: string | number): string {
   const n = typeof val === "string" ? parseFloat(val) : val;
   return `$${n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")}`;
 }
 
-function fmtDate(d: Date | string): string {
+function fmtDate(d: Date | string, months: string[]): string {
   const date = new Date(d);
-  const months = ["Jan", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
   return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
 }
 
@@ -160,36 +143,28 @@ function fmtQty(val: string | number): string {
   return Number.isInteger(n) ? n.toString() : n.toFixed(2);
 }
 
-const itemTypeLabel: Record<string, string> = {
-  LABOUR: "Mano de obra",
-  PART: "Repuesto",
-  OTHER: "Otro",
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  DRAFT: { bg: "#f1f5f9", color: SLATE_600 },
+  SENT: { bg: "#dbeafe", color: BLUE },
+  PAID: { bg: "#d1fae5", color: EMERALD },
+  OVERDUE: { bg: "#fee2e2", color: "#dc2626" },
+  CANCELLED: { bg: "#f1f5f9", color: SLATE_400 },
 };
-
-const statusConfig: Record<string, { bg: string; color: string; label: string }> = {
-  DRAFT: { bg: "#f1f5f9", color: SLATE_600, label: "BORRADOR" },
-  SENT: { bg: "#dbeafe", color: BLUE, label: "ENVIADA" },
-  PAID: { bg: "#d1fae5", color: EMERALD, label: "PAGADA" },
-  OVERDUE: { bg: "#fee2e2", color: "#dc2626", label: "VENCIDA" },
-  CANCELLED: { bg: "#f1f5f9", color: SLATE_400, label: "CANCELADA" },
-};
-
-// ── Componente principal ─────────────────────────────────────
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
-  const status = statusConfig[invoice.status] ?? statusConfig.DRAFT;
-  const taxPct = (parseFloat(invoice.taxRate.toString()) * 100).toFixed(3);
+  const t = getInvoiceStrings(invoice.language);
+  const statusColors = STATUS_COLORS[invoice.status] ?? STATUS_COLORS.DRAFT;
+  const statusLabel = t.statuses[invoice.status] ?? invoice.status;
+
+  const { tpsAmount, tvqAmount } = calculateTaxBreakdown(invoice.subtotal, invoice.taxRate);
+  const factor = new Decimal(invoice.taxRate).div(TPS_RATE + TVQ_RATE);
+  const tpsPct = new Decimal(TPS_RATE).times(factor).times(100).toFixed(2);
+  const tvqPct = new Decimal(TVQ_RATE).times(factor).times(100).toFixed(2);
 
   return (
-    <Document
-      title={`Factura ${invoice.invoiceNumber}`}
-      author={invoice.shop.name}
-    >
+    <Document title={t.documentTitle(invoice.invoiceNumber)} author={invoice.shop.name}>
       <Page size="LETTER" style={styles.page}>
-
-        {/* ── Header ── */}
         <View style={styles.header}>
-          {/* Logo / Shop info */}
           <View style={styles.shopBlock}>
             {invoice.shop.logoUrl && (
               <Image
@@ -199,48 +174,40 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             )}
             <Text style={styles.shopName}>{invoice.shop.name}</Text>
             <Text style={styles.shopMeta}>
-              {[
-                invoice.shop.address,
-                invoice.shop.phone,
-                invoice.shop.email,
-                invoice.shop.taxId,
-              ]
+              {[invoice.shop.address, invoice.shop.phone, invoice.shop.email, invoice.shop.taxId]
                 .filter(Boolean)
                 .join("\n")}
             </Text>
           </View>
 
-          {/* Invoice number block */}
           <View>
-            <Text style={styles.invoiceLabel}>FACTURA</Text>
+            <Text style={styles.invoiceLabel}>{t.invoiceTitle}</Text>
             <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
             <Text style={styles.invoiceDate}>
-              Fecha: {fmtDate(invoice.issuedAt)}
+              {t.date}: {fmtDate(invoice.issuedAt, t.months)}
             </Text>
             {invoice.dueAt && (
               <Text style={styles.invoiceDate}>
-                Vence: {fmtDate(invoice.dueAt)}
+                {t.due}: {fmtDate(invoice.dueAt, t.months)}
               </Text>
             )}
-            {/* Status badge */}
-            <View style={[styles.statusBadge, { backgroundColor: status.bg, marginTop: 8, alignSelf: "flex-end" }]}>
-              <Text style={[styles.statusText, { color: status.color }]}>
-                {status.label}
-              </Text>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: statusColors.bg, marginTop: 8, alignSelf: "flex-end" },
+              ]}
+            >
+              <Text style={[styles.statusText, { color: statusColors.color }]}>{statusLabel}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.divider} />
 
-        {/* ── Facturar a / Vehículo ── */}
         <View style={styles.infoRow}>
-          {/* Cliente */}
           <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>Facturar a</Text>
-            <Text style={styles.infoValueBold}>
-              {invoice.client.firstName} {invoice.client.lastName}
-            </Text>
+            <Text style={styles.infoLabel}>{t.billTo}</Text>
+            <Text style={styles.infoValueBold}>{formatClientName(invoice.client)}</Text>
             <Text style={styles.infoValue}>
               {[invoice.client.email, invoice.client.phone, invoice.client.address]
                 .filter(Boolean)
@@ -248,29 +215,27 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             </Text>
           </View>
 
-          {/* Vehículo */}
           <View style={styles.infoBlock}>
-            <Text style={styles.infoLabel}>Vehículo</Text>
+            <Text style={styles.infoLabel}>{t.vehicle}</Text>
             <Text style={styles.infoValueBold}>
               {invoice.vehicle.year} {invoice.vehicle.make} {invoice.vehicle.model}
             </Text>
             <Text style={styles.infoValue}>
-              Placa: {invoice.vehicle.licensePlate}
+              {t.plate}: {invoice.vehicle.licensePlate}
             </Text>
-            {/* Km entrada / salida */}
             {(invoice.mileageIn || invoice.mileageOut) && (
               <View style={styles.mileageRow}>
-                {invoice.mileageIn && (
+                {invoice.mileageIn != null && (
                   <View style={styles.mileagePill}>
-                    <Text style={styles.mileageLabel}>Entrada:</Text>
+                    <Text style={styles.mileageLabel}>{t.mileageIn}:</Text>
                     <Text style={styles.mileageValue}>
                       {invoice.mileageIn.toLocaleString()} {invoice.vehicle.mileageUnit}
                     </Text>
                   </View>
                 )}
-                {invoice.mileageOut && (
+                {invoice.mileageOut != null && (
                   <View style={styles.mileagePill}>
-                    <Text style={styles.mileageLabel}>Salida:</Text>
+                    <Text style={styles.mileageLabel}>{t.mileageOut}:</Text>
                     <Text style={styles.mileageValue}>
                       {invoice.mileageOut.toLocaleString()} {invoice.vehicle.mileageUnit}
                     </Text>
@@ -281,35 +246,26 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
           </View>
         </View>
 
-        {/* ── Tabla de líneas ── */}
         <View style={styles.table}>
-          {/* Header */}
           <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, styles.colDesc]}>Descripción</Text>
-            <Text style={[styles.tableHeaderCell, styles.colType]}>Tipo</Text>
-            <Text style={[styles.tableHeaderCell, styles.colQty]}>Cant.</Text>
-            <Text style={[styles.tableHeaderCell, styles.colPrice]}>P. Unit.</Text>
-            <Text style={[styles.tableHeaderCell, styles.colTotal]}>Total</Text>
+            <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
+            <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
+            <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
+            <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
+            <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
           </View>
 
-          {/* Rows */}
           {invoice.lineItems.map((item, i) => (
             <View
               key={i}
               style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}
             >
-              <Text style={[styles.tableCellDark, styles.colDesc]}>
-                {item.description}
-              </Text>
+              <Text style={[styles.tableCellDark, styles.colDesc]}>{item.description}</Text>
               <Text style={[styles.tableCell, styles.colType]}>
-                {itemTypeLabel[item.itemType] ?? item.itemType}
+                {t.itemTypes[item.itemType] ?? item.itemType}
               </Text>
-              <Text style={[styles.tableCell, styles.colQty]}>
-                {fmtQty(item.quantity)}
-              </Text>
-              <Text style={[styles.tableCell, styles.colPrice]}>
-                {fmtCurrency(item.unitPrice)}
-              </Text>
+              <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
+              <Text style={[styles.tableCell, styles.colPrice]}>{fmtCurrency(item.unitPrice)}</Text>
               <Text style={[styles.tableCellDark, styles.colTotal]}>
                 {fmtCurrency(item.lineTotal)}
               </Text>
@@ -317,32 +273,33 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
           ))}
         </View>
 
-        {/* ── Totales ── */}
         <View style={styles.totalsBlock}>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>Subtotal</Text>
+            <Text style={styles.totalLabel}>{t.subtotal}</Text>
             <Text style={styles.totalValue}>{fmtCurrency(invoice.subtotal)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TPS + TVQ ({taxPct}%)</Text>
-            <Text style={styles.totalValue}>{fmtCurrency(invoice.taxAmount)}</Text>
+            <Text style={styles.totalLabel}>{t.tps(tpsPct)}</Text>
+            <Text style={styles.totalValue}>{fmtCurrency(tpsAmount.toString())}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>{t.tvq(tvqPct)}</Text>
+            <Text style={styles.totalValue}>{fmtCurrency(tvqAmount.toString())}</Text>
           </View>
           <View style={styles.totalDivider} />
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>TOTAL CAD</Text>
+            <Text style={styles.grandTotalLabel}>{t.grandTotal}</Text>
             <Text style={styles.grandTotalValue}>{fmtCurrency(invoice.total)}</Text>
           </View>
         </View>
 
-        {/* ── Notas ── */}
         {invoice.notes && (
           <View style={styles.notesBlock}>
-            <Text style={styles.notesLabel}>Notas</Text>
+            <Text style={styles.notesLabel}>{t.notes}</Text>
             <Text style={styles.notesText}>{invoice.notes}</Text>
           </View>
         )}
 
-        {/* ── Footer ── */}
         <View style={styles.footer}>
           <View style={[styles.divider, { marginBottom: 8 }]} />
           <Text style={styles.footerText}>
@@ -351,9 +308,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             {invoice.shop.email ? ` · ${invoice.shop.email}` : ""}
           </Text>
           {invoice.shop.taxId && (
-            <Text style={[styles.footerText, { marginTop: 2 }]}>
-              {invoice.shop.taxId}
-            </Text>
+            <Text style={[styles.footerText, { marginTop: 2 }]}>{invoice.shop.taxId}</Text>
           )}
         </View>
       </Page>

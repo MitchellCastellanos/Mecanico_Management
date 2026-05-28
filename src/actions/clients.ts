@@ -7,15 +7,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getShopId } from "@/lib/shop-context";
 import { clientSchema, type ClientFormData } from "@/lib/validations";
-
-// Helper interno: obtiene shopId de la sesión y lanza si no hay sesión
-async function getShopId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.shopId) redirect("/login");
-  return session.user.shopId;
-}
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -79,7 +72,7 @@ export async function createClient(formData: ClientFormData) {
     data: {
       shopId,
       firstName,
-      lastName,
+      lastName: lastName || null,
       email: email || null,
       phone: phone || null,
       address: address || null,
@@ -110,7 +103,7 @@ export async function updateClient(id: string, formData: ClientFormData) {
     where: { id, shopId },
     data: {
       firstName,
-      lastName,
+      lastName: lastName || null,
       email: email || null,
       phone: phone || null,
       address: address || null,

@@ -60,7 +60,7 @@ export const authConfig: NextAuthConfig = {
             id: user.id,
             name: user.name,
             email: user.email,
-            shopId: user.shopId,
+            shopId: user.shopId ?? undefined,
             role: user.role,
           };
         } catch (err) {

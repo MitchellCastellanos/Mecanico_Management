@@ -2,7 +2,11 @@ import Link from "next/link";
 import { ArrowLeft, Download } from "lucide-react";
 import { getInvoiceById } from "@/actions/invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
+import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
+import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
+import Decimal from "decimal.js";
 
 const STATUS_BADGE: Record<string, string> = {
   DRAFT: "bg-slate-100 text-slate-600",
@@ -34,7 +38,15 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const { id } = await params;
   const invoice = await getInvoiceById(id);
 
-  const taxPct = (parseFloat(invoice.taxRate.toString()) * 100).toFixed(3);
+  const { tpsAmount, tvqAmount } = calculateTaxBreakdown(
+    invoice.subtotal.toString(),
+    invoice.taxRate.toString()
+  );
+  const factor = new Decimal(invoice.taxRate.toString()).div(TPS_RATE + TVQ_RATE);
+  const tpsPct = new Decimal(TPS_RATE).times(factor).times(100).toFixed(2);
+  const tvqPct = new Decimal(TVQ_RATE).times(factor).times(100).toFixed(2);
+  const langLabel =
+    INVOICE_LANGUAGES.find((l) => l.value === invoice.language)?.label ?? invoice.language;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -61,6 +73,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             <p className="text-slate-500 text-sm mt-0.5">
               Emitida el {formatDate(invoice.issuedAt)}
               {invoice.dueAt && ` · Vence el ${formatDate(invoice.dueAt)}`}
+              {` · Idioma: ${langLabel}`}
             </p>
           </div>
         </div>
@@ -77,7 +90,11 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             <span className="hidden sm:inline">Descargar PDF</span>
           </a>
           {/* Status transitions con toast */}
-          <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
+          <InvoiceActions
+            invoiceId={invoice.id}
+            invoiceNumber={invoice.invoiceNumber}
+            status={invoice.status}
+          />
         </div>
       </div>
 
@@ -88,9 +105,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
             Cliente
           </p>
-          <p className="font-semibold text-slate-900">
-            {invoice.client.firstName} {invoice.client.lastName}
-          </p>
+          <p className="font-semibold text-slate-900">{formatClientName(invoice.client)}</p>
           {invoice.client.email && (
             <p className="text-sm text-slate-600 mt-1">{invoice.client.email}</p>
           )}
@@ -194,8 +209,16 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               <span className="text-slate-900">{formatCurrency(Number(invoice.subtotal))}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">Impuestos ({taxPct}%)</span>
-              <span className="text-slate-900">{formatCurrency(Number(invoice.taxAmount))}</span>
+              <span className="text-slate-600">TPS ({tpsPct}%)</span>
+              <span className="text-slate-900">{formatCurrency(Number(tpsAmount))}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">TVQ ({tvqPct}%)</span>
+              <span className="text-slate-900">{formatCurrency(Number(tvqAmount))}</span>
+            </div>
+            <div className="flex justify-between text-slate-500">
+              <span className="text-xs">Total impuestos</span>
+              <span className="text-xs">{formatCurrency(Number(invoice.taxAmount))}</span>
             </div>
             <div className="flex justify-between items-center border-t border-slate-200 pt-3 mt-3">
               <span className="font-semibold text-slate-900">Total CAD</span>

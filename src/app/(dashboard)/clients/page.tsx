@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getClients } from "@/actions/clients";
 import { formatDate } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 import { Users, Plus, Search, Car, FileText } from "lucide-react";
 
 interface Props {
@@ -73,7 +74,7 @@ export default async function ClientsPage({ searchParams }: Props) {
                       className="group"
                     >
                       <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {client.firstName} {client.lastName}
+                        {formatClientName(client)}
                       </p>
                     </Link>
                   </td>

@@ -3,16 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { requireShopSession } from "@/lib/permissions";
 import { uploadToStorage } from "@/lib/storage";
 import { uploadToDrive, driveFileUrl } from "@/lib/drive";
 import { sendAccountantEmail } from "@/lib/email";
 import { DOC_CATEGORIES, type DocCategory } from "@/lib/validations";
 
 async function getSession() {
-  const session = await auth();
-  if (!session?.user?.shopId) redirect("/login");
-  return session;
+  return requireShopSession();
 }
 
 // ── READ ────────────────────────────────────────────────────

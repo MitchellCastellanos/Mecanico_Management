@@ -1,6 +1,7 @@
 import { getClientById } from "@/actions/clients";
 import { deleteClient } from "@/actions/clients";
 import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 import Link from "next/link";
 import {
   ChevronLeft,
@@ -36,7 +37,7 @@ export default async function ClientDetailPage({ params }: Props) {
             Clientes
           </Link>
           <h1 className="text-2xl font-bold text-slate-900">
-            {client.firstName} {client.lastName}
+            {formatClientName(client)}
           </h1>
           <p className="text-slate-500 text-sm mt-1">
             Cliente desde {formatDate(client.createdAt)}
@@ -50,7 +51,7 @@ export default async function ClientDetailPage({ params }: Props) {
             <Pencil className="w-3.5 h-3.5" />
             Editar
           </Link>
-          <DeleteButton clientId={id} clientName={`${client.firstName} ${client.lastName}`} />
+          <DeleteButton clientId={id} clientName={formatClientName(client)} />
         </div>
       </div>
 

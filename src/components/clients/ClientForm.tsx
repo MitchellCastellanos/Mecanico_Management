@@ -63,19 +63,19 @@ export function ClientForm({
     <form onSubmit={handleSubmit(onValid)} className="space-y-6">
       {/* Nombre y Apellido */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Nombre *" error={errors.firstName?.message}>
+        <Field label="Nombre / Empresa *" error={errors.firstName?.message}>
           <input
             {...register("firstName")}
             type="text"
-            placeholder="Carlos"
+            placeholder="Carlos o Acme Inc."
             className={inputClass(!!errors.firstName)}
           />
         </Field>
-        <Field label="Apellido *" error={errors.lastName?.message}>
+        <Field label="Apellido (opcional)" error={errors.lastName?.message}>
           <input
             {...register("lastName")}
             type="text"
-            placeholder="Rodríguez"
+            placeholder="Rodríguez — dejar vacío para empresas"
             className={inputClass(!!errors.lastName)}
           />
         </Field>

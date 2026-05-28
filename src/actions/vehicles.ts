@@ -3,14 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getShopId } from "@/lib/shop-context";
 import { vehicleSchema, type VehicleFormData } from "@/lib/validations";
-
-async function getShopId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.shopId) redirect("/login");
-  return session.user.shopId;
-}
 
 export async function getVehicleById(vehicleId: string) {
   const shopId = await getShopId();

@@ -3,15 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getShopId } from "@/lib/shop-context";
 import { reminderSchema, type ReminderFormData } from "@/lib/validations";
 import { sendReminderEmail } from "@/lib/email";
-
-async function getShopId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.shopId) redirect("/login");
-  return session.user.shopId;
-}
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -82,7 +76,7 @@ export async function sendReminderNow(reminderId: string) {
   if (!client.email) return { error: "El cliente no tiene email registrado" };
 
   await sendReminderEmail({
-    clientName: `${client.firstName} ${client.lastName}`,
+    clientName: [client.firstName, client.lastName].filter(Boolean).join(" "),
     clientEmail: client.email,
     vehicleDescription: `${reminder.vehicle.year} ${reminder.vehicle.make} ${reminder.vehicle.model}`,
     licensePlate: reminder.vehicle.licensePlate,

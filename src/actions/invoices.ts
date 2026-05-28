@@ -11,16 +11,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { auth } from "@/lib/auth";
+import { getShopId } from "@/lib/shop-context";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
 import { formatInvoiceNumber } from "@/lib/utils";
+import { calculateTaxBreakdown, roundTaxRate } from "@/lib/taxes";
 import Decimal from "decimal.js";
-
-async function getShopId(): Promise<string> {
-  const session = await auth();
-  if (!session?.user?.shopId) redirect("/login");
-  return session.user.shopId;
-}
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -67,7 +62,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, lineItems, taxRate, notes, mileageIn, mileageOut, dueAt } =
+  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
     parsed.data;
 
   // Calcular totales con Decimal para evitar errores de punto flotante.
@@ -77,7 +72,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
   }, new Decimal(0));
 
-  const taxAmount = subtotal.times(taxRate);
+  const { taxAmount } = calculateTaxBreakdown(subtotal, taxRate);
   const total = subtotal.plus(taxAmount);
 
   // Transacción: generar número único y crear factura de forma atómica
@@ -94,9 +89,10 @@ export async function createInvoice(formData: InvoiceFormData) {
         invoiceNumber,
         status: "DRAFT",
         subtotal: subtotal.toFixed(2),
-        taxRate: taxRate.toString(),
+        taxRate: roundTaxRate(taxRate),
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
+        language,
         notes: notes || null,
         mileageIn: mileageIn ?? null,
         mileageOut: mileageOut ?? null,
@@ -143,14 +139,44 @@ export async function markInvoiceAsPaid(id: string) {
   revalidatePath("/invoices");
 }
 
+const VOIDABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
+
 export async function cancelInvoice(id: string) {
   const shopId = await getShopId();
-  await db.invoice.updateMany({
-    where: { id, shopId },
-    data: { status: "CANCELLED" },
+
+  const result = await db.invoice.updateMany({
+    where: {
+      id,
+      shopId,
+      status: { in: [...VOIDABLE_STATUSES] },
+    },
+    data: { status: "CANCELLED", paidAt: null },
   });
+
+  if (result.count === 0) {
+    return { error: "No se puede anular esta factura" };
+  }
+
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function deleteInvoice(id: string) {
+  const shopId = await getShopId();
+
+  const result = await db.invoice.deleteMany({
+    where: { id, shopId },
+  });
+
+  if (result.count === 0) {
+    return { error: "Factura no encontrada" };
+  }
+
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  redirect("/invoices");
 }
 
 // ── Guardar URL del PDF generado ───────────────────────────

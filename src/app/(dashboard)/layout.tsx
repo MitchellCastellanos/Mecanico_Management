@@ -17,6 +17,14 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  if (session.user.role === "SUPER_ADMIN") {
+    redirect("/admin");
+  }
+
+  if (!session.user.shopId) {
+    redirect("/login");
+  }
+
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />

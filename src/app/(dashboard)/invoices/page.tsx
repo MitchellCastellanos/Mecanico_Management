@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FileText, Plus } from "lucide-react";
 import { getInvoices } from "@/actions/invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 
 const STATUS_TABS = [
   { value: "ALL", label: "Todas" },
@@ -116,7 +117,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
                     {invoice.invoiceNumber}
                   </p>
                   <p className="text-slate-500 text-sm">
-                    {invoice.client.firstName} {invoice.client.lastName}
+                    {formatClientName(invoice.client)}
                   </p>
                 </div>
 

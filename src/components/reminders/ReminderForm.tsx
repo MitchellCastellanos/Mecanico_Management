@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { reminderSchema, type ReminderFormData } from "@/lib/validations";
+import { formatClientName } from "@/lib/client-name";
 
 interface Vehicle {
   id: string;
@@ -11,7 +12,7 @@ interface Vehicle {
   model: string;
   year: number;
   licensePlate: string;
-  client: { firstName: string; lastName: string };
+  client: { firstName: string; lastName?: string | null };
 }
 
 interface ReminderFormProps {
@@ -78,7 +79,7 @@ export function ReminderForm({ vehicles, onSubmit }: ReminderFormProps) {
             <option value="">Seleccionar vehículo...</option>
             {vehicles.map((v) => (
               <option key={v.id} value={v.id}>
-                {v.client.lastName}, {v.client.firstName} — {v.year} {v.make} {v.model} ({v.licensePlate})
+                {formatClientName(v.client)} — {v.year} {v.make} {v.model} ({v.licensePlate})
               </option>
             ))}
           </select>

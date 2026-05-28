@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
+import { formatClientName } from "@/lib/client-name";
 import Link from "next/link";
 import {
   Users,
@@ -136,7 +137,7 @@ export default async function DashboardPage() {
     const client = topClientDetails.find((c) => c.id === row.clientId);
     return {
       id: row.clientId,
-      name: client ? `${client.firstName} ${client.lastName}` : "—",
+      name: client ? formatClientName(client) : "—",
       total: Number(row._sum.total ?? 0),
     };
   });
@@ -297,7 +298,7 @@ export default async function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium text-slate-900">{invoice.invoiceNumber}</p>
                     <p className="text-xs text-slate-500">
-                      {invoice.client.firstName} {invoice.client.lastName}
+                      {formatClientName(invoice.client)}
                     </p>
                   </div>
                   <div className="text-right">

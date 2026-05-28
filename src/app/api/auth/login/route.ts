@@ -38,11 +38,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Email y contraseña requeridos" }, { status: 400 });
   }
 
-  // Step 1: Verify credentials against the database
+  let userRole: string | undefined;
+
   try {
     const user = await db.user.findUnique({
       where: { email },
-      select: { passwordHash: true },
+      select: { passwordHash: true, role: true },
     });
 
     if (!user?.passwordHash) {
@@ -55,25 +56,32 @@ export async function POST(req: NextRequest) {
       if (isFormRequest) return loginRedirect(req, "Email o contraseña incorrectos");
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 });
     }
+
+    userRole = user.role;
   } catch (err) {
     console.error("[/api/auth/login] db error:", err);
     if (isFormRequest) return loginRedirect(req, "Error de conexión. Intenta de nuevo.");
     return NextResponse.json({ error: "Error de base de datos" }, { status: 500 });
   }
 
+  const destination =
+    userRole === "SUPER_ADMIN"
+      ? "/admin"
+      : callbackUrl === "/admin"
+        ? "/dashboard"
+        : callbackUrl;
+
   // Step 2: Credentials verified — create the NextAuth session cookie
-  // redirect:false prevents NextAuth from calling Next.js redirect() internally
   try {
-    await signIn("credentials", { email, password, redirect: false, redirectTo: callbackUrl });
+    await signIn("credentials", { email, password, redirect: false, redirectTo: destination });
   } catch (err) {
     console.error("[/api/auth/login] signIn error:", err);
     if (isFormRequest) return loginRedirect(req, "Error al crear la sesión. Intenta de nuevo.");
     return NextResponse.json({ error: "Error de sesión" }, { status: 500 });
   }
 
-  // Step 3: Session cookie is now set — redirect to dashboard
   if (isFormRequest) {
-    return NextResponse.redirect(new URL(callbackUrl, req.url), { status: 303 });
+    return NextResponse.redirect(new URL(destination, req.url), { status: 303 });
   }
   return NextResponse.json({ ok: true });
 }

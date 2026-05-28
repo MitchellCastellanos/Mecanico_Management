@@ -9,12 +9,15 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  schemas  = ["mecanico"]
 }
 
 // ─────────────────────────────────────────
 // SHOP — Multi-tenant root
 // ─────────────────────────────────────────
 model Shop {
+  @@schema("mecanico")
+
   id        String   @id @default(cuid())
   name      String
   logoUrl   String?
@@ -36,9 +39,11 @@ model Shop {
 // USER — Mechanic shop staff
 // ─────────────────────────────────────────
 model User {
+  @@schema("mecanico")
+
   id           String   @id @default(cuid())
-  shopId       String
-  shop         Shop     @relation(fields: [shopId], references: [id])
+  shopId       String?  // null = administrador de plataforma (sin taller)
+  shop         Shop?    @relation(fields: [shopId], references: [id])
   name         String
   email        String   @unique
   passwordHash String?
@@ -51,7 +56,10 @@ model User {
 }
 
 enum Role {
-  OWNER
+  @@schema("mecanico")
+
+  SUPER_ADMIN // Mitchell — administra la app y todos los talleres
+  OWNER       // Carlos — dueño de su taller
   MECHANIC
   VIEWER
 }
@@ -60,6 +68,8 @@ enum Role {
 // NEXTAUTH — Required tables
 // ─────────────────────────────────────────
 model Account {
+  @@schema("mecanico")
+
   id                String  @id @default(cuid())
   userId            String
   type              String
@@ -79,6 +89,8 @@ model Account {
 }
 
 model Session {
+  @@schema("mecanico")
+
   id           String   @id @default(cuid())
   sessionToken String   @unique
   userId       String
@@ -88,6 +100,8 @@ model Session {
 }
 
 model VerificationToken {
+  @@schema("mecanico")
+
   identifier String
   token      String   @unique
   expires    DateTime
@@ -99,11 +113,13 @@ model VerificationToken {
 // CLIENT
 // ─────────────────────────────────────────
 model Client {
+  @@schema("mecanico")
+
   id        String   @id @default(cuid())
   shopId    String
   shop      Shop     @relation(fields: [shopId], references: [id])
   firstName String
-  lastName  String
+  lastName  String? // opcional — empresas usan solo firstName
   email     String?
   phone     String?
   address   String?
@@ -119,6 +135,8 @@ model Client {
 // VEHICLE
 // ─────────────────────────────────────────
 model Vehicle {
+  @@schema("mecanico")
+
   id           String      @id @default(cuid())
   clientId     String
   client       Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -136,6 +154,8 @@ model Vehicle {
 }
 
 enum MileageUnit {
+  @@schema("mecanico")
+
   KM
   MILES
 }
@@ -144,6 +164,8 @@ enum MileageUnit {
 // INVOICE
 // ─────────────────────────────────────────
 model Invoice {
+  @@schema("mecanico")
+
   id            String        @id @default(cuid())
   shopId        String
   shop          Shop          @relation(fields: [shopId], references: [id])
@@ -156,11 +178,12 @@ model Invoice {
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
   paidAt        DateTime?
-  subtotal      Decimal       @db.Decimal(10, 2)
-  taxRate       Decimal       @db.Decimal(5, 4) // 0.14975 = TPS+TVQ Quebec
-  taxAmount     Decimal       @db.Decimal(10, 2)
-  total         Decimal       @db.Decimal(10, 2)
-  notes         String?       @db.Text
+  subtotal      Decimal         @db.Decimal(10, 2)
+  taxRate       Decimal         @db.Decimal(6, 5) // 0.14975 = TPS+TVQ Quebec
+  taxAmount     Decimal         @db.Decimal(10, 2)
+  total         Decimal         @db.Decimal(10, 2)
+  language      InvoiceLanguage @default(ES)
+  notes         String?         @db.Text
   pdfUrl        String?       // Supabase Storage URL
   mileageIn     Int?
   mileageOut    Int?
@@ -173,6 +196,8 @@ model Invoice {
 }
 
 enum InvoiceStatus {
+  @@schema("mecanico")
+
   DRAFT
   SENT
   PAID
@@ -180,7 +205,17 @@ enum InvoiceStatus {
   CANCELLED
 }
 
+enum InvoiceLanguage {
+  @@schema("mecanico")
+
+  ES
+  EN
+  FR
+}
+
 model InvoiceLineItem {
+  @@schema("mecanico")
+
   id          String       @id @default(cuid())
   invoiceId   String
   invoice     Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
@@ -193,6 +228,8 @@ model InvoiceLineItem {
 }
 
 enum LineItemType {
+  @@schema("mecanico")
+
   LABOUR
   PART
   OTHER
@@ -202,6 +239,8 @@ enum LineItemType {
 // SERVICE REMINDER
 // ─────────────────────────────────────────
 model ServiceReminder {
+  @@schema("mecanico")
+
   id          String         @id @default(cuid())
   shopId      String
   shop        Shop           @relation(fields: [shopId], references: [id])
@@ -217,6 +256,8 @@ model ServiceReminder {
 }
 
 enum ReminderStatus {
+  @@schema("mecanico")
+
   PENDING
   SENT
   ACKNOWLEDGED
@@ -227,6 +268,8 @@ enum ReminderStatus {
 // ACCOUNTING DOCUMENT
 // ─────────────────────────────────────────
 model AccountingDocument {
+  @@schema("mecanico")
+
   id            String      @id @default(cuid())
   shopId        String
   shop          Shop        @relation(fields: [shopId], references: [id])
@@ -241,6 +284,8 @@ model AccountingDocument {
 }
 
 enum DocCategory {
+  @@schema("mecanico")
+
   INVOICES
   RECEIPTS
   PAYROLL

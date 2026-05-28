@@ -13,6 +13,14 @@ import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition, useState, useMemo } from "react";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
+import { formatClientName } from "@/lib/client-name";
+import {
+  calculateTaxBreakdown,
+  DEFAULT_COMBINED_TAX_RATE,
+  TPS_RATE,
+  TVQ_RATE,
+} from "@/lib/taxes";
+import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { Plus, Trash2 } from "lucide-react";
 import Decimal from "decimal.js";
 
@@ -20,7 +28,7 @@ import Decimal from "decimal.js";
 interface Client {
   id: string;
   firstName: string;
-  lastName: string;
+  lastName?: string | null;
   vehicles: { id: string; make: string; model: string; year: number; licensePlate: string }[];
 }
 
@@ -31,7 +39,7 @@ interface InvoiceFormProps {
   defaultVehicleId?: string;
 }
 
-const TAX_RATE = 0.14975; // TPS 5% + TVQ 9.975% = 14.975% (Quebec)
+const TAX_RATE = DEFAULT_COMBINED_TAX_RATE;
 
 const ITEM_TYPES = [
   { value: "LABOUR", label: "Mano de obra" },
@@ -60,6 +68,7 @@ export function InvoiceForm({
       clientId: defaultClientId ?? "",
       vehicleId: defaultVehicleId ?? "",
       taxRate: TAX_RATE,
+      language: "ES",
       notes: "",
       mileageIn: undefined,
       mileageOut: undefined,
@@ -86,19 +95,28 @@ export function InvoiceForm({
   const vehicles = selectedClient?.vehicles ?? [];
 
   // Calcular totales en tiempo real
-  const { subtotal, taxAmount, total } = useMemo(() => {
+  const { subtotal, tpsAmount, tvqAmount, taxAmount, total } = useMemo(() => {
     const sub = (lineItems ?? []).reduce((sum, item) => {
       const qty = Number(item?.quantity) || 0;
       const price = Number(item?.unitPrice) || 0;
       return sum.plus(new Decimal(qty).times(price));
     }, new Decimal(0));
-    const tax = sub.times(taxRate ?? TAX_RATE);
+    const rate = taxRate ?? TAX_RATE;
+    const { tpsAmount: tps, tvqAmount: tvq, taxAmount: tax } = calculateTaxBreakdown(sub, rate);
     return {
       subtotal: sub,
+      tpsAmount: tps,
+      tvqAmount: tvq,
       taxAmount: tax,
       total: sub.plus(tax),
     };
   }, [lineItems, taxRate]);
+
+  const effectiveRate = taxRate ?? TAX_RATE;
+  const taxFactor = new Decimal(effectiveRate).div(TPS_RATE + TVQ_RATE);
+  const tpsPct = new Decimal(TPS_RATE).times(taxFactor).times(100).toFixed(2);
+  const tvqPct = new Decimal(TVQ_RATE).times(taxFactor).times(100).toFixed(2);
+  const combinedPct = new Decimal(effectiveRate).times(100).toFixed(2);
 
   async function onValid(data: InvoiceFormData) {
     startTransition(async () => {
@@ -130,7 +148,7 @@ export function InvoiceForm({
               <option value="">Seleccionar cliente...</option>
               {clients.map((client) => (
                 <option key={client.id} value={client.id}>
-                  {client.lastName}, {client.firstName}
+                  {formatClientName(client)}
                 </option>
               ))}
             </select>
@@ -203,6 +221,18 @@ export function InvoiceForm({
               type="date"
               className={inputClass(false)}
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Idioma de la factura *
+            </label>
+            <select {...register("language")} className={selectClass(!!errors.language)}>
+              {INVOICE_LANGUAGES.map((lang) => (
+                <option key={lang.value} value={lang.value}>
+                  {lang.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -380,10 +410,10 @@ export function InvoiceForm({
                 type="number"
                 min={0}
                 max={1}
-                step="0.001"
-                className="w-20 text-right border border-slate-300 rounded px-2 py-1 text-sm"
+                step="0.00001"
+                className="w-24 text-right border border-slate-300 rounded px-2 py-1 text-sm"
               />
-              <span className="text-slate-500 text-sm">({((taxRate ?? TAX_RATE) * 100).toFixed(3)}%)</span>
+              <span className="text-slate-500 text-sm">({combinedPct}%)</span>
             </div>
           </div>
 
@@ -393,10 +423,16 @@ export function InvoiceForm({
               <span className="text-slate-900">${subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-600">
-                Impuestos ({((taxRate ?? TAX_RATE) * 100).toFixed(3)}%)
-              </span>
-              <span className="text-slate-900">${taxAmount.toFixed(2)}</span>
+              <span className="text-slate-600">TPS ({tpsPct}%)</span>
+              <span className="text-slate-900">${tpsAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-600">TVQ ({tvqPct}%)</span>
+              <span className="text-slate-900">${tvqAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-slate-500">
+              <span className="text-xs">Total impuestos ({combinedPct}%)</span>
+              <span className="text-xs">${taxAmount.toFixed(2)}</span>
             </div>
             <div className="flex justify-between items-center border-t border-slate-200 pt-3 mt-3">
               <span className="font-semibold text-slate-900">Total CAD</span>

@@ -5,7 +5,7 @@ import { z } from "zod";
 
 export const clientSchema = z.object({
   firstName: z.string().min(1, "El nombre es requerido").max(100),
-  lastName: z.string().min(1, "El apellido es requerido").max(100),
+  lastName: z.string().max(100).optional().or(z.literal("")),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().max(30).optional().or(z.literal("")),
   address: z.string().max(255).optional().or(z.literal("")),
@@ -46,6 +46,7 @@ export const invoiceSchema = z.object({
     .array(lineItemSchema)
     .min(1, "Agrega al menos una línea de servicio"),
   taxRate: z.number().min(0).max(1), // 0.14975 = TPS+TVQ Quebec
+  language: z.enum(["ES", "EN", "FR"]).default("ES"),
   notes: z.string().max(1000).optional().or(z.literal("")),
   mileageIn: z.number().int().min(0).optional().nullable(),
   mileageOut: z.number().int().min(0).optional().nullable(),
