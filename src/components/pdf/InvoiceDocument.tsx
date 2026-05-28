@@ -75,8 +75,8 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 220;
-const LOGO_HEIGHT = 110;
+const LOGO_WIDTH = 120;
+const LOGO_HEIGHT = 70;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
@@ -91,21 +91,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PAD,
   },
   header: {
-    paddingTop: 8,
-    paddingBottom: 18,
+    paddingTop: 10,
+    paddingBottom: 14,
     marginBottom: 4,
     borderBottomWidth: 2,
     borderBottomColor: SLATE_200,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 20,
+    gap: 16,
   },
   brandCol: {
     flex: 1,
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 20,
+    alignItems: "center",
+    gap: 14,
     minWidth: 0,
   },
   logoArea: {
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     height: LOGO_HEIGHT,
     flexShrink: 0,
     alignItems: "flex-start",
-    justifyContent: "flex-start",
+    justifyContent: "center",
   },
   logoImage: {
     width: LOGO_WIDTH,
@@ -199,12 +199,12 @@ const styles = StyleSheet.create({
   },
   statusText: { fontSize: 7, fontFamily: "Helvetica-Bold" },
   body: {
-    paddingTop: 18,
+    paddingTop: 14,
   },
   cardsRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 14,
     alignItems: "stretch",
   },
   card: {
@@ -709,7 +709,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
           ))}
 
           {/* Mantiene notas + totales juntos; si no caben, bajan enteros a la página siguiente */}
-          <View wrap={false} minPresenceAhead={160}>
+          <View wrap={false} minPresenceAhead={130}>
             <View style={styles.bottomRow}>
               {invoice.notes ? (
                 <View style={styles.notesCard}>
