@@ -75,8 +75,8 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 140;
-const LOGO_HEIGHT = 72;
+const LOGO_WIDTH = 220;
+const LOGO_HEIGHT = 110;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
@@ -90,57 +90,41 @@ const styles = StyleSheet.create({
     paddingBottom: FOOTER_H + 24,
     paddingHorizontal: PAGE_PAD,
   },
-  topBar: {
-    height: 5,
-    backgroundColor: BLUE,
-    marginHorizontal: -PAGE_PAD,
-    marginBottom: 0,
-  },
   header: {
-    backgroundColor: NAVY,
-    marginHorizontal: -PAGE_PAD,
-    paddingHorizontal: PAGE_PAD,
-    paddingTop: 22,
-    paddingBottom: 20,
+    paddingTop: 8,
+    paddingBottom: 18,
+    marginBottom: 4,
+    borderBottomWidth: 2,
+    borderBottomColor: SLATE_200,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 16,
+    gap: 20,
   },
   brandCol: {
     flex: 1,
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 14,
+    gap: 20,
     minWidth: 0,
   },
-  logoBox: {
+  logoArea: {
     width: LOGO_WIDTH,
     height: LOGO_HEIGHT,
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    padding: 8,
-    alignItems: "center",
-    justifyContent: "center",
     flexShrink: 0,
+    alignItems: "flex-start",
+    justifyContent: "flex-start",
   },
   logoImage: {
-    width: LOGO_WIDTH - 16,
-    height: LOGO_HEIGHT - 16,
+    width: LOGO_WIDTH,
+    height: LOGO_HEIGHT,
     objectFit: "contain",
-  },
-  logoPlaceholder: {
-    width: LOGO_WIDTH - 16,
-    height: LOGO_HEIGHT - 16,
-    backgroundColor: SLATE_100,
-    borderRadius: 4,
-    alignItems: "center",
-    justifyContent: "center",
+    objectPosition: "left top",
   },
   logoPlaceholderText: {
-    fontSize: 7,
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
     color: SLATE_400,
-    textAlign: "center",
   },
   shopInfo: {
     flex: 1,
@@ -149,7 +133,7 @@ const styles = StyleSheet.create({
   shopName: {
     fontSize: 15,
     fontFamily: "Helvetica-Bold",
-    color: WHITE,
+    color: NAVY,
     marginBottom: 6,
   },
   contactLine: {
@@ -159,23 +143,23 @@ const styles = StyleSheet.create({
   },
   contactLabel: {
     fontSize: 7.5,
-    color: "#94a3b8",
+    color: SLATE_400,
     width: 52,
     flexShrink: 0,
     paddingTop: 1,
   },
   contactValue: {
     fontSize: 8.5,
-    color: "#e2e8f0",
+    color: SLATE_700,
     flex: 1,
     lineHeight: 1.45,
   },
   invoicePanel: {
-    backgroundColor: WHITE,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    width: 188,
+    borderLeftWidth: 1,
+    borderLeftColor: SLATE_200,
+    paddingLeft: 16,
+    paddingVertical: 4,
+    width: 178,
     flexShrink: 0,
   },
   invoiceTitle: {
@@ -528,16 +512,13 @@ function InvoiceHeader({
 }) {
   return (
     <View wrap={false}>
-      <View style={styles.topBar} />
       <View style={styles.header}>
         <View style={styles.brandCol}>
-          <View style={styles.logoBox}>
+          <View style={styles.logoArea}>
             {invoice.shop.logoUrl ? (
               <Image src={invoice.shop.logoUrl} style={styles.logoImage} />
             ) : (
-              <View style={styles.logoPlaceholder}>
-                <Text style={styles.logoPlaceholderText}>{invoice.shop.name}</Text>
-              </View>
+              <Text style={styles.logoPlaceholderText}>{invoice.shop.name}</Text>
             )}
           </View>
           <View style={styles.shopInfo}>
