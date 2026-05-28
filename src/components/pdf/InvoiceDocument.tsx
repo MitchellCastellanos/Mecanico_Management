@@ -75,8 +75,8 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 132;
-const LOGO_HEIGHT = 96;
+const LOGO_WIDTH = 138;
+const LOGO_HEIGHT = 116;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
