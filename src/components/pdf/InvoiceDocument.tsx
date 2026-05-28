@@ -75,8 +75,10 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 168;
-const LOGO_HEIGHT = 88;
+const LOGO_WIDTH = 140;
+const LOGO_HEIGHT = 72;
+const PAGE_PAD = 40;
+const FOOTER_H = 52;
 
 const styles = StyleSheet.create({
   page: {
@@ -84,45 +86,52 @@ const styles = StyleSheet.create({
     fontSize: 9.5,
     color: SLATE_900,
     backgroundColor: WHITE,
-    paddingBottom: 72,
+    paddingTop: 0,
+    paddingBottom: FOOTER_H + 24,
+    paddingHorizontal: PAGE_PAD,
   },
   topBar: {
-    height: 6,
+    height: 5,
     backgroundColor: BLUE,
+    marginHorizontal: -PAGE_PAD,
+    marginBottom: 0,
   },
   header: {
     backgroundColor: NAVY,
-    paddingHorizontal: 40,
-    paddingTop: 28,
-    paddingBottom: 24,
+    marginHorizontal: -PAGE_PAD,
+    paddingHorizontal: PAGE_PAD,
+    paddingTop: 22,
+    paddingBottom: 20,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    gap: 16,
   },
-  brandRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 20,
+  brandCol: {
     flex: 1,
-    maxWidth: 360,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 14,
+    minWidth: 0,
   },
   logoBox: {
     width: LOGO_WIDTH,
     height: LOGO_HEIGHT,
     backgroundColor: WHITE,
     borderRadius: 8,
-    padding: 10,
+    padding: 8,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   logoImage: {
-    width: LOGO_WIDTH - 20,
-    height: LOGO_HEIGHT - 20,
+    width: LOGO_WIDTH - 16,
+    height: LOGO_HEIGHT - 16,
     objectFit: "contain",
   },
   logoPlaceholder: {
-    width: LOGO_WIDTH - 20,
-    height: LOGO_HEIGHT - 20,
+    width: LOGO_WIDTH - 16,
+    height: LOGO_HEIGHT - 16,
     backgroundColor: SLATE_100,
     borderRadius: 4,
     alignItems: "center",
@@ -133,262 +142,306 @@ const styles = StyleSheet.create({
     color: SLATE_400,
     textAlign: "center",
   },
+  shopInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
   shopName: {
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: "Helvetica-Bold",
     color: WHITE,
-    marginBottom: 8,
+    marginBottom: 6,
   },
-  shopContact: {
+  contactLine: {
+    flexDirection: "row",
+    marginBottom: 3,
+    alignItems: "flex-start",
+  },
+  contactLabel: {
+    fontSize: 7.5,
+    color: "#94a3b8",
+    width: 52,
+    flexShrink: 0,
+    paddingTop: 1,
+  },
+  contactValue: {
     fontSize: 8.5,
-    color: "#cbd5e1",
-    lineHeight: 1.55,
+    color: "#e2e8f0",
+    flex: 1,
+    lineHeight: 1.45,
   },
   invoicePanel: {
     backgroundColor: WHITE,
     borderRadius: 8,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    minWidth: 200,
-    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: 188,
+    flexShrink: 0,
   },
   invoiceTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
     color: SLATE_400,
-    letterSpacing: 1.2,
-    marginBottom: 4,
+    letterSpacing: 1,
+    marginBottom: 2,
   },
   invoiceNumber: {
-    fontSize: 20,
+    fontSize: 17,
     fontFamily: "Helvetica-Bold",
     color: NAVY,
-    marginBottom: 10,
+    marginBottom: 8,
   },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
     marginBottom: 3,
-    gap: 12,
+    gap: 8,
   },
-  metaLabel: { fontSize: 8, color: SLATE_600, flex: 1 },
-  metaValue: { fontSize: 8.5, fontFamily: "Helvetica-Bold", color: SLATE_900, textAlign: "right" },
+  metaLabel: { fontSize: 7.5, color: SLATE_600, width: 72 },
+  metaValue: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: SLATE_900,
+    flex: 1,
+    textAlign: "right",
+  },
   statusBadge: {
-    marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: "flex-end",
   },
-  statusText: { fontSize: 7.5, fontFamily: "Helvetica-Bold", letterSpacing: 0.5 },
+  statusText: { fontSize: 7, fontFamily: "Helvetica-Bold" },
   body: {
-    paddingHorizontal: 40,
-    paddingTop: 22,
+    paddingTop: 18,
   },
   cardsRow: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 20,
+    gap: 10,
+    marginBottom: 16,
+    alignItems: "stretch",
   },
   card: {
     flex: 1,
     borderWidth: 1,
     borderColor: SLATE_200,
     borderRadius: 8,
-    overflow: "hidden",
+    minWidth: 0,
   },
   cardHeader: {
     backgroundColor: SLATE_50,
     borderBottomWidth: 1,
     borderBottomColor: SLATE_200,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   cardHeaderText: {
-    fontSize: 7.5,
+    fontSize: 7,
     fontFamily: "Helvetica-Bold",
     color: BLUE,
     textTransform: "uppercase",
-    letterSpacing: 0.9,
+    letterSpacing: 0.8,
   },
   cardBody: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   cardTitle: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: "Helvetica-Bold",
     color: SLATE_900,
-    marginBottom: 8,
+    marginBottom: 6,
+    lineHeight: 1.35,
   },
   detailRow: {
     flexDirection: "row",
-    marginBottom: 5,
-    gap: 6,
+    marginBottom: 4,
+    alignItems: "flex-start",
+  },
+  detailRowStacked: {
+    marginBottom: 6,
   },
   detailLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: SLATE_400,
-    width: 58,
+    width: 44,
     flexShrink: 0,
+    paddingTop: 1,
   },
   detailValue: {
     fontSize: 8.5,
     color: SLATE_700,
     flex: 1,
-    lineHeight: 1.4,
+    lineHeight: 1.45,
   },
   mileageBox: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 6,
-    marginTop: 6,
+    gap: 5,
   },
   mileagePill: {
     backgroundColor: BLUE_LIGHT,
     borderRadius: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
   },
-  mileagePillLabel: { fontSize: 7, color: BLUE, fontFamily: "Helvetica-Bold" },
-  mileagePillValue: { fontSize: 8, color: NAVY, marginTop: 1 },
+  mileagePillLabel: { fontSize: 6.5, color: BLUE, fontFamily: "Helvetica-Bold" },
+  mileagePillValue: { fontSize: 7.5, color: NAVY, marginTop: 1 },
   sectionTitle: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
     color: SLATE_600,
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  table: {
-    borderWidth: 1,
-    borderColor: SLATE_200,
-    borderRadius: 8,
-    overflow: "hidden",
-    marginBottom: 18,
+    marginBottom: 6,
   },
   tableHeader: {
     flexDirection: "row",
     backgroundColor: NAVY,
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 10,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
   },
   tableHeaderCell: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
     color: WHITE,
-    letterSpacing: 0.3,
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 9,
+    paddingVertical: 8,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: SLATE_100,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: SLATE_200,
+    alignItems: "flex-start",
+  },
+  tableRowLast: {
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    borderBottomWidth: 1,
   },
   tableRowAlt: { backgroundColor: SLATE_50 },
-  tableCell: { fontSize: 9, color: SLATE_600 },
-  tableCellBold: { fontSize: 9, fontFamily: "Helvetica-Bold", color: SLATE_900 },
-  colDesc: { flex: 4 },
-  colType: { flex: 1.4 },
-  colQty: { flex: 0.9, textAlign: "right" },
-  colPrice: { flex: 1.3, textAlign: "right" },
-  colTotal: { flex: 1.3, textAlign: "right" },
+  tableCell: { fontSize: 8.5, color: SLATE_600, lineHeight: 1.4 },
+  tableCellBold: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: SLATE_900,
+    lineHeight: 1.4,
+  },
+  colDesc: { flex: 4, paddingRight: 6, minWidth: 0 },
+  colType: { flex: 1.3, paddingRight: 4, minWidth: 0 },
+  colQty: { flex: 0.8, textAlign: "right" },
+  colPrice: { flex: 1.2, textAlign: "right" },
+  colTotal: { flex: 1.2, textAlign: "right" },
   bottomRow: {
     flexDirection: "row",
-    gap: 16,
+    gap: 14,
     alignItems: "flex-start",
+    marginTop: 4,
   },
   notesCard: {
     flex: 1,
     borderWidth: 1,
     borderColor: SLATE_200,
     borderRadius: 8,
-    padding: 12,
-    minHeight: 100,
+    padding: 10,
+    minWidth: 0,
   },
   notesLabel: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
     color: SLATE_400,
     textTransform: "uppercase",
-    marginBottom: 6,
+    marginBottom: 5,
   },
-  notesText: { fontSize: 9, color: SLATE_600, lineHeight: 1.55 },
+  notesText: { fontSize: 8.5, color: SLATE_600, lineHeight: 1.5 },
   totalsCard: {
-    width: 248,
+    width: 230,
     borderWidth: 1,
     borderColor: SLATE_200,
     borderRadius: 8,
-    overflow: "hidden",
+    flexShrink: 0,
   },
   totalsHeader: {
     backgroundColor: SLATE_50,
     borderBottomWidth: 1,
     borderBottomColor: SLATE_200,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
   },
   totalsHeaderText: {
-    fontSize: 8,
+    fontSize: 7.5,
     fontFamily: "Helvetica-Bold",
     color: SLATE_600,
     textTransform: "uppercase",
-    letterSpacing: 0.6,
   },
-  totalsBody: { paddingHorizontal: 14, paddingVertical: 10 },
+  totalsBody: { paddingHorizontal: 12, paddingVertical: 8 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 4,
+    paddingVertical: 3,
+    gap: 8,
   },
-  totalLabel: { fontSize: 9, color: SLATE_600 },
-  totalValue: { fontSize: 9, color: SLATE_900 },
+  totalLabel: { fontSize: 8.5, color: SLATE_600, flex: 1 },
+  totalValue: { fontSize: 8.5, color: SLATE_900, flexShrink: 0 },
   totalDivider: {
     height: 1,
     backgroundColor: SLATE_200,
-    marginVertical: 8,
+    marginVertical: 6,
   },
   grandTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: NAVY,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   grandTotalLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: "Helvetica-Bold",
     color: WHITE,
+    flex: 1,
   },
   grandTotalValue: {
-    fontSize: 13,
+    fontSize: 12,
     fontFamily: "Helvetica-Bold",
     color: WHITE,
+    flexShrink: 0,
   },
   footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
+    height: FOOTER_H,
     borderTopWidth: 1,
     borderTopColor: SLATE_200,
     backgroundColor: SLATE_50,
-    paddingHorizontal: 40,
-    paddingVertical: 14,
+    paddingHorizontal: PAGE_PAD,
+    paddingVertical: 10,
+    justifyContent: "center",
   },
   footerThank: {
-    fontSize: 9,
+    fontSize: 8.5,
     fontFamily: "Helvetica-Bold",
     color: NAVY,
     textAlign: "center",
-    marginBottom: 4,
+    marginBottom: 3,
   },
   footerMeta: {
-    fontSize: 7.5,
+    fontSize: 7,
     color: SLATE_400,
     textAlign: "center",
-    lineHeight: 1.5,
+    lineHeight: 1.45,
   },
 });
 
@@ -416,12 +469,123 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   CANCELLED: { bg: SLATE_100, color: SLATE_400 },
 };
 
-function DetailRow({ label, value }: { label: string; value?: string | null }) {
+function ContactLine({ label, value }: { label: string; value?: string | null }) {
   if (!value) return null;
+  const isLong = value.length > 42;
+  if (isLong) {
+    return (
+      <View style={{ marginBottom: 4 }}>
+        <Text style={styles.contactLabel}>{label}</Text>
+        <Text style={[styles.contactValue, { marginTop: 2 }]}>{value}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.contactLine}>
+      <Text style={styles.contactLabel}>{label}</Text>
+      <Text style={styles.contactValue}>{value}</Text>
+    </View>
+  );
+}
+
+function DetailRow({
+  label,
+  value,
+  stacked,
+}: {
+  label: string;
+  value?: string | null;
+  stacked?: boolean;
+}) {
+  if (!value) return null;
+  const useStacked = stacked || value.length > 36;
+  if (useStacked) {
+    return (
+      <View style={styles.detailRowStacked}>
+        <Text style={styles.detailLabel}>{label}</Text>
+        <Text style={[styles.detailValue, { marginTop: 2 }]}>{value}</Text>
+      </View>
+    );
+  }
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+function InvoiceHeader({
+  invoice,
+  t,
+  statusLabel,
+  statusColors,
+}: {
+  invoice: InvoiceData;
+  t: ReturnType<typeof getInvoiceStrings>;
+  statusLabel: string;
+  statusColors: { bg: string; color: string };
+}) {
+  return (
+    <View wrap={false}>
+      <View style={styles.topBar} />
+      <View style={styles.header}>
+        <View style={styles.brandCol}>
+          <View style={styles.logoBox}>
+            {invoice.shop.logoUrl ? (
+              <Image src={invoice.shop.logoUrl} style={styles.logoImage} />
+            ) : (
+              <View style={styles.logoPlaceholder}>
+                <Text style={styles.logoPlaceholderText}>{invoice.shop.name}</Text>
+              </View>
+            )}
+          </View>
+          <View style={styles.shopInfo}>
+            <Text style={styles.shopName}>{invoice.shop.name}</Text>
+            <ContactLine label={t.phone} value={invoice.shop.phone} />
+            <ContactLine label={t.email} value={invoice.shop.email} />
+            <ContactLine label={t.address} value={invoice.shop.address} />
+            <ContactLine label={t.taxRegistration} value={invoice.shop.taxId} />
+          </View>
+        </View>
+
+        <View style={styles.invoicePanel}>
+          <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
+          <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
+          <View style={styles.metaRow}>
+            <Text style={styles.metaLabel}>{t.date}</Text>
+            <Text style={styles.metaValue}>{fmtDate(invoice.issuedAt, t.months)}</Text>
+          </View>
+          {invoice.dueAt && (
+            <View style={styles.metaRow}>
+              <Text style={styles.metaLabel}>{t.due}</Text>
+              <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
+            </View>
+          )}
+          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+            <Text style={[styles.statusText, { color: statusColors.color }]}>{statusLabel}</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function InvoiceFooter({
+  invoice,
+  t,
+}: {
+  invoice: InvoiceData;
+  t: ReturnType<typeof getInvoiceStrings>;
+}) {
+  return (
+    <View style={styles.footer} fixed>
+      <Text style={styles.footerThank}>{t.thankYou}</Text>
+      <Text style={styles.footerMeta}>
+        {invoice.shop.name}
+        {invoice.shop.phone ? ` · ${invoice.shop.phone}` : ""}
+        {invoice.shop.email ? ` · ${invoice.shop.email}` : ""}
+      </Text>
     </View>
   );
 }
@@ -445,67 +609,21 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
       ? invoice.mileageOut - invoice.mileageIn
       : null;
 
+  const lastIndex = invoice.lineItems.length - 1;
+
   return (
     <Document title={t.documentTitle(invoice.invoiceNumber)} author={invoice.shop.name}>
-      <Page size="LETTER" style={styles.page}>
-        <View style={styles.topBar} />
-
-        {/* Header con logo grande */}
-        <View style={styles.header}>
-          <View style={styles.brandRow}>
-            <View style={styles.logoBox}>
-              {invoice.shop.logoUrl ? (
-                <Image src={invoice.shop.logoUrl} style={styles.logoImage} />
-              ) : (
-                <View style={styles.logoPlaceholder}>
-                  <Text style={styles.logoPlaceholderText}>{invoice.shop.name}</Text>
-                </View>
-              )}
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.shopName}>{invoice.shop.name}</Text>
-              <Text style={styles.shopContact}>
-                {[
-                  invoice.shop.phone && `${t.phone}: ${invoice.shop.phone}`,
-                  invoice.shop.email && `${t.email}: ${invoice.shop.email}`,
-                  invoice.shop.address && `${t.address}: ${invoice.shop.address}`,
-                  invoice.shop.taxId && `${t.taxRegistration}: ${invoice.shop.taxId}`,
-                ]
-                  .filter(Boolean)
-                  .join("\n")}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.invoicePanel}>
-            <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
-            <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{t.date}</Text>
-              <Text style={styles.metaValue}>{fmtDate(invoice.issuedAt, t.months)}</Text>
-            </View>
-            {invoice.dueAt && (
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>{t.due}</Text>
-                <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
-              </View>
-            )}
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{t.status}</Text>
-              <Text style={styles.metaValue}>{statusLabel}</Text>
-            </View>
-            <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-              <Text style={[styles.statusText, { color: statusColors.color }]}>
-                {statusLabel}
-              </Text>
-            </View>
-          </View>
-        </View>
+      <Page size="LETTER" style={styles.page} wrap>
+        <InvoiceHeader
+          invoice={invoice}
+          t={t}
+          statusLabel={statusLabel}
+          statusColors={statusColors}
+        />
 
         <View style={styles.body}>
-          {/* Tarjetas: cliente, vehículo, kilometraje */}
           <View style={styles.cardsRow}>
-            <View style={styles.card}>
+            <View style={styles.card} wrap={false}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.billTo}</Text>
               </View>
@@ -513,11 +631,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                 <Text style={styles.cardTitle}>{formatClientName(invoice.client)}</Text>
                 <DetailRow label={t.email} value={invoice.client.email} />
                 <DetailRow label={t.phone} value={invoice.client.phone} />
-                <DetailRow label={t.address} value={invoice.client.address} />
+                <DetailRow label={t.address} value={invoice.client.address} stacked />
               </View>
             </View>
 
-            <View style={styles.card}>
+            <View style={styles.card} wrap={false}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.vehicle}</Text>
               </View>
@@ -526,17 +644,17 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                   {invoice.vehicle.year} {invoice.vehicle.make} {invoice.vehicle.model}
                 </Text>
                 <DetailRow label={t.plate} value={invoice.vehicle.licensePlate} />
-                <DetailRow label={t.vin} value={invoice.vehicle.vin} />
+                <DetailRow label={t.vin} value={invoice.vehicle.vin} stacked />
                 <DetailRow label={t.color} value={invoice.vehicle.color} />
               </View>
             </View>
 
-            <View style={styles.card}>
+            <View style={styles.card} wrap={false}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.serviceDetails}</Text>
               </View>
               <View style={styles.cardBody}>
-                {(invoice.mileageIn != null || invoice.mileageOut != null) && (
+                {(invoice.mileageIn != null || invoice.mileageOut != null) ? (
                   <View style={styles.mileageBox}>
                     {invoice.mileageIn != null && (
                       <View style={styles.mileagePill}>
@@ -563,17 +681,15 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                       </View>
                     )}
                   </View>
-                )}
-                {!invoice.mileageIn && !invoice.mileageOut && (
+                ) : (
                   <Text style={styles.detailValue}>—</Text>
                 )}
               </View>
             </View>
           </View>
 
-          <Text style={styles.sectionTitle}>{t.colDescription}</Text>
-
-          <View style={styles.table}>
+          <View wrap={false}>
+            <Text style={styles.sectionTitle}>{t.colDescription}</Text>
             <View style={styles.tableHeader}>
               <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
               <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
@@ -581,87 +697,91 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
               <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
               <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
             </View>
-
-            {invoice.lineItems.map((item, i) => (
-              <View
-                key={i}
-                style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}
-              >
-                <Text style={[styles.tableCellBold, styles.colDesc]}>{item.description}</Text>
-                <Text style={[styles.tableCell, styles.colType]}>
-                  {t.itemTypes[item.itemType] ?? item.itemType}
-                </Text>
-                <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
-                <Text style={[styles.tableCell, styles.colPrice]}>
-                  {fmtCurrency(item.unitPrice, currency)}
-                </Text>
-                <Text style={[styles.tableCellBold, styles.colTotal]}>
-                  {fmtCurrency(item.lineTotal, currency)}
-                </Text>
-              </View>
-            ))}
           </View>
 
-          <View style={styles.bottomRow}>
-            {invoice.notes ? (
-              <View style={styles.notesCard}>
-                <Text style={styles.notesLabel}>{t.notes}</Text>
-                <Text style={styles.notesText}>{invoice.notes}</Text>
+          {invoice.lineItems.map((item, i) => (
+            <View
+              key={i}
+              style={[
+                styles.tableRow,
+                i % 2 === 1 ? styles.tableRowAlt : {},
+                i === lastIndex ? styles.tableRowLast : {},
+              ]}
+              wrap={false}
+            >
+              <View style={styles.colDesc}>
+                <Text style={styles.tableCellBold}>{item.description}</Text>
               </View>
-            ) : (
-              <View style={{ flex: 1 }} />
-            )}
-
-            <View style={styles.totalsCard}>
-              <View style={styles.totalsHeader}>
-                <Text style={styles.totalsHeaderText}>{currency}</Text>
-              </View>
-              <View style={styles.totalsBody}>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t.subtotal}</Text>
-                  <Text style={styles.totalValue}>
-                    {fmtCurrency(invoice.subtotal, currency)}
-                  </Text>
-                </View>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t.tps(tpsPct)}</Text>
-                  <Text style={styles.totalValue}>
-                    {fmtCurrency(tpsAmount.toString(), currency)}
-                  </Text>
-                </View>
-                <View style={styles.totalRow}>
-                  <Text style={styles.totalLabel}>{t.tvq(tvqPct)}</Text>
-                  <Text style={styles.totalValue}>
-                    {fmtCurrency(tvqAmount.toString(), currency)}
-                  </Text>
-                </View>
-                <View style={styles.totalRow}>
-                  <Text style={[styles.totalLabel, { color: SLATE_400 }]}>{t.taxesTotal}</Text>
-                  <Text style={styles.totalValue}>
-                    {fmtCurrency(taxAmount.toString(), currency)}
-                  </Text>
-                </View>
-                <View style={styles.totalDivider} />
-              </View>
-              <View style={styles.grandTotalRow}>
-                <Text style={styles.grandTotalLabel}>{t.grandTotal}</Text>
-                <Text style={styles.grandTotalValue}>
-                  {fmtCurrency(invoice.total, currency)}
+              <View style={styles.colType}>
+                <Text style={styles.tableCell}>
+                  {t.itemTypes[item.itemType] ?? item.itemType}
                 </Text>
+              </View>
+              <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
+              <Text style={[styles.tableCell, styles.colPrice]}>
+                {fmtCurrency(item.unitPrice, currency)}
+              </Text>
+              <Text style={[styles.tableCellBold, styles.colTotal]}>
+                {fmtCurrency(item.lineTotal, currency)}
+              </Text>
+            </View>
+          ))}
+
+          {/* Mantiene notas + totales juntos; si no caben, bajan enteros a la página siguiente */}
+          <View wrap={false} minPresenceAhead={160}>
+            <View style={styles.bottomRow}>
+              {invoice.notes ? (
+                <View style={styles.notesCard}>
+                  <Text style={styles.notesLabel}>{t.notes}</Text>
+                  <Text style={styles.notesText}>{invoice.notes}</Text>
+                </View>
+              ) : (
+                <View style={{ flex: 1 }} />
+              )}
+
+              <View style={styles.totalsCard}>
+                <View style={styles.totalsHeader}>
+                  <Text style={styles.totalsHeaderText}>{currency}</Text>
+                </View>
+                <View style={styles.totalsBody}>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{t.subtotal}</Text>
+                    <Text style={styles.totalValue}>
+                      {fmtCurrency(invoice.subtotal, currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{t.tps(tpsPct)}</Text>
+                    <Text style={styles.totalValue}>
+                      {fmtCurrency(tpsAmount.toString(), currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={styles.totalLabel}>{t.tvq(tvqPct)}</Text>
+                    <Text style={styles.totalValue}>
+                      {fmtCurrency(tvqAmount.toString(), currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalRow}>
+                    <Text style={[styles.totalLabel, { color: SLATE_400 }]}>{t.taxesTotal}</Text>
+                    <Text style={styles.totalValue}>
+                      {fmtCurrency(taxAmount.toString(), currency)}
+                    </Text>
+                  </View>
+                  <View style={styles.totalDivider} />
+                </View>
+                <View style={styles.grandTotalRow}>
+                  <Text style={styles.grandTotalLabel}>{t.grandTotal}</Text>
+                  <Text style={styles.grandTotalValue}>
+                    {fmtCurrency(invoice.total, currency)}
+                  </Text>
+                </View>
               </View>
             </View>
           </View>
         </View>
 
-        <View style={styles.footer} fixed>
-          <Text style={styles.footerThank}>{t.thankYou}</Text>
-          <Text style={styles.footerMeta}>
-            {invoice.shop.name}
-            {invoice.shop.phone ? ` · ${invoice.shop.phone}` : ""}
-            {invoice.shop.email ? ` · ${invoice.shop.email}` : ""}
-            {invoice.shop.taxId ? `\n${invoice.shop.taxId}` : ""}
-          </Text>
-        </View>
+        <InvoiceFooter invoice={invoice} t={t} />
       </Page>
     </Document>
   );
