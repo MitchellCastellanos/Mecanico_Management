@@ -7,6 +7,7 @@ import { requireShopSession } from "@/lib/permissions";
 import { uploadToStorage } from "@/lib/storage";
 import { uploadToDrive, driveFileUrl } from "@/lib/drive";
 import { sendAccountantEmail } from "@/lib/email";
+import { shopToEmailConfig } from "@/lib/email-config";
 import { DOC_CATEGORIES, type DocCategory } from "@/lib/validations";
 
 async function getSession() {
@@ -125,7 +126,7 @@ export async function uploadDocument(formData: FormData) {
       : undefined;
 
     await sendAccountantEmail({
-      shopName: shop.name,
+      shop: shopToEmailConfig(shop),
       uploaderName,
       files: [{ fileName: file.name, category: categoryLabel, driveUrl }],
       driveFolderUrl,

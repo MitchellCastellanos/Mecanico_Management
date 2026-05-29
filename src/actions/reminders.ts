@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { reminderSchema, type ReminderFormData } from "@/lib/validations";
 import { sendReminderEmail } from "@/lib/email";
+import { shopToEmailConfig } from "@/lib/email-config";
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ export async function sendReminderNow(reminderId: string) {
   if (!client.email) return { error: "El cliente no tiene email registrado" };
 
   await sendReminderEmail({
+    shop: shopToEmailConfig(reminder.shop),
     clientName: [client.firstName, client.lastName].filter(Boolean).join(" "),
     clientEmail: client.email,
     vehicleDescription: `${reminder.vehicle.year} ${reminder.vehicle.make} ${reminder.vehicle.model}`,
@@ -84,9 +86,7 @@ export async function sendReminderNow(reminderId: string) {
     dueDate: reminder.dueDate,
     dueMileage: reminder.dueMileage,
     mileageUnit: reminder.vehicle.mileageUnit,
-    shopName: reminder.shop.name,
     shopPhone: reminder.shop.phone,
-    shopEmail: reminder.shop.email,
   });
 
   await db.serviceReminder.update({

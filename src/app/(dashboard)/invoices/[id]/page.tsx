@@ -74,6 +74,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               Emitida el {formatDate(invoice.issuedAt)}
               {invoice.dueAt && ` · Vence el ${formatDate(invoice.dueAt)}`}
               {` · Idioma: ${langLabel}`}
+              {invoice.emailSentAt &&
+                ` · Email: ${formatDate(invoice.emailSentAt)}${invoice.emailSendCount > 1 ? ` (${invoice.emailSendCount}×)` : ""}`}
             </p>
           </div>
         </div>
@@ -104,6 +106,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoiceNumber}
             status={invoice.status}
+            clientId={invoice.clientId}
+            clientEmail={invoice.client.email}
+            emailSendCount={invoice.emailSendCount}
           />
         </div>
       </div>

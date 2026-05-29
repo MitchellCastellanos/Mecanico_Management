@@ -23,7 +23,11 @@ model Shop {
   logoUrl   String?
   address   String?
   phone     String?
-  email     String?
+  email     String?  // contacto principal / fallback reply-to
+  billingEmail    String?  // billing@ — facturas, contabilidad
+  infoEmail       String?  // info@ — recordatorios, web
+  providersEmail  String?  // providers@ — futuro
+  newsletterEmail String?  // newsletter@ — futuro (Brevo/Mailchimp)
   taxId     String?      // NEQ / TPS / TVQ
   currency  String   @default("CAD")
   createdAt DateTime @default(now())
@@ -178,6 +182,9 @@ model Invoice {
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
   paidAt        DateTime?
+  sentAt        DateTime?     // primera vez marcada/enviada como SENT
+  emailSentAt   DateTime?     // último envío por correo al cliente
+  emailSendCount Int          @default(0)
   subtotal      Decimal         @db.Decimal(10, 2)
   taxRate       Decimal         @db.Decimal(6, 5) // 0.14975 = TPS+TVQ Quebec
   taxAmount     Decimal         @db.Decimal(10, 2)

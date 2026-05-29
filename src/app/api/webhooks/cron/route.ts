@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendReminderEmail } from "@/lib/email";
+import { shopToEmailConfig } from "@/lib/email-config";
 
 // Cron Job — corre diariamente a las 8am (configurado en vercel.json)
 // Envía recordatorios de servicio con vencimiento en ≤7 días
@@ -49,6 +50,7 @@ export async function GET(request: Request) {
 
     try {
       await sendReminderEmail({
+        shop: shopToEmailConfig(reminder.shop),
         clientName: [client.firstName, client.lastName].filter(Boolean).join(" "),
         clientEmail: client.email,
         vehicleDescription: `${reminder.vehicle.year} ${reminder.vehicle.make} ${reminder.vehicle.model}`,
@@ -57,9 +59,7 @@ export async function GET(request: Request) {
         dueDate: reminder.dueDate,
         dueMileage: reminder.dueMileage,
         mileageUnit: reminder.vehicle.mileageUnit,
-        shopName: reminder.shop.name,
         shopPhone: reminder.shop.phone,
-        shopEmail: reminder.shop.email,
       });
 
       // Marcar como enviado (idempotencia: no se enviará de nuevo)

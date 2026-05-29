@@ -9,6 +9,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateInvoicePdf } from "@/lib/pdf";
+import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
 
 export async function GET(
   _request: Request,
@@ -38,19 +39,7 @@ export async function GET(
   }
 
   // Serializar campos Decimal de Prisma a string antes de pasarlos al PDF
-  const invoiceData = {
-    ...invoice,
-    subtotal: invoice.subtotal.toString(),
-    taxRate: invoice.taxRate.toString(),
-    taxAmount: invoice.taxAmount.toString(),
-    total: invoice.total.toString(),
-    lineItems: invoice.lineItems.map((item) => ({
-      ...item,
-      quantity: item.quantity.toString(),
-      unitPrice: item.unitPrice.toString(),
-      lineTotal: item.lineTotal.toString(),
-    })),
-  };
+  const invoiceData = serializeInvoiceForPdf(invoice);
 
   // Generar PDF como Buffer
   const pdfBuffer = await generateInvoicePdf(invoiceData);

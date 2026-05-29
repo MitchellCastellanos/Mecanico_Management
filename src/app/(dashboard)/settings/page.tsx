@@ -21,7 +21,7 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Configuración</h1>
         <p className="text-slate-500 text-sm mt-1">
-          Logo, datos del taller, contraseña y administración del equipo
+          Logo, datos del taller, buzones de correo, contraseña y equipo
         </p>
       </div>
 

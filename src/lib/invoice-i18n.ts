@@ -41,6 +41,23 @@ type Strings = {
   itemTypes: Record<string, string>;
   statuses: Record<string, string>;
   months: string[];
+  mail: {
+    preview: (num: string, shop: string) => string;
+    resendPreview: (num: string, shop: string) => string;
+    subject: (num: string, shop: string) => string;
+    resendSubject: (num: string, shop: string) => string;
+    greeting: (name: string) => string;
+    body: string;
+    resendBody: string;
+    attachmentNote: string;
+    invoiceNumber: string;
+    total: string;
+    vehicle: string;
+    dueDate: string;
+    contactPrompt: string;
+    footer: (shop: string) => string;
+    poweredBy: string;
+  };
 };
 
 const ES: Strings = {
@@ -84,6 +101,23 @@ const ES: Strings = {
     CANCELLED: "CANCELADA",
   },
   months: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
+  mail: {
+    preview: (num, shop) => `Factura ${num} de ${shop}`,
+    resendPreview: (num, shop) => `Reenvío: factura ${num} de ${shop}`,
+    subject: (num, shop) => `Factura ${num} — ${shop}`,
+    resendSubject: (num, shop) => `Reenvío: Factura ${num} — ${shop}`,
+    greeting: (name) => `Hola, ${name}`,
+    body: "Adjuntamos la factura por los servicios realizados en tu vehículo. Si tienes alguna pregunta, contáctanos directamente.",
+    resendBody: "Te reenviamos la factura adjunta por si no la recibiste o necesitas una copia.",
+    attachmentNote: "La factura en PDF va adjunta a este correo.",
+    invoiceNumber: "Número de factura",
+    total: "Total",
+    vehicle: "Vehículo",
+    dueDate: "Vencimiento",
+    contactPrompt: "Para consultas sobre esta factura:",
+    footer: (shop) => `Este correo fue enviado por ${shop}.`,
+    poweredBy: "Enviado con Mecanico Management",
+  },
 };
 
 const EN: Strings = {
@@ -127,6 +161,23 @@ const EN: Strings = {
     CANCELLED: "CANCELLED",
   },
   months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  mail: {
+    preview: (num, shop) => `Invoice ${num} from ${shop}`,
+    resendPreview: (num, shop) => `Resend: invoice ${num} from ${shop}`,
+    subject: (num, shop) => `Invoice ${num} — ${shop}`,
+    resendSubject: (num, shop) => `Resend: Invoice ${num} — ${shop}`,
+    greeting: (name) => `Hello, ${name}`,
+    body: "Please find attached the invoice for services performed on your vehicle. If you have any questions, contact us directly.",
+    resendBody: "We are resending the attached invoice in case you did not receive it or need another copy.",
+    attachmentNote: "The PDF invoice is attached to this email.",
+    invoiceNumber: "Invoice number",
+    total: "Total",
+    vehicle: "Vehicle",
+    dueDate: "Due date",
+    contactPrompt: "For questions about this invoice:",
+    footer: (shop) => `This email was sent by ${shop}.`,
+    poweredBy: "Sent with Mecanico Management",
+  },
 };
 
 const FR: Strings = {
@@ -170,6 +221,23 @@ const FR: Strings = {
     CANCELLED: "ANNULÉE",
   },
   months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
+  mail: {
+    preview: (num, shop) => `Facture ${num} de ${shop}`,
+    resendPreview: (num, shop) => `Renvoi : facture ${num} de ${shop}`,
+    subject: (num, shop) => `Facture ${num} — ${shop}`,
+    resendSubject: (num, shop) => `Renvoi : Facture ${num} — ${shop}`,
+    greeting: (name) => `Bonjour, ${name}`,
+    body: "Veuillez trouver ci-joint la facture pour les services effectués sur votre véhicule. Pour toute question, contactez-nous directement.",
+    resendBody: "Nous vous renvoyons la facture ci-jointe au cas où vous ne l'auriez pas reçue ou auriez besoin d'une copie.",
+    attachmentNote: "La facture PDF est jointe à ce courriel.",
+    invoiceNumber: "Numéro de facture",
+    total: "Total",
+    vehicle: "Véhicule",
+    dueDate: "Échéance",
+    contactPrompt: "Pour toute question concernant cette facture :",
+    footer: (shop) => `Ce courriel a été envoyé par ${shop}.`,
+    poweredBy: "Envoyé avec Mecanico Management",
+  },
 };
 
 const MAP: Record<InvoiceLanguage, Strings> = { ES, EN, FR };
