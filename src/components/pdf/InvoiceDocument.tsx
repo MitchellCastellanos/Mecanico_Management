@@ -75,8 +75,8 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
-const LOGO_WIDTH = 120;
-const LOGO_HEIGHT = 70;
+const LOGO_MAX_W = 200;
+const LOGO_MAX_H = 88;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
@@ -91,62 +91,100 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PAD,
   },
   header: {
-    paddingTop: 10,
-    paddingBottom: 14,
-    marginBottom: 4,
-    borderBottomWidth: 2,
+    paddingTop: 4,
+    paddingBottom: 16,
+    marginBottom: 6,
+    borderBottomWidth: 1.5,
     borderBottomColor: SLATE_200,
+  },
+  headerTopRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 16,
   },
-  brandCol: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    minWidth: 0,
-  },
-  logoArea: {
-    width: LOGO_WIDTH,
-    height: LOGO_HEIGHT,
+  logoCol: {
+    width: LOGO_MAX_W,
+    maxHeight: LOGO_MAX_H,
     flexShrink: 0,
-    alignItems: "flex-start",
-    justifyContent: "center",
   },
   logoImage: {
-    width: LOGO_WIDTH,
-    height: LOGO_HEIGHT,
+    width: LOGO_MAX_W,
+    height: LOGO_MAX_H,
     objectFit: "contain",
     objectPosition: "left top",
   },
   logoPlaceholderText: {
-    fontSize: 11,
-    fontFamily: "Helvetica-Bold",
-    color: SLATE_400,
-  },
-  shopInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  shopName: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
     color: NAVY,
-    marginBottom: 6,
+  },
+  invoiceCol: {
+    width: 200,
+    alignItems: "flex-end",
+    flexShrink: 0,
+  },
+  invoiceTitle: {
+    fontSize: 20,
+    fontFamily: "Helvetica-Bold",
+    color: NAVY,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+    textAlign: "right",
+  },
+  invoiceNumber: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: NAVY,
+    marginBottom: 10,
+    textAlign: "right",
+  },
+  metaBlock: {
+    width: "100%",
+    alignItems: "flex-end",
+  },
+  metaLine: {
+    fontSize: 8.5,
+    color: SLATE_600,
+    textAlign: "right",
+    marginBottom: 3,
+    lineHeight: 1.4,
+  },
+  metaLineBold: {
+    fontSize: 8.5,
+    fontFamily: "Helvetica-Bold",
+    color: SLATE_900,
+    textAlign: "right",
+    marginBottom: 3,
+  },
+  statusBadge: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  statusText: { fontSize: 7.5, fontFamily: "Helvetica-Bold" },
+  shopBlock: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: SLATE_100,
+  },
+  shopName: {
+    fontSize: 13,
+    fontFamily: "Helvetica-Bold",
+    color: NAVY,
+    marginBottom: 8,
   },
   contactLine: {
     flexDirection: "row",
-    marginBottom: 3,
+    marginBottom: 4,
     alignItems: "flex-start",
   },
   contactLabel: {
     fontSize: 7.5,
     color: SLATE_400,
-    width: 52,
+    width: 54,
     flexShrink: 0,
-    paddingTop: 1,
   },
   contactValue: {
     fontSize: 8.5,
@@ -154,50 +192,6 @@ const styles = StyleSheet.create({
     flex: 1,
     lineHeight: 1.45,
   },
-  invoicePanel: {
-    borderLeftWidth: 1,
-    borderLeftColor: SLATE_200,
-    paddingLeft: 16,
-    paddingVertical: 4,
-    width: 178,
-    flexShrink: 0,
-  },
-  invoiceTitle: {
-    fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-    color: SLATE_400,
-    letterSpacing: 1,
-    marginBottom: 2,
-  },
-  invoiceNumber: {
-    fontSize: 17,
-    fontFamily: "Helvetica-Bold",
-    color: NAVY,
-    marginBottom: 8,
-  },
-  metaRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: "100%",
-    marginBottom: 3,
-    gap: 8,
-  },
-  metaLabel: { fontSize: 7.5, color: SLATE_600, width: 72 },
-  metaValue: {
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    color: SLATE_900,
-    flex: 1,
-    textAlign: "right",
-  },
-  statusBadge: {
-    marginTop: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    alignSelf: "flex-end",
-  },
-  statusText: { fontSize: 7, fontFamily: "Helvetica-Bold" },
   body: {
     paddingTop: 14,
   },
@@ -510,42 +504,53 @@ function InvoiceHeader({
   statusLabel: string;
   statusColors: { bg: string; color: string };
 }) {
+  const contactItems = [
+    { label: t.phone, value: invoice.shop.phone },
+    { label: t.email, value: invoice.shop.email },
+    { label: t.address, value: invoice.shop.address },
+    { label: t.taxRegistration, value: invoice.shop.taxId },
+  ].filter((c) => c.value);
+
   return (
     <View wrap={false}>
       <View style={styles.header}>
-        <View style={styles.brandCol}>
-          <View style={styles.logoArea}>
+        {/* Fila 1: logo (izq) | factura (der) — sin mezclar con datos del taller */}
+        <View style={styles.headerTopRow}>
+          <View style={styles.logoCol}>
             {invoice.shop.logoUrl ? (
               <Image src={invoice.shop.logoUrl} style={styles.logoImage} />
             ) : (
               <Text style={styles.logoPlaceholderText}>{invoice.shop.name}</Text>
             )}
           </View>
-          <View style={styles.shopInfo}>
-            <Text style={styles.shopName}>{invoice.shop.name}</Text>
-            <ContactLine label={t.phone} value={invoice.shop.phone} />
-            <ContactLine label={t.email} value={invoice.shop.email} />
-            <ContactLine label={t.address} value={invoice.shop.address} />
-            <ContactLine label={t.taxRegistration} value={invoice.shop.taxId} />
+
+          <View style={styles.invoiceCol}>
+            <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
+            <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
+            <View style={styles.metaBlock}>
+              <Text style={styles.metaLine}>{t.date}</Text>
+              <Text style={styles.metaLineBold}>{fmtDate(invoice.issuedAt, t.months)}</Text>
+              {invoice.dueAt && (
+                <View style={{ marginTop: 4, alignItems: "flex-end" }}>
+                  <Text style={styles.metaLine}>{t.due}</Text>
+                  <Text style={styles.metaLineBold}>{fmtDate(invoice.dueAt, t.months)}</Text>
+                </View>
+              )}
+              <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+                <Text style={[styles.statusText, { color: statusColors.color }]}>
+                  {statusLabel}
+                </Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        <View style={styles.invoicePanel}>
-          <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
-          <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>{t.date}</Text>
-            <Text style={styles.metaValue}>{fmtDate(invoice.issuedAt, t.months)}</Text>
-          </View>
-          {invoice.dueAt && (
-            <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{t.due}</Text>
-              <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
-            </View>
-          )}
-          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.statusText, { color: statusColors.color }]}>{statusLabel}</Text>
-          </View>
+        {/* Fila 2: datos del taller a ancho completo, debajo del logo */}
+        <View style={styles.shopBlock}>
+          <Text style={styles.shopName}>{invoice.shop.name}</Text>
+          {contactItems.map((c) => (
+            <ContactLine key={c.label} label={c.label} value={c.value} />
+          ))}
         </View>
       </View>
     </View>
