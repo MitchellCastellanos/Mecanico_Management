@@ -35,8 +35,8 @@ interface Client {
 interface InvoiceFormProps {
   clients: Client[];
   onSubmit: (data: InvoiceFormData) => Promise<{ error?: Record<string, string[]> } | void>;
-  defaultClientId?: string;
-  defaultVehicleId?: string;
+  initialValues?: Partial<InvoiceFormData>;
+  mode?: "create" | "edit";
 }
 
 const TAX_RATE = DEFAULT_COMBINED_TAX_RATE;
@@ -50,8 +50,8 @@ const ITEM_TYPES = [
 export function InvoiceForm({
   clients,
   onSubmit,
-  defaultClientId,
-  defaultVehicleId,
+  initialValues,
+  mode = "create",
 }: InvoiceFormProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -65,8 +65,8 @@ export function InvoiceForm({
   } = useForm<InvoiceFormData>({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
-      clientId: defaultClientId ?? "",
-      vehicleId: defaultVehicleId ?? "",
+      clientId: "",
+      vehicleId: "",
       taxRate: TAX_RATE,
       language: "ES",
       notes: "",
@@ -76,6 +76,7 @@ export function InvoiceForm({
       lineItems: [
         { description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR" },
       ],
+      ...initialValues,
     },
   });
 
@@ -451,7 +452,11 @@ export function InvoiceForm({
           disabled={isPending}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
-          {isPending ? "Guardando..." : "Crear factura borrador"}
+          {isPending
+            ? "Guardando..."
+            : mode === "edit"
+            ? "Guardar cambios"
+            : "Crear factura borrador"}
         </button>
         <a
           href="/invoices"
