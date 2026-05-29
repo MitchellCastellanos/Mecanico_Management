@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, Download, Pencil } from "lucide-react";
 import { getInvoiceById } from "@/actions/invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
@@ -80,6 +80,16 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Edit — solo borradores */}
+          {invoice.status === "DRAFT" && (
+            <Link
+              href={`/invoices/${invoice.id}/edit`}
+              className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              <Pencil className="w-4 h-4" />
+              <span className="hidden sm:inline">Editar</span>
+            </Link>
+          )}
           {/* PDF download */}
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
