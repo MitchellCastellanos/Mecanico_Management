@@ -7,11 +7,17 @@ import {
   View,
   StyleSheet,
   Image,
+  Font,
 } from "@react-pdf/renderer";
 import { formatClientName } from "@/lib/client-name";
 import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
 import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
 import Decimal from "decimal.js";
+
+// Por defecto @react-pdf parte palabras a media sílaba cuando no caben en la
+// línea (p. ej. "LA-CHINE"). Desactivamos la silabación: una palabra que no
+// quepa salta entera a la siguiente línea en vez de cortarse.
+Font.registerHyphenationCallback((word) => [word]);
 
 interface LineItem {
   description: string;
