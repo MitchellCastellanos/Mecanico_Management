@@ -139,6 +139,30 @@ export async function markInvoiceAsPaid(id: string) {
   revalidatePath("/invoices");
 }
 
+export async function revertInvoiceToDraft(id: string) {
+  const shopId = await getShopId();
+  const result = await db.invoice.updateMany({
+    where: { id, shopId, status: "SENT" },
+    data: { status: "DRAFT" },
+  });
+  if (result.count === 0) return { error: "La factura no está en estado Enviada" };
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  return { success: true };
+}
+
+export async function revertInvoiceToSent(id: string) {
+  const shopId = await getShopId();
+  const result = await db.invoice.updateMany({
+    where: { id, shopId, status: "PAID" },
+    data: { status: "SENT", paidAt: null },
+  });
+  if (result.count === 0) return { error: "La factura no está en estado Pagada" };
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  return { success: true };
+}
+
 const VOIDABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
 
 export async function cancelInvoice(id: string) {

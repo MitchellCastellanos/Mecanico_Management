@@ -8,8 +8,10 @@ import {
   markInvoiceAsPaid,
   cancelInvoice,
   deleteInvoice,
+  revertInvoiceToDraft,
+  revertInvoiceToSent,
 } from "@/actions/invoices";
-import { FileText, Loader2, Ban, Trash2 } from "lucide-react";
+import { FileText, Loader2, Ban, Trash2, RotateCcw } from "lucide-react";
 
 interface InvoiceActionsProps {
   invoiceId: string;
@@ -25,8 +27,10 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
   const [paidPending, startPaid] = useTransition();
   const [cancelPending, startCancel] = useTransition();
   const [deletePending, startDelete] = useTransition();
+  const [revertDraftPending, startRevertDraft] = useTransition();
+  const [revertSentPending, startRevertSent] = useTransition();
 
-  const isAnyPending = sentPending || paidPending || cancelPending || deletePending;
+  const isAnyPending = sentPending || paidPending || cancelPending || deletePending || revertDraftPending || revertSentPending;
 
   function handleCancel() {
     if (
@@ -102,6 +106,54 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
         >
           {paidPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
           Marcar como pagada
+        </button>
+      )}
+
+      {/* Regresar SENT → DRAFT */}
+      {status === "SENT" && (
+        <button
+          type="button"
+          disabled={isAnyPending}
+          onClick={() =>
+            startRevertDraft(async () => {
+              const result = await revertInvoiceToDraft(invoiceId);
+              if (result?.error) { toast.error(result.error); return; }
+              toast.info("Factura regresada a borrador");
+              router.refresh();
+            })
+          }
+          className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+        >
+          {revertDraftPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RotateCcw className="w-3.5 h-3.5" />
+          )}
+          Regresar a borrador
+        </button>
+      )}
+
+      {/* Regresar PAID → SENT */}
+      {status === "PAID" && (
+        <button
+          type="button"
+          disabled={isAnyPending}
+          onClick={() =>
+            startRevertSent(async () => {
+              const result = await revertInvoiceToSent(invoiceId);
+              if (result?.error) { toast.error(result.error); return; }
+              toast.info("Factura regresada a enviada");
+              router.refresh();
+            })
+          }
+          className="flex items-center gap-1.5 px-3 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
+        >
+          {revertSentPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RotateCcw className="w-3.5 h-3.5" />
+          )}
+          Regresar a enviada
         </button>
       )}
 
