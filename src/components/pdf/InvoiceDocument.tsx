@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
     color: SLATE_900,
     backgroundColor: WHITE,
     paddingTop: 0,
-    paddingBottom: FOOTER_H + 24,
+    paddingBottom: FOOTER_H + 14,
     paddingHorizontal: PAGE_PAD,
   },
   header: {
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     color: SLATE_600,
     textTransform: "uppercase",
   },
-  totalsBody: { paddingHorizontal: 12, paddingVertical: 8 },
+  totalsBody: { paddingHorizontal: 12, paddingVertical: 6 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
   totalDivider: {
     height: 1,
     backgroundColor: SLATE_200,
-    marginVertical: 6,
+    marginVertical: 4,
   },
   grandTotalRow: {
     flexDirection: "row",
@@ -763,8 +763,10 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             </View>
           ))}
 
-          {/* Mantiene notas + totales juntos; si no caben, bajan enteros a la página siguiente */}
-          <View wrap={false} minPresenceAhead={130}>
+          {/* Mantiene notas + totales juntos (wrap=false); si de verdad no
+              caben, bajan enteros a la página siguiente. Sin minPresenceAhead
+              para no reservar espacio extra que fuerce un salto innecesario. */}
+          <View wrap={false}>
             <View style={styles.bottomRow}>
               {invoice.notes ? (
                 <View style={styles.notesCard}>
