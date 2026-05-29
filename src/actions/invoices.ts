@@ -190,6 +190,71 @@ export async function savePdfUrl(id: string, pdfUrl: string) {
   revalidatePath(`/invoices/${id}`);
 }
 
+// ── UPDATE ──────────────────────────────────────────────────
+
+export async function updateInvoice(id: string, formData: InvoiceFormData) {
+  const shopId = await getShopId();
+
+  const existing = await db.invoice.findFirst({
+    where: { id, shopId, status: "DRAFT" },
+  });
+
+  if (!existing) {
+    return { error: { _form: ["Factura no encontrada o no disponible para edición"] } };
+  }
+
+  const parsed = invoiceSchema.safeParse(formData);
+  if (!parsed.success) {
+    return { error: parsed.error.flatten().fieldErrors };
+  }
+
+  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
+    parsed.data;
+
+  const subtotal = lineItems.reduce((sum, item) => {
+    return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
+  }, new Decimal(0));
+
+  const { taxAmount } = calculateTaxBreakdown(subtotal, taxRate);
+  const total = subtotal.plus(taxAmount);
+
+  await db.$transaction(async (tx) => {
+    await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+
+    await tx.invoice.update({
+      where: { id },
+      data: {
+        clientId,
+        vehicleId,
+        subtotal: subtotal.toFixed(2),
+        taxRate: roundTaxRate(taxRate),
+        taxAmount: taxAmount.toFixed(2),
+        total: total.toFixed(2),
+        language,
+        notes: notes || null,
+        mileageIn: mileageIn ?? null,
+        mileageOut: mileageOut ?? null,
+        dueAt: dueAt ? new Date(dueAt) : null,
+        pdfUrl: null,
+        lineItems: {
+          create: lineItems.map((item, index) => ({
+            description: item.description,
+            quantity: item.quantity.toString(),
+            unitPrice: item.unitPrice.toString(),
+            lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+            itemType: item.itemType,
+            sortOrder: index,
+          })),
+        },
+      },
+    });
+  });
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  redirect(`/invoices/${id}`);
+}
+
 // ── Datos para el formulario de nueva factura ───────────────
 
 export async function getInvoiceFormData() {
