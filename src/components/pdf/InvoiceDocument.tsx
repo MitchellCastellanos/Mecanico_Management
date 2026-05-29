@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
     borderBottomColor: SLATE_200,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "flex-start",
+    alignItems: "stretch",
     gap: 16,
   },
   brandCol: {
@@ -155,12 +155,15 @@ const styles = StyleSheet.create({
     lineHeight: 1.45,
   },
   invoicePanel: {
-    borderLeftWidth: 1,
-    borderLeftColor: SLATE_200,
-    paddingLeft: 16,
-    paddingVertical: 4,
-    width: 178,
+    backgroundColor: SLATE_50,
+    borderWidth: 1,
+    borderColor: SLATE_200,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    width: 188,
     flexShrink: 0,
+    justifyContent: "space-between",
   },
   invoiceTitle: {
     fontSize: 10,
@@ -170,16 +173,15 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   invoiceNumber: {
-    fontSize: 17,
+    fontSize: 18,
     fontFamily: "Helvetica-Bold",
     color: NAVY,
-    marginBottom: 8,
   },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    marginBottom: 3,
+    marginBottom: 4,
     gap: 8,
   },
   metaLabel: { fontSize: 7.5, color: SLATE_600, width: 72 },
@@ -190,8 +192,16 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "right",
   },
+  metaBottom: {
+    marginTop: 10,
+  },
+  metaDivider: {
+    height: 1,
+    backgroundColor: SLATE_200,
+    marginBottom: 8,
+  },
   statusBadge: {
-    marginTop: 6,
+    marginTop: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
@@ -205,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 10,
     marginBottom: 14,
-    alignItems: "stretch",
+    alignItems: "flex-start",
   },
   card: {
     flex: 1,
@@ -230,7 +240,8 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingTop: 8,
+    paddingBottom: 10,
   },
   cardTitle: {
     fontSize: 10,
@@ -258,7 +269,14 @@ const styles = StyleSheet.create({
     fontSize: 8.5,
     color: SLATE_700,
     flex: 1,
-    lineHeight: 1.45,
+    lineHeight: 1.35,
+  },
+  detailValueStacked: {
+    fontSize: 8.5,
+    color: SLATE_700,
+    width: "100%",
+    marginTop: 2,
+    lineHeight: 1.35,
   },
   mileageBox: {
     flexDirection: "row",
@@ -502,7 +520,7 @@ function DetailRow({
     return (
       <View style={styles.detailRowStacked}>
         <Text style={styles.detailLabel}>{label}</Text>
-        <Text style={[styles.detailValue, { marginTop: 2 }]}>{value}</Text>
+        <Text style={styles.detailValueStacked}>{value}</Text>
       </View>
     );
   }
@@ -557,20 +575,25 @@ function InvoiceHeader({
         </View>
 
         <View style={styles.invoicePanel}>
-          <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
-          <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
-          <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>{t.date}</Text>
-            <Text style={styles.metaValue}>{fmtDate(invoice.issuedAt, t.months)}</Text>
+          <View>
+            <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
+            <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
           </View>
-          {invoice.dueAt && (
+          <View style={styles.metaBottom}>
+            <View style={styles.metaDivider} />
             <View style={styles.metaRow}>
-              <Text style={styles.metaLabel}>{t.due}</Text>
-              <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
+              <Text style={styles.metaLabel}>{t.date}</Text>
+              <Text style={styles.metaValue}>{fmtDate(invoice.issuedAt, t.months)}</Text>
             </View>
-          )}
-          <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
-            <Text style={[styles.statusText, { color: statusColors.color }]}>{statusLabel}</Text>
+            {invoice.dueAt && (
+              <View style={styles.metaRow}>
+                <Text style={styles.metaLabel}>{t.due}</Text>
+                <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
+              </View>
+            )}
+            <View style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}>
+              <Text style={[styles.statusText, { color: statusColors.color }]}>{statusLabel}</Text>
+            </View>
           </View>
         </View>
       </View>
@@ -629,8 +652,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
         />
 
         <View style={styles.body}>
-          <View style={styles.cardsRow}>
-            <View style={styles.card} wrap={false}>
+          <View style={styles.cardsRow} wrap={false}>
+            <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.billTo}</Text>
               </View>
@@ -642,7 +665,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
               </View>
             </View>
 
-            <View style={styles.card} wrap={false}>
+            <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.vehicle}</Text>
               </View>
@@ -656,7 +679,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
               </View>
             </View>
 
-            <View style={styles.card} wrap={false}>
+            <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <Text style={styles.cardHeaderText}>{t.serviceDetails}</Text>
               </View>
