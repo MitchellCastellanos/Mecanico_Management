@@ -10,9 +10,21 @@ import React from "react";
 export async function generateInvoicePdf(
   invoice: Parameters<typeof InvoiceDocument>[0]["invoice"]
 ): Promise<Buffer> {
-  const element = React.createElement(InvoiceDocument, { invoice });
-  // Cast necesario: renderToBuffer espera DocumentProps pero nuestro componente
-  // wrappea <Document> internamente — en runtime funciona correctamente.
+  const element = React.createElement(InvoiceDocument, {
+    invoice: { ...invoice, documentKind: invoice.documentKind ?? "invoice" },
+  });
+  const buffer = await renderToBuffer(
+    element as React.ReactElement<DocumentProps>
+  );
+  return Buffer.from(buffer);
+}
+
+export async function generateQuotePdf(
+  quote: Parameters<typeof InvoiceDocument>[0]["invoice"]
+): Promise<Buffer> {
+  const element = React.createElement(InvoiceDocument, {
+    invoice: { ...quote, documentKind: "quote" },
+  });
   const buffer = await renderToBuffer(
     element as React.ReactElement<DocumentProps>
   );

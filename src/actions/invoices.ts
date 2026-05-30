@@ -19,6 +19,7 @@ import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
 import { generateInvoicePdf } from "@/lib/pdf";
 import { sendInvoiceEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { parseEmailAttachments } from "@/lib/email-attachments";
 import { syncSavedLineItems } from "@/actions/line-items";
 import { formatClientName } from "@/lib/client-name";
 import Decimal from "decimal.js";
@@ -146,15 +147,6 @@ export async function markInvoiceAsSent(id: string) {
 
 const EMAILABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
 
-const MAX_EMAIL_ATTACHMENTS = 5;
-const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
-const ALLOWED_ATTACHMENT_TYPES = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-]);
-
 export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const shopId = await getShopId();
 
@@ -192,27 +184,9 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const clientName = formatClientName(invoice.client);
   const vehicleDescription = `${invoice.vehicle.year} ${invoice.vehicle.make} ${invoice.vehicle.model}`;
 
-  const extraAttachments: { filename: string; content: Buffer }[] = [];
-  if (formData) {
-    const files = formData
-      .getAll("attachments")
-      .filter((f): f is File => f instanceof File && f.size > 0);
-
-    if (files.length > MAX_EMAIL_ATTACHMENTS) {
-      return { error: `Máximo ${MAX_EMAIL_ATTACHMENTS} archivos adjuntos` };
-    }
-
-    for (const file of files) {
-      if (file.size > MAX_ATTACHMENT_BYTES) {
-        return { error: `${file.name} supera el límite de 5 MB` };
-      }
-      const type = file.type || "application/octet-stream";
-      if (!ALLOWED_ATTACHMENT_TYPES.has(type)) {
-        return { error: `${file.name}: solo PDF o imágenes (JPG, PNG, WebP)` };
-      }
-      const buffer = Buffer.from(await file.arrayBuffer());
-      extraAttachments.push({ filename: file.name, content: buffer });
-    }
+  const attachmentResult = await parseEmailAttachments(formData);
+  if ("error" in attachmentResult) {
+    return { error: attachmentResult.error };
   }
 
   try {
@@ -221,7 +195,7 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
       to: clientEmail,
       pdfBuffer,
       pdfFilename: `${invoice.invoiceNumber}.pdf`,
-      extraAttachments,
+      extraAttachments: attachmentResult.attachments,
       clientName,
       shopName: invoice.shop.name,
       shopPhone: invoice.shop.phone,

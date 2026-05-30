@@ -9,9 +9,12 @@ export const INVOICE_LANGUAGES: { value: InvoiceLanguage; label: string }[] = [
 type Strings = {
   documentTitle: (num: string) => string;
   invoiceTitle: string;
+  quoteTitle: string;
   invoiceNo: string;
+  quoteNo: string;
   date: string;
   due: string;
+  validUntil: string;
   status: string;
   billTo: string;
   vehicle: string;
@@ -65,9 +68,12 @@ type Strings = {
 const ES: Strings = {
   documentTitle: (num) => `Factura ${num}`,
   invoiceTitle: "FACTURA",
+  quoteTitle: "COTIZACIÓN",
   invoiceNo: "No. de factura",
+  quoteNo: "No. de cotización",
   date: "Fecha de emisión",
   due: "Fecha de vencimiento",
+  validUntil: "Válida hasta",
   status: "Estado",
   billTo: "Facturar a",
   vehicle: "Vehículo",
@@ -104,6 +110,10 @@ const ES: Strings = {
     PAID: "PAGADA",
     OVERDUE: "VENCIDA",
     CANCELLED: "CANCELADA",
+    ACCEPTED: "ACEPTADA",
+    REJECTED: "RECHAZADA",
+    EXPIRED: "VENCIDA",
+    CONVERTED: "CONVERTIDA",
   },
   months: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
   mail: {
@@ -128,9 +138,12 @@ const ES: Strings = {
 const EN: Strings = {
   documentTitle: (num) => `Invoice ${num}`,
   invoiceTitle: "INVOICE",
+  quoteTitle: "QUOTE",
   invoiceNo: "Invoice number",
+  quoteNo: "Quote number",
   date: "Issue date",
   due: "Due date",
+  validUntil: "Valid until",
   status: "Status",
   billTo: "Bill to",
   vehicle: "Vehicle",
@@ -167,6 +180,10 @@ const EN: Strings = {
     PAID: "PAID",
     OVERDUE: "OVERDUE",
     CANCELLED: "CANCELLED",
+    ACCEPTED: "ACCEPTED",
+    REJECTED: "REJECTED",
+    EXPIRED: "EXPIRED",
+    CONVERTED: "CONVERTED",
   },
   months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   mail: {
@@ -191,9 +208,12 @@ const EN: Strings = {
 const FR: Strings = {
   documentTitle: (num) => `Facture ${num}`,
   invoiceTitle: "FACTURE",
+  quoteTitle: "SOUMISSION",
   invoiceNo: "No de facture",
+  quoteNo: "No de soumission",
   date: "Date d'émission",
   due: "Date d'échéance",
+  validUntil: "Valide jusqu'au",
   status: "Statut",
   billTo: "Facturer à",
   vehicle: "Véhicule",
@@ -230,6 +250,10 @@ const FR: Strings = {
     PAID: "PAYÉE",
     OVERDUE: "EN RETARD",
     CANCELLED: "ANNULÉE",
+    ACCEPTED: "ACCEPTÉE",
+    REJECTED: "REFUSÉE",
+    EXPIRED: "EXPIRÉE",
+    CONVERTED: "CONVERTIE",
   },
   months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
   mail: {

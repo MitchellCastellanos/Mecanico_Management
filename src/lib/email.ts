@@ -5,6 +5,11 @@ import { Resend } from "resend";
 import { ServiceReminderEmail } from "@/emails/ServiceReminderEmail";
 import { AccountingNotificationEmail } from "@/emails/AccountingNotificationEmail";
 import { InvoiceEmail, type InvoiceEmailProps } from "@/emails/InvoiceEmail";
+import { QuoteEmail, type QuoteEmailProps } from "@/emails/QuoteEmail";
+import {
+  AppointmentEmail,
+  type AppointmentEmailType,
+} from "@/emails/AppointmentEmail";
 import {
   resolveEmailRoute,
   type ShopEmailConfig,
@@ -152,5 +157,98 @@ export async function sendInvoiceEmail(data: InvoiceEmailSendData) {
       },
       ...(data.extraAttachments ?? []),
     ],
+  });
+}
+
+function quoteEmailSubject(
+  quoteNumber: string,
+  shopName: string,
+  language: InvoiceLanguage | string,
+  isResend: boolean
+) {
+  const l = (language ?? "ES") as InvoiceLanguage;
+  if (l === "EN") {
+    return isResend ? `Resend: Quote ${quoteNumber} — ${shopName}` : `Quote ${quoteNumber} — ${shopName}`;
+  }
+  if (l === "FR") {
+    return isResend
+      ? `Renvoi : Soumission ${quoteNumber} — ${shopName}`
+      : `Soumission ${quoteNumber} — ${shopName}`;
+  }
+  return isResend
+    ? `Reenvío: Cotización ${quoteNumber} — ${shopName}`
+    : `Cotización ${quoteNumber} — ${shopName}`;
+}
+
+interface QuoteEmailSendData extends QuoteEmailProps {
+  shop: ShopEmailConfig;
+  to: string;
+  pdfBuffer: Buffer;
+  pdfFilename: string;
+  extraAttachments?: { filename: string; content: Buffer }[];
+}
+
+export async function sendQuoteEmail(data: QuoteEmailSendData) {
+  const subject = quoteEmailSubject(
+    data.quoteNumber,
+    data.shopName,
+    data.language,
+    data.isResend ?? false
+  );
+
+  const route = resolveEmailRoute(data.shop, "QUOTE");
+  const element = React.createElement(QuoteEmail, {
+    ...data,
+    shopEmail: route.replyTo,
+  });
+
+  await sendTransactionalEmail({
+    shop: data.shop,
+    channel: "QUOTE",
+    to: data.to,
+    subject,
+    react: element,
+    attachments: [
+      { filename: data.pdfFilename, content: data.pdfBuffer },
+      ...(data.extraAttachments ?? []),
+    ],
+  });
+}
+
+interface AppointmentEmailSendData {
+  shop: ShopEmailConfig;
+  to: string;
+  type: AppointmentEmailType;
+  clientName: string;
+  title: string;
+  startsAtFormatted: string;
+  shopPhone?: string | null;
+}
+
+export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
+  const route = resolveEmailRoute(data.shop, "APPOINTMENT");
+
+  const subjects: Record<AppointmentEmailType, string> = {
+    confirmation: `Cita confirmada: ${data.title} — ${data.shop.name}`,
+    reminder: `Recordatorio de cita: ${data.title} — ${data.shop.name}`,
+    cancellation: `Cita cancelada: ${data.title} — ${data.shop.name}`,
+  };
+
+  const element = React.createElement(AppointmentEmail, {
+    type: data.type,
+    clientName: data.clientName,
+    shopName: data.shop.name,
+    title: data.title,
+    startsAtFormatted: data.startsAtFormatted,
+    shopPhone: data.shopPhone,
+    shopEmail: route.replyTo,
+  });
+
+  await sendTransactionalEmail({
+    shop: data.shop,
+    channel: "APPOINTMENT",
+    to: data.to,
+    subject: subjects[data.type],
+    react: element,
   });
 }

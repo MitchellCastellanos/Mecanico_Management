@@ -5,6 +5,8 @@
 
 export type EmailChannel =
   | "INVOICE"
+  | "QUOTE"
+  | "APPOINTMENT"
   | "REMINDER"
   | "ACCOUNTING"
   | "WEB_CONTACT"
@@ -38,6 +40,24 @@ export const EMAIL_CHANNEL_META: Record<EmailChannel, ChannelMeta> = {
     shopFromField: "billingEmail",
     envFromKey: "EMAIL_FROM_INVOICES",
     shopReplyField: "billingEmail",
+    pipeline: "resend",
+    implemented: true,
+  },
+  QUOTE: {
+    label: "Cotizaciones",
+    description: "Envío y reenvío de cotizaciones PDF al cliente",
+    shopFromField: "billingEmail",
+    envFromKey: "EMAIL_FROM_INVOICES",
+    shopReplyField: "billingEmail",
+    pipeline: "resend",
+    implemented: true,
+  },
+  APPOINTMENT: {
+    label: "Citas",
+    description: "Confirmaciones, recordatorios y cancelaciones de citas",
+    shopFromField: "infoEmail",
+    envFromKey: "EMAIL_FROM_REMINDERS",
+    shopReplyField: "infoEmail",
     pipeline: "resend",
     implemented: true,
   },

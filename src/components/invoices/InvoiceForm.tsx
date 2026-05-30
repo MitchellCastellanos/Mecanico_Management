@@ -38,6 +38,7 @@ interface InvoiceFormProps {
   onSubmit: (data: InvoiceFormData) => Promise<{ error?: Record<string, string[]> } | void>;
   initialValues?: Partial<InvoiceFormData>;
   mode?: "create" | "edit";
+  variant?: "invoice" | "quote";
 }
 
 const TAX_RATE = DEFAULT_COMBINED_TAX_RATE;
@@ -53,7 +54,10 @@ export function InvoiceForm({
   onSubmit,
   initialValues,
   mode = "create",
+  variant = "invoice",
 }: InvoiceFormProps) {
+  const isQuote = variant === "quote";
+  const cancelHref = isQuote ? "/quotes" : "/invoices";
   const [isPending, startTransition] = useTransition();
 
   const {
@@ -137,7 +141,9 @@ export function InvoiceForm({
 
       {/* ── Cliente y Vehículo ── */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-        <h2 className="font-semibold text-slate-900">Cliente y vehículo</h2>
+        <h2 className="font-semibold text-slate-900">
+          {isQuote ? "Cliente, vehículo y validez" : "Cliente y vehículo"}
+        </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Cliente */}
           <div>
@@ -217,7 +223,7 @@ export function InvoiceForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Fecha de vencimiento
+              {isQuote ? "Válida hasta" : "Fecha de vencimiento"}
             </label>
             <input
               {...register("dueAt")}
@@ -227,7 +233,7 @@ export function InvoiceForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Idioma de la factura *
+              {isQuote ? "Idioma de la cotización *" : "Idioma de la factura *"}
             </label>
             <select {...register("language")} className={selectClass(!!errors.language)}>
               {INVOICE_LANGUAGES.map((lang) => (
@@ -484,10 +490,12 @@ export function InvoiceForm({
             ? "Guardando..."
             : mode === "edit"
             ? "Guardar cambios"
+            : isQuote
+            ? "Crear cotización borrador"
             : "Crear factura borrador"}
         </button>
         <a
-          href="/invoices"
+          href={cancelHref}
           className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
         >
           Cancelar

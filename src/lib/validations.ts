@@ -56,6 +56,26 @@ export const invoiceSchema = z.object({
 
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;
 
+// ── Cotización (misma estructura que factura; dueAt → validUntil en DB) ──
+
+export const quoteSchema = invoiceSchema;
+export type QuoteFormData = z.infer<typeof quoteSchema>;
+
+// ── Cita ─────────────────────────────────────────────────────
+
+export const appointmentSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  vehicleId: z.string().optional().or(z.literal("")),
+  mechanicId: z.string().optional().or(z.literal("")),
+  title: z.string().min(1, "El título es requerido").max(200),
+  date: z.string().min(1, "La fecha es requerida"),
+  time: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (HH:mm)"),
+  durationMinutes: z.number().int().min(15).max(480).default(60),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export type AppointmentFormData = z.infer<typeof appointmentSchema>;
+
 // ── Recordatorio de servicio ──────────────────────────────────
 
 export const reminderSchema = z.object({

@@ -7,6 +7,8 @@ import {
   LayoutDashboard,
   Users,
   FileText,
+  FileSpreadsheet,
+  Calendar,
   Bell,
   FolderOpen,
   Settings,
@@ -28,6 +30,16 @@ const navItems = [
     label: "Facturas",
     href: "/invoices",
     icon: FileText,
+  },
+  {
+    label: "Cotizaciones",
+    href: "/quotes",
+    icon: FileSpreadsheet,
+  },
+  {
+    label: "Citas",
+    href: "/appointments",
+    icon: Calendar,
   },
   {
     label: "Recordatorios",

@@ -43,6 +43,8 @@ const shopSchema = z.object({
   providersEmail: z.string().email("Email inválido").optional().or(z.literal("")),
   newsletterEmail: z.string().email("Email inválido").optional().or(z.literal("")),
   taxId: z.string().max(100).optional().or(z.literal("")),
+  appointmentReminderHours: z.coerce.number().int().min(1).max(168),
+  appointmentEmailsEnabled: z.coerce.boolean(),
 });
 
 export async function updateShopSettings(formData: FormData) {
@@ -58,6 +60,8 @@ export async function updateShopSettings(formData: FormData) {
     providersEmail: formData.get("providersEmail") as string,
     newsletterEmail: formData.get("newsletterEmail") as string,
     taxId: formData.get("taxId") as string,
+    appointmentReminderHours: formData.get("appointmentReminderHours") as string,
+    appointmentEmailsEnabled: formData.get("appointmentEmailsEnabled") === "on",
   };
 
   const parsed = shopSchema.safeParse(raw);
@@ -65,8 +69,19 @@ export async function updateShopSettings(formData: FormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { name, address, phone, email, billingEmail, infoEmail, providersEmail, newsletterEmail, taxId } =
-    parsed.data;
+  const {
+    name,
+    address,
+    phone,
+    email,
+    billingEmail,
+    infoEmail,
+    providersEmail,
+    newsletterEmail,
+    taxId,
+    appointmentReminderHours,
+    appointmentEmailsEnabled,
+  } = parsed.data;
 
   await db.shop.update({
     where: { id: shopId },
@@ -80,6 +95,8 @@ export async function updateShopSettings(formData: FormData) {
       providersEmail: providersEmail || null,
       newsletterEmail: newsletterEmail || null,
       taxId: taxId || null,
+      appointmentReminderHours,
+      appointmentEmailsEnabled,
     },
   });
 

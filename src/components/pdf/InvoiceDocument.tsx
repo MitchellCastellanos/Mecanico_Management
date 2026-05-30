@@ -41,6 +41,7 @@ interface InvoiceData {
   total: string | number;
   language?: InvoiceLanguage | string | null;
   notes?: string | null;
+  documentKind?: "invoice" | "quote";
   lineItems: LineItem[];
   client: {
     firstName: string;
@@ -505,6 +506,10 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   PAID: { bg: "#d1fae5", color: EMERALD },
   OVERDUE: { bg: "#fee2e2", color: "#dc2626" },
   CANCELLED: { bg: SLATE_100, color: SLATE_400 },
+  ACCEPTED: { bg: "#d1fae5", color: EMERALD },
+  REJECTED: { bg: "#fee2e2", color: "#dc2626" },
+  EXPIRED: { bg: "#ffedd5", color: "#ea580c" },
+  CONVERTED: { bg: "#e0e7ff", color: "#4338ca" },
 };
 
 // Separa un taxId tipo "TPS: 123...RT0001  TVQ: 456...TQ0001" en líneas
@@ -612,7 +617,9 @@ function InvoiceHeader({
 
         <View style={styles.invoicePanel}>
           <View>
-            <Text style={styles.invoiceTitle}>{t.invoiceTitle}</Text>
+            <Text style={styles.invoiceTitle}>
+              {invoice.documentKind === "quote" ? t.quoteTitle : t.invoiceTitle}
+            </Text>
             <Text style={styles.invoiceNumber}>{invoice.invoiceNumber}</Text>
           </View>
           <View style={styles.metaBottom}>
@@ -623,7 +630,9 @@ function InvoiceHeader({
             </View>
             {invoice.dueAt && (
               <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>{t.due}</Text>
+                <Text style={styles.metaLabel}>
+                  {invoice.documentKind === "quote" ? t.validUntil : t.due}
+                </Text>
                 <Text style={styles.metaValue}>{fmtDate(invoice.dueAt, t.months)}</Text>
               </View>
             )}
@@ -658,9 +667,13 @@ function InvoiceFooter({
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   const t = getInvoiceStrings(invoice.language);
+  const isQuote = invoice.documentKind === "quote";
   const statusColors = STATUS_COLORS[invoice.status] ?? STATUS_COLORS.DRAFT;
   const statusLabel = t.statuses[invoice.status] ?? invoice.status;
   const currency = invoice.shop.currency ?? "CAD";
+  const docTitle = isQuote
+    ? `Cotización ${invoice.invoiceNumber}`
+    : t.documentTitle(invoice.invoiceNumber);
 
   const { tpsAmount, tvqAmount, taxAmount } = calculateTaxBreakdown(
     invoice.subtotal,
@@ -679,7 +692,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   const warrantyItems = invoice.lineItems.filter((item) => item.warrantyTerm?.trim());
 
   return (
-    <Document title={t.documentTitle(invoice.invoiceNumber)} author={invoice.shop.name}>
+    <Document title={docTitle} author={invoice.shop.name}>
       <Page size="LETTER" style={styles.page} wrap>
         <InvoiceHeader
           invoice={invoice}

@@ -29,6 +29,10 @@ export function formatInvoiceNumber(sequence: number): string {
   return `INV-${String(sequence).padStart(4, "0")}`;
 }
 
+export function formatQuoteNumber(sequence: number): string {
+  return `COT-${String(sequence).padStart(4, "0")}`;
+}
+
 // Calcula totales de factura
 export function calculateInvoiceTotals(
   lineItems: { quantity: number; unitPrice: number }[],

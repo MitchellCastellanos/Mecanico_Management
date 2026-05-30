@@ -19,6 +19,8 @@ interface Shop {
   newsletterEmail: string | null;
   taxId: string | null;
   logoUrl: string | null;
+  appointmentReminderHours: number;
+  appointmentEmailsEnabled: boolean;
 }
 
 interface ShopSettingsFormProps {
@@ -262,6 +264,39 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
               className={inputClass}
             />
             <p className="text-xs text-slate-400 mt-1">Aparece en el pie de página de las facturas PDF</p>
+          </div>
+          <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">Citas — recordatorios por email</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Horas antes de la cita
+                </label>
+                <input
+                  name="appointmentReminderHours"
+                  type="number"
+                  min={1}
+                  max={168}
+                  defaultValue={shop.appointmentReminderHours}
+                  className={inputClass}
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  El cron envía recordatorio cuando falten estas horas (por defecto 24 h)
+                </p>
+              </div>
+              <div className="flex items-center gap-3 pt-6">
+                <input
+                  id="appointmentEmailsEnabled"
+                  name="appointmentEmailsEnabled"
+                  type="checkbox"
+                  defaultChecked={shop.appointmentEmailsEnabled}
+                  className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                <label htmlFor="appointmentEmailsEnabled" className="text-sm text-slate-700">
+                  Enviar recordatorios de citas por email
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
