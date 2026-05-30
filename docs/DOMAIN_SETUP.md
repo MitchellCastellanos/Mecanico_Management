@@ -2,6 +2,24 @@
 
 Usa esta lista cuando compres y configures el dominio del taller (ej. `tallercarlos.com`).
 
+## 0. Base de datos — migración tras deploy
+
+Tras un deploy que incluya cambios en `prisma/schema.prisma`, la base de Supabase en producción debe actualizarse **antes** de usar la app (si no, verás errores como `Invoice.sentAt does not exist`).
+
+Desde tu máquina (PowerShell o bash), con el valor de `CRON_SECRET` de Vercel Production:
+
+```bash
+curl -X POST "https://mecanico-management.vercel.app/api/setup/migrate" \
+  -H "x-setup-secret: TU_CRON_SECRET"
+```
+
+Respuesta esperada: `{"ok":true,"file":"incremental-migrate","statements":N}`. Es idempotente; puedes ejecutarlo de nuevo sin problema.
+
+- [ ] Ejecutar migración incremental tras cada deploy con cambios de schema
+- [ ] Abrir `/dashboard` y confirmar que no hay errores Prisma en los logs de Vercel
+
+Guía detallada de citas y reservas web: [`docs/BOOKING.md`](./BOOKING.md)
+
 ## 1. IONOS — DNS y buzones
 
 - [ ] Comprar/registrar el dominio en IONOS

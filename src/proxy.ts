@@ -7,6 +7,8 @@ export default auth((req) => {
   // Rutas públicas — no requieren sesión
   const isPublic =
     pathname.startsWith("/login") ||
+    pathname.startsWith("/book") ||
+    pathname.startsWith("/api/book") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/setup") ||
     pathname.startsWith("/api/debug") ||

@@ -17,6 +17,7 @@ interface Appointment {
   endsAt: Date | string;
   durationMinutes: number;
   status: string;
+  source?: string;
   client: { firstName: string; lastName?: string | null; email?: string | null };
   vehicle?: { year: number; make: string; model: string; licensePlate: string } | null;
   mechanic?: { name: string } | null;
@@ -111,6 +112,11 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
         >
           {STATUS_LABEL[appointment.status] ?? appointment.status}
         </span>
+        {appointment.source === "PUBLIC_WEB" && (
+          <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+            Web
+          </span>
+        )}
 
         {canConfirm && appointment.status === "SCHEDULED" && (
           <button

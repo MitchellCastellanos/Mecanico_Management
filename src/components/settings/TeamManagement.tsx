@@ -93,8 +93,8 @@ export function TeamManagement({ members, currentUserId }: TeamManagementProps) 
         <div>
           <h2 className="font-semibold text-slate-900">Equipo del taller</h2>
           <p className="text-sm text-slate-500 mt-1">
-            Crea cuentas para empleados, restablece contraseñas y asigna permisos.
-            Solo visible para el dueño.
+            Crea cuentas para empleados (mecánicos, recepción). Luego en{" "}
+            <strong>Citas — reservas desde el website</strong> activa quién recibe citas en línea.
           </p>
         </div>
         <button

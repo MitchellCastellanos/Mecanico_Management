@@ -86,6 +86,25 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
     CONSTRAINT "Appointment_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE INDEX IF NOT EXISTS "Appointment_shopId_startsAt_idx" ON mecanico."Appointment"("shopId", "startsAt")`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "slug" TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Shop_slug_key" ON mecanico."Shop"("slug")`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "bookingEnabled" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "timezone" TEXT NOT NULL DEFAULT 'America/Montreal'`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "bookingSlotMinutes" INTEGER NOT NULL DEFAULT 60`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "bookingLeadTimeHours" INTEGER NOT NULL DEFAULT 24`,
+  `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "bookingAdvanceDays" INTEGER NOT NULL DEFAULT 30`,
+  `ALTER TABLE mecanico."User" ADD COLUMN IF NOT EXISTS "bookable" BOOLEAN NOT NULL DEFAULT true`,
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "source" mecanico."AppointmentSource" NOT NULL DEFAULT 'INTERNAL'`,
+  `CREATE TABLE IF NOT EXISTS mecanico."ShopWorkingHours" (
+    "id" TEXT NOT NULL,
+    "shopId" TEXT NOT NULL,
+    "dayOfWeek" INTEGER NOT NULL,
+    "openTime" TEXT NOT NULL,
+    "closeTime" TEXT NOT NULL,
+    "isClosed" BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT "ShopWorkingHours_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "ShopWorkingHours_shopId_dayOfWeek_key" ON mecanico."ShopWorkingHours"("shopId", "dayOfWeek")`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
@@ -114,6 +133,19 @@ export async function ensureAppointmentStatusEnum() {
   }
 }
 
+export async function ensureAppointmentSourceEnum() {
+  try {
+    await db.$executeRawUnsafe(
+      `CREATE TYPE mecanico."AppointmentSource" AS ENUM ('INTERNAL', 'PUBLIC_WEB')`
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("already exists") && !msg.includes("duplicate")) {
+      throw err;
+    }
+  }
+}
+
 export async function ensureInvoiceLanguageEnum() {
   try {
     await db.$executeRawUnsafe(
@@ -131,6 +163,7 @@ export async function runIncrementalMigrate() {
   await ensureInvoiceLanguageEnum();
   await ensureQuoteStatusEnum();
   await ensureAppointmentStatusEnum();
+  await ensureAppointmentSourceEnum();
   for (const statement of INCREMENTAL_MIGRATE_STATEMENTS) {
     await db.$executeRawUnsafe(statement);
   }

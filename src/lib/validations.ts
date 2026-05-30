@@ -76,6 +76,26 @@ export const appointmentSchema = z.object({
 
 export type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
+// ── Reserva pública (website del cliente) ────────────────────
+
+export const publicBookingSchema = z.object({
+  firstName: z.string().min(1, "El nombre es requerido").max(100),
+  lastName: z.string().max(100).optional().or(z.literal("")),
+  email: z.string().email("Email inválido"),
+  phone: z.string().min(7, "Teléfono requerido").max(30),
+  make: z.string().min(1, "Marca requerida").max(50),
+  model: z.string().min(1, "Modelo requerido").max(50),
+  year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
+  licensePlate: z.string().min(1, "Placa requerida").max(20),
+  title: z.string().min(1, "Describe el servicio").max(200),
+  date: z.string().min(1),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+  mechanicId: z.string().optional().or(z.literal("")),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export type PublicBookingFormData = z.infer<typeof publicBookingSchema>;
+
 // ── Recordatorio de servicio ──────────────────────────────────
 
 export const reminderSchema = z.object({

@@ -32,9 +32,16 @@ model Shop {
   currency  String   @default("CAD")
   appointmentReminderHours  Int     @default(24)
   appointmentEmailsEnabled  Boolean @default(true)
+  slug                      String? @unique // URL pública: /book/mi-taller
+  bookingEnabled            Boolean @default(false)
+  timezone                  String  @default("America/Montreal")
+  bookingSlotMinutes        Int     @default(60)
+  bookingLeadTimeHours      Int     @default(24)
+  bookingAdvanceDays        Int     @default(30)
   createdAt DateTime @default(now())
 
   users         User[]
+  workingHours  ShopWorkingHours[]
   clients       Client[]
   invoices      Invoice[]
   quotes        Quote[]
@@ -57,6 +64,7 @@ model User {
   email        String   @unique
   passwordHash String?
   role         Role     @default(MECHANIC)
+  bookable     Boolean  @default(true) // aparece en reservas web
   createdAt    DateTime @default(now())
 
   // NextAuth required
@@ -357,8 +365,16 @@ model Appointment {
   confirmationSentAt   DateTime?
   reminderSentAt       DateTime?
   cancellationSentAt   DateTime?
+  source               AppointmentSource @default(INTERNAL)
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
+}
+
+enum AppointmentSource {
+  @@schema("mecanico")
+
+  INTERNAL
+  PUBLIC_WEB
 }
 
 enum AppointmentStatus {
@@ -369,6 +385,21 @@ enum AppointmentStatus {
   COMPLETED
   CANCELLED
   NO_SHOW
+}
+
+// Horario de apertura del taller (0 = domingo … 6 = sábado)
+model ShopWorkingHours {
+  @@schema("mecanico")
+
+  id        String  @id @default(cuid())
+  shopId    String
+  shop      Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  dayOfWeek Int     // 0–6, alineado con Date.getDay()
+  openTime  String  // "08:00"
+  closeTime String  // "17:00"
+  isClosed  Boolean @default(false)
+
+  @@unique([shopId, dayOfWeek])
 }
 
 // ─────────────────────────────────────────
