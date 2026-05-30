@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
-import { runIncrementalMigrate } from "@/lib/incremental-migrate";
+import { runIncrementalMigrate, getLatestSchemaVersion } from "@/lib/incremental-migrate";
 import { db } from "@/lib/db";
 
 export const maxDuration = 60;
@@ -39,7 +39,13 @@ export async function POST(req: NextRequest) {
     }
 
     const count = await runIncrementalMigrate();
-    return NextResponse.json({ ok: true, file: "incremental-migrate", statements: count });
+    const dbVersion = await getLatestSchemaVersion();
+    return NextResponse.json({
+      ok: true,
+      file: "incremental-migrate",
+      statements: count,
+      schema_version: dbVersion,
+    });
   } catch (err) {
     console.error("[migrate]", err);
     const msg = err instanceof Error ? err.message : "Error desconocido";

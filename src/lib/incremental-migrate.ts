@@ -1,8 +1,16 @@
 import { db } from "@/lib/db";
 
+/** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
+export const SCHEMA_VERSION = "20260530-booking-v1";
+
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `CREATE SCHEMA IF NOT EXISTS mecanico`,
+  `CREATE TABLE IF NOT EXISTS mecanico."SchemaMigration" (
+    "version" TEXT NOT NULL,
+    "appliedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "SchemaMigration_pkey" PRIMARY KEY ("version")
+  )`,
   `ALTER TABLE mecanico."Client" ALTER COLUMN "lastName" DROP NOT NULL`,
   `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "language" mecanico."InvoiceLanguage" NOT NULL DEFAULT 'ES'`,
   `ALTER TABLE mecanico."Invoice" ALTER COLUMN "taxRate" TYPE DECIMAL(6, 5)`,
@@ -167,5 +175,20 @@ export async function runIncrementalMigrate() {
   for (const statement of INCREMENTAL_MIGRATE_STATEMENTS) {
     await db.$executeRawUnsafe(statement);
   }
+  await db.$executeRawUnsafe(
+    `INSERT INTO mecanico."SchemaMigration" ("version") VALUES ('${SCHEMA_VERSION.replace(/'/g, "''")}') ON CONFLICT ("version") DO NOTHING`
+  );
   return INCREMENTAL_MIGRATE_STATEMENTS.length;
+}
+
+/** Última versión registrada en producción (null si la tabla no existe aún). */
+export async function getLatestSchemaVersion(): Promise<string | null> {
+  try {
+    const rows = await db.$queryRawUnsafe<{ version: string }[]>(
+      `SELECT "version" FROM mecanico."SchemaMigration" ORDER BY "appliedAt" DESC LIMIT 1`
+    );
+    return rows[0]?.version ?? null;
+  } catch {
+    return null;
+  }
 }
