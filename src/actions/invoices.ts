@@ -13,8 +13,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
-import { formatInvoiceNumber } from "@/lib/utils";
+import { formatInvoiceNumber, formatCurrency, formatDate } from "@/lib/utils";
 import { calculateTaxBreakdown, roundTaxRate } from "@/lib/taxes";
+import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
+import { generateInvoicePdf } from "@/lib/pdf";
+import { sendInvoiceEmail } from "@/lib/email";
+import { shopToEmailConfig } from "@/lib/email-config";
+import { syncSavedLineItems } from "@/actions/line-items";
+import { formatClientName } from "@/lib/client-name";
 import Decimal from "decimal.js";
 
 // ── READ ────────────────────────────────────────────────────
@@ -106,12 +112,15 @@ export async function createInvoice(formData: InvoiceFormData) {
               .times(item.unitPrice)
               .toFixed(2),
             itemType: item.itemType,
+            warrantyTerm: item.warrantyTerm?.trim() || null,
             sortOrder: index,
           })),
         },
       },
     });
   });
+
+  await syncSavedLineItems(shopId, lineItems);
 
   revalidatePath("/invoices");
   redirect(`/invoices/${invoice.id}`);
@@ -121,12 +130,136 @@ export async function createInvoice(formData: InvoiceFormData) {
 
 export async function markInvoiceAsSent(id: string) {
   const shopId = await getShopId();
-  await db.invoice.updateMany({
-    where: { id, shopId },
-    data: { status: "SENT" },
+  const invoice = await db.invoice.findFirst({ where: { id, shopId } });
+  if (!invoice) return;
+
+  await db.invoice.update({
+    where: { id },
+    data: {
+      status: "SENT",
+      sentAt: invoice.sentAt ?? new Date(),
+    },
   });
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");
+}
+
+const EMAILABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
+
+const MAX_EMAIL_ATTACHMENTS = 5;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+const ALLOWED_ATTACHMENT_TYPES = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+]);
+
+export async function sendInvoiceByEmail(id: string, formData?: FormData) {
+  const shopId = await getShopId();
+
+  const invoice = await db.invoice.findFirst({
+    where: { id, shopId },
+    include: {
+      client: true,
+      vehicle: true,
+      lineItems: { orderBy: { sortOrder: "asc" } },
+      shop: true,
+    },
+  });
+
+  if (!invoice) {
+    return { error: "Factura no encontrada" };
+  }
+
+  if (invoice.status === "CANCELLED") {
+    return { error: "No se puede enviar una factura anulada" };
+  }
+
+  if (!EMAILABLE_STATUSES.includes(invoice.status as (typeof EMAILABLE_STATUSES)[number])) {
+    return { error: "Esta factura no se puede enviar por email" };
+  }
+
+  const clientEmail = invoice.client.email?.trim();
+  if (!clientEmail) {
+    return {
+      error: "El cliente no tiene email. Agrégalo en su ficha antes de enviar la factura.",
+    };
+  }
+
+  const isResend = invoice.emailSendCount > 0;
+  const pdfBuffer = await generateInvoicePdf(serializeInvoiceForPdf(invoice));
+  const clientName = formatClientName(invoice.client);
+  const vehicleDescription = `${invoice.vehicle.year} ${invoice.vehicle.make} ${invoice.vehicle.model}`;
+
+  const extraAttachments: { filename: string; content: Buffer }[] = [];
+  if (formData) {
+    const files = formData
+      .getAll("attachments")
+      .filter((f): f is File => f instanceof File && f.size > 0);
+
+    if (files.length > MAX_EMAIL_ATTACHMENTS) {
+      return { error: `Máximo ${MAX_EMAIL_ATTACHMENTS} archivos adjuntos` };
+    }
+
+    for (const file of files) {
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        return { error: `${file.name} supera el límite de 5 MB` };
+      }
+      const type = file.type || "application/octet-stream";
+      if (!ALLOWED_ATTACHMENT_TYPES.has(type)) {
+        return { error: `${file.name}: solo PDF o imágenes (JPG, PNG, WebP)` };
+      }
+      const buffer = Buffer.from(await file.arrayBuffer());
+      extraAttachments.push({ filename: file.name, content: buffer });
+    }
+  }
+
+  try {
+    await sendInvoiceEmail({
+      shop: shopToEmailConfig(invoice.shop),
+      to: clientEmail,
+      pdfBuffer,
+      pdfFilename: `${invoice.invoiceNumber}.pdf`,
+      extraAttachments,
+      clientName,
+      shopName: invoice.shop.name,
+      shopPhone: invoice.shop.phone,
+      shopAddress: invoice.shop.address,
+      shopLogoUrl: invoice.shop.logoUrl,
+      invoiceNumber: invoice.invoiceNumber,
+      totalFormatted: formatCurrency(Number(invoice.total)),
+      vehicleDescription,
+      dueDateFormatted: invoice.dueAt ? formatDate(invoice.dueAt) : null,
+      language: invoice.language,
+      isResend,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    console.error(`Error enviando factura ${invoice.invoiceNumber}:`, err);
+    return { error: message };
+  }
+
+  const now = new Date();
+  await db.invoice.update({
+    where: { id },
+    data: {
+      status: invoice.status === "DRAFT" ? "SENT" : invoice.status,
+      sentAt: invoice.sentAt ?? now,
+      emailSentAt: now,
+      emailSendCount: { increment: 1 },
+    },
+  });
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+
+  return {
+    success: true,
+    isResend,
+    sentTo: clientEmail,
+  };
 }
 
 export async function markInvoiceAsPaid(id: string) {
@@ -267,12 +400,15 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
             unitPrice: item.unitPrice.toString(),
             lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
             itemType: item.itemType,
+            warrantyTerm: item.warrantyTerm?.trim() || null,
             sortOrder: index,
           })),
         },
       },
     });
   });
+
+  await syncSavedLineItems(shopId, lineItems);
 
   revalidatePath(`/invoices/${id}`);
   revalidatePath("/invoices");

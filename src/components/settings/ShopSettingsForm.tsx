@@ -5,12 +5,18 @@ import { toast } from "sonner";
 import { updateShopSettings, uploadShopLogo, changePassword } from "@/actions/settings";
 import { Upload, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { EmailRoutingPreview } from "@/components/settings/EmailRoutingPreview";
+import { shopToEmailConfig } from "@/lib/email-config";
 
 interface Shop {
   name: string;
   address: string | null;
   phone: string | null;
   email: string | null;
+  billingEmail: string | null;
+  infoEmail: string | null;
+  providersEmail: string | null;
+  newsletterEmail: string | null;
   taxId: string | null;
   logoUrl: string | null;
 }
@@ -21,6 +27,7 @@ interface ShopSettingsFormProps {
 
 export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
   const [logoUrl, setLogoUrl] = useState(shop.logoUrl);
+  const [emailDraft, setEmailDraft] = useState(shopToEmailConfig(shop));
   const [infopending, startInfoTransition] = useTransition();
   const [logoPending, startLogoTransition] = useTransition();
   const [pwPending, startPwTransition] = useTransition();
@@ -33,6 +40,14 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
     startInfoTransition(async () => {
       const result = await updateShopSettings(formData);
       if (result?.success) {
+        setEmailDraft({
+          name: (formData.get("name") as string) || shop.name,
+          email: (formData.get("email") as string) || null,
+          billingEmail: (formData.get("billingEmail") as string) || null,
+          infoEmail: (formData.get("infoEmail") as string) || null,
+          providersEmail: (formData.get("providersEmail") as string) || null,
+          newsletterEmail: (formData.get("newsletterEmail") as string) || null,
+        });
         toast.success("Configuración guardada");
       } else if (result?.error) {
         const msg = Object.values(result.error).flat()[0];
@@ -167,15 +182,73 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Email del taller
+              Email principal
             </label>
             <input
               name="email"
               type="email"
               defaultValue={shop.email ?? ""}
-              placeholder="garage@ejemplo.com"
+              placeholder="carlos@tallercarlos.com"
               className={inputClass}
             />
+            <p className="text-xs text-slate-400 mt-1">
+              Contacto general y fallback si no hay buzón específico
+            </p>
+          </div>
+          <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">Buzones del dominio</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  billing@ — Facturas y contabilidad
+                </label>
+                <input
+                  name="billingEmail"
+                  type="email"
+                  defaultValue={shop.billingEmail ?? ""}
+                  placeholder="billing@tallercarlos.com"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  info@ — Recordatorios y web
+                </label>
+                <input
+                  name="infoEmail"
+                  type="email"
+                  defaultValue={shop.infoEmail ?? ""}
+                  placeholder="info@tallercarlos.com"
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  providers@ — Proveedores
+                </label>
+                <input
+                  name="providersEmail"
+                  type="email"
+                  defaultValue={shop.providersEmail ?? ""}
+                  placeholder="providers@tallercarlos.com"
+                  className={inputClass}
+                />
+                <p className="text-xs text-slate-400 mt-1">Reservado para uso futuro</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  newsletter@ — Marketing
+                </label>
+                <input
+                  name="newsletterEmail"
+                  type="email"
+                  defaultValue={shop.newsletterEmail ?? ""}
+                  placeholder="newsletter@tallercarlos.com"
+                  className={inputClass}
+                />
+                <p className="text-xs text-slate-400 mt-1">Para Brevo/Mailchimp más adelante</p>
+              </div>
+            </div>
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -203,6 +276,8 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
           </button>
         </div>
       </form>
+
+      <EmailRoutingPreview shop={emailDraft} />
 
       {/* ── Cambiar contraseña ── */}
       <form ref={pwFormRef} onSubmit={handlePasswordSubmit} className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">

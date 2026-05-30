@@ -38,6 +38,10 @@ const shopSchema = z.object({
   address: z.string().max(255).optional().or(z.literal("")),
   phone: z.string().max(30).optional().or(z.literal("")),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
+  billingEmail: z.string().email("Email inválido").optional().or(z.literal("")),
+  infoEmail: z.string().email("Email inválido").optional().or(z.literal("")),
+  providersEmail: z.string().email("Email inválido").optional().or(z.literal("")),
+  newsletterEmail: z.string().email("Email inválido").optional().or(z.literal("")),
   taxId: z.string().max(100).optional().or(z.literal("")),
 });
 
@@ -49,6 +53,10 @@ export async function updateShopSettings(formData: FormData) {
     address: formData.get("address") as string,
     phone: formData.get("phone") as string,
     email: formData.get("email") as string,
+    billingEmail: formData.get("billingEmail") as string,
+    infoEmail: formData.get("infoEmail") as string,
+    providersEmail: formData.get("providersEmail") as string,
+    newsletterEmail: formData.get("newsletterEmail") as string,
     taxId: formData.get("taxId") as string,
   };
 
@@ -57,7 +65,8 @@ export async function updateShopSettings(formData: FormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { name, address, phone, email, taxId } = parsed.data;
+  const { name, address, phone, email, billingEmail, infoEmail, providersEmail, newsletterEmail, taxId } =
+    parsed.data;
 
   await db.shop.update({
     where: { id: shopId },
@@ -66,6 +75,10 @@ export async function updateShopSettings(formData: FormData) {
       address: address || null,
       phone: phone || null,
       email: email || null,
+      billingEmail: billingEmail || null,
+      infoEmail: infoEmail || null,
+      providersEmail: providersEmail || null,
+      newsletterEmail: newsletterEmail || null,
       taxId: taxId || null,
     },
   });

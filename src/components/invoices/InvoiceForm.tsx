@@ -9,7 +9,7 @@
 // - Los totales se calculan en el cliente para feedback inmediato,
 //   pero se RE-CALCULAN en el servidor (Server Action) para seguridad.
 
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition, useState, useMemo } from "react";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
@@ -22,6 +22,7 @@ import {
 } from "@/lib/taxes";
 import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { Plus, Trash2 } from "lucide-react";
+import { LineItemDescriptionInput } from "@/components/invoices/LineItemDescriptionInput";
 import Decimal from "decimal.js";
 
 // Tipos de los datos que necesita el form (vienen del servidor)
@@ -60,6 +61,7 @@ export function InvoiceForm({
     control,
     handleSubmit,
     watch,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<InvoiceFormData>({
@@ -74,7 +76,7 @@ export function InvoiceForm({
       mileageOut: undefined,
       dueAt: "",
       lineItems: [
-        { description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR" },
+        { description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR", warrantyTerm: "" },
       ],
       ...initialValues,
     },
@@ -248,9 +250,10 @@ export function InvoiceForm({
         </div>
 
         {/* Header de la tabla */}
-        <div className="hidden sm:grid grid-cols-[1fr_120px_100px_110px_80px_36px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100">
+        <div className="hidden sm:grid grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100">
           <span className="text-xs font-medium text-slate-500 uppercase">Descripción</span>
           <span className="text-xs font-medium text-slate-500 uppercase">Tipo</span>
+          <span className="text-xs font-medium text-slate-500 uppercase">Garantía</span>
           <span className="text-xs font-medium text-slate-500 uppercase text-right">Cantidad</span>
           <span className="text-xs font-medium text-slate-500 uppercase text-right">P. unitario</span>
           <span className="text-xs font-medium text-slate-500 uppercase text-right">Total</span>
@@ -267,21 +270,38 @@ export function InvoiceForm({
             return (
               <div
                 key={field.id}
-                className="grid grid-cols-[1fr_36px] sm:grid-cols-[1fr_120px_100px_110px_80px_36px] gap-3 px-5 py-3 items-start"
+                className="grid grid-cols-[1fr_36px] sm:grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-3 items-start"
               >
                 {/* Descripción */}
                 <div>
-                  <input
-                    {...register(`lineItems.${index}.description`)}
-                    type="text"
-                    placeholder="Ej: Cambio de aceite 5W-30"
-                    className={inputClass(!!errors.lineItems?.[index]?.description)}
+                  <Controller
+                    control={control}
+                    name={`lineItems.${index}.description`}
+                    render={({ field }) => (
+                      <LineItemDescriptionInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onSelectSuggestion={(s) => {
+                          field.onChange(s.description);
+                          setValue(`lineItems.${index}.itemType`, s.itemType);
+                          setValue(`lineItems.${index}.unitPrice`, s.unitPrice);
+                        }}
+                        hasError={!!errors.lineItems?.[index]?.description}
+                        inputClass={inputClass(!!errors.lineItems?.[index]?.description)}
+                      />
+                    )}
                   />
                   {errors.lineItems?.[index]?.description && (
                     <p className="text-red-600 text-xs mt-1">
                       {errors.lineItems[index]?.description?.message}
                     </p>
                   )}
+                  <input
+                    {...register(`lineItems.${index}.warrantyTerm`)}
+                    type="text"
+                    placeholder="Garantía ej: 12 meses"
+                    className={`${inputClass(false)} text-xs mt-2 sm:hidden`}
+                  />
                   {/* Mobile: Tipo, Cantidad, Precio en columna */}
                   <div className="sm:hidden grid grid-cols-3 gap-2 mt-2">
                     <select
@@ -320,6 +340,14 @@ export function InvoiceForm({
                     <option key={t.value} value={t.value}>{t.label}</option>
                   ))}
                 </select>
+
+                {/* Garantía (desktop) */}
+                <input
+                  {...register(`lineItems.${index}.warrantyTerm`)}
+                  type="text"
+                  placeholder="12 meses"
+                  className={`${inputClass(false)} hidden sm:block text-xs`}
+                />
 
                 {/* Cantidad (desktop) */}
                 <input
@@ -371,7 +399,7 @@ export function InvoiceForm({
           <button
             type="button"
             onClick={() =>
-              append({ description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR" })
+              append({ description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR", warrantyTerm: "" })
             }
             className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
           >

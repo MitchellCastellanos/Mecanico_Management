@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
 import {
   markInvoiceAsSent,
@@ -11,17 +12,29 @@ import {
   revertInvoiceToDraft,
   revertInvoiceToSent,
 } from "@/actions/invoices";
-import { FileText, Loader2, Ban, Trash2, RotateCcw } from "lucide-react";
+import { InvoiceSendDialog } from "@/components/invoices/InvoiceSendDialog";
+import { FileText, Loader2, Ban, Trash2, RotateCcw, Mail } from "lucide-react";
 
 interface InvoiceActionsProps {
   invoiceId: string;
   invoiceNumber: string;
   status: string;
+  clientId: string;
+  clientEmail?: string | null;
+  emailSendCount?: number;
 }
 
 const VOIDABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
+const EMAILABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
 
-export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActionsProps) {
+export function InvoiceActions({
+  invoiceId,
+  invoiceNumber,
+  status,
+  clientId,
+  clientEmail,
+  emailSendCount = 0,
+}: InvoiceActionsProps) {
   const router = useRouter();
   const [sentPending, startSent] = useTransition();
   const [paidPending, startPaid] = useTransition();
@@ -30,7 +43,17 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
   const [revertDraftPending, startRevertDraft] = useTransition();
   const [revertSentPending, startRevertSent] = useTransition();
 
-  const isAnyPending = sentPending || paidPending || cancelPending || deletePending || revertDraftPending || revertSentPending;
+  const isAnyPending =
+    sentPending ||
+    paidPending ||
+    cancelPending ||
+    deletePending ||
+    revertDraftPending ||
+    revertSentPending;
+
+  const hasClientEmail = Boolean(clientEmail?.trim());
+  const canEmail = EMAILABLE.has(status) && hasClientEmail;
+  const isResend = emailSendCount > 0;
 
   function handleCancel() {
     if (
@@ -69,6 +92,29 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
 
   return (
     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+      {EMAILABLE.has(status) && (
+        <>
+          {canEmail ? (
+            <InvoiceSendDialog
+              invoiceId={invoiceId}
+              invoiceNumber={invoiceNumber}
+              clientEmail={clientEmail!.trim()}
+              isResend={isResend}
+              disabled={isAnyPending}
+            />
+          ) : (
+            <Link
+              href={`/clients/${clientId}`}
+              title="Agrega un email al cliente para enviar la factura"
+              className="flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 text-slate-500 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              <span className="hidden sm:inline">Sin email del cliente</span>
+            </Link>
+          )}
+        </>
+      )}
+
       {status === "DRAFT" && (
         <button
           type="button"
@@ -80,14 +126,14 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
               router.refresh();
             })
           }
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-3 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 disabled:opacity-50 rounded-lg text-sm font-medium transition-colors"
         >
           {sentPending ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
             <FileText className="w-4 h-4" />
           )}
-          Marcar como enviada
+          Marcar enviada (sin email)
         </button>
       )}
 
@@ -109,7 +155,6 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
         </button>
       )}
 
-      {/* Regresar SENT → DRAFT */}
       {status === "SENT" && (
         <button
           type="button"
@@ -117,7 +162,10 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
           onClick={() =>
             startRevertDraft(async () => {
               const result = await revertInvoiceToDraft(invoiceId);
-              if (result?.error) { toast.error(result.error); return; }
+              if (result?.error) {
+                toast.error(result.error);
+                return;
+              }
               toast.info("Factura regresada a borrador");
               router.refresh();
             })
@@ -133,7 +181,6 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
         </button>
       )}
 
-      {/* Regresar PAID → SENT */}
       {status === "PAID" && (
         <button
           type="button"
@@ -141,7 +188,10 @@ export function InvoiceActions({ invoiceId, invoiceNumber, status }: InvoiceActi
           onClick={() =>
             startRevertSent(async () => {
               const result = await revertInvoiceToSent(invoiceId);
-              if (result?.error) { toast.error(result.error); return; }
+              if (result?.error) {
+                toast.error(result.error);
+                return;
+              }
               toast.info("Factura regresada a enviada");
               router.refresh();
             })

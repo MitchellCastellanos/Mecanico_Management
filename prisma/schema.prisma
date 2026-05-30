@@ -23,7 +23,11 @@ model Shop {
   logoUrl   String?
   address   String?
   phone     String?
-  email     String?
+  email     String?  // contacto principal / fallback reply-to
+  billingEmail    String?  // billing@ — facturas, contabilidad
+  infoEmail       String?  // info@ — recordatorios, web
+  providersEmail  String?  // providers@ — futuro
+  newsletterEmail String?  // newsletter@ — futuro (Brevo/Mailchimp)
   taxId     String?      // NEQ / TPS / TVQ
   currency  String   @default("CAD")
   createdAt DateTime @default(now())
@@ -33,6 +37,7 @@ model Shop {
   invoices  Invoice[]
   reminders ServiceReminder[]
   documents AccountingDocument[]
+  savedLineItems SavedLineItem[]
 }
 
 // ─────────────────────────────────────────
@@ -178,6 +183,9 @@ model Invoice {
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
   paidAt        DateTime?
+  sentAt        DateTime?     // primera vez marcada/enviada como SENT
+  emailSentAt   DateTime?     // último envío por correo al cliente
+  emailSendCount Int          @default(0)
   subtotal      Decimal         @db.Decimal(10, 2)
   taxRate       Decimal         @db.Decimal(6, 5) // 0.14975 = TPS+TVQ Quebec
   taxAmount     Decimal         @db.Decimal(10, 2)
@@ -224,7 +232,24 @@ model InvoiceLineItem {
   unitPrice   Decimal      @db.Decimal(10, 2)
   lineTotal   Decimal      @db.Decimal(10, 2)
   itemType    LineItemType @default(LABOUR)
+  warrantyTerm String?
   sortOrder   Int          @default(0)
+}
+
+// Conceptos frecuentes del taller — autocompletado al facturar
+model SavedLineItem {
+  @@schema("mecanico")
+
+  id          String       @id @default(cuid())
+  shopId      String
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  description String
+  itemType    LineItemType @default(LABOUR)
+  unitPrice   Decimal      @db.Decimal(10, 2)
+  useCount    Int          @default(1)
+  lastUsedAt  DateTime     @default(now()) @updatedAt
+
+  @@unique([shopId, description])
 }
 
 enum LineItemType {

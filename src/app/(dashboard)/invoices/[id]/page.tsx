@@ -74,6 +74,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               Emitida el {formatDate(invoice.issuedAt)}
               {invoice.dueAt && ` · Vence el ${formatDate(invoice.dueAt)}`}
               {` · Idioma: ${langLabel}`}
+              {invoice.emailSentAt &&
+                ` · Email: ${formatDate(invoice.emailSentAt)}${invoice.emailSendCount > 1 ? ` (${invoice.emailSendCount}×)` : ""}`}
             </p>
           </div>
         </div>
@@ -104,6 +106,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoiceNumber}
             status={invoice.status}
+            clientId={invoice.clientId}
+            clientEmail={invoice.client.email}
+            emailSendCount={invoice.emailSendCount}
           />
         </div>
       </div>
@@ -177,6 +182,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_120px_80px_110px_110px] gap-3 px-5 py-3 items-center"
             >
               <p className="text-sm text-slate-900 font-medium">{item.description}</p>
+              {item.warrantyTerm && (
+                <p className="text-xs text-slate-500 mt-0.5">Garantía: {item.warrantyTerm}</p>
+              )}
               <p className="hidden sm:block text-sm text-slate-500">
                 {ITEM_TYPE_LABEL[item.itemType] ?? item.itemType}
               </p>

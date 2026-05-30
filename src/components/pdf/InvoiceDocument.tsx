@@ -25,6 +25,7 @@ interface LineItem {
   unitPrice: string | number;
   lineTotal: string | number;
   itemType: string;
+  warrantyTerm?: string | null;
 }
 
 interface InvoiceData {
@@ -369,6 +370,35 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   notesText: { fontSize: 8.5, color: SLATE_600, lineHeight: 1.5 },
+  warrantyCard: {
+    marginTop: 10,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
+  },
+  warrantyTitle: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: SLATE_900,
+    marginBottom: 4,
+    textTransform: "uppercase" as const,
+    letterSpacing: 0.5,
+  },
+  warrantyIntro: {
+    fontSize: 7.5,
+    color: SLATE_600,
+    lineHeight: 1.45,
+    marginBottom: 8,
+  },
+  warrantyItem: {
+    fontSize: 8,
+    color: SLATE_700,
+    marginBottom: 3,
+    paddingLeft: 8,
+  },
   totalsCard: {
     width: 230,
     borderWidth: 1,
@@ -646,6 +676,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
       : null;
 
   const lastIndex = invoice.lineItems.length - 1;
+  const warrantyItems = invoice.lineItems.filter((item) => item.warrantyTerm?.trim());
 
   return (
     <Document title={t.documentTitle(invoice.invoiceNumber)} author={invoice.shop.name}>
@@ -762,6 +793,18 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
               </Text>
             </View>
           ))}
+
+          {warrantyItems.length > 0 && (
+            <View style={styles.warrantyCard} wrap={false}>
+              <Text style={styles.warrantyTitle}>{t.warrantyDisclosureTitle}</Text>
+              <Text style={styles.warrantyIntro}>{t.warrantyDisclosureIntro}</Text>
+              {warrantyItems.map((item, i) => (
+                <Text key={i} style={styles.warrantyItem}>
+                  • {item.description}: {item.warrantyTerm?.trim()}
+                </Text>
+              ))}
+            </View>
+          )}
 
           {/* Mantiene notas + totales juntos (wrap=false); si de verdad no
               caben, bajan enteros a la página siguiente. Sin minPresenceAhead

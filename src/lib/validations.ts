@@ -35,6 +35,7 @@ export const lineItemSchema = z.object({
   quantity: z.number().positive("La cantidad debe ser mayor a 0"),
   unitPrice: z.number().min(0, "El precio no puede ser negativo"),
   itemType: z.enum(["LABOUR", "PART", "OTHER"]),
+  warrantyTerm: z.string().max(100).optional().or(z.literal("")),
 });
 
 export type LineItemData = z.infer<typeof lineItemSchema>;
