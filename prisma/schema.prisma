@@ -37,6 +37,7 @@ model Shop {
   invoices  Invoice[]
   reminders ServiceReminder[]
   documents AccountingDocument[]
+  savedLineItems SavedLineItem[]
 }
 
 // ─────────────────────────────────────────
@@ -231,7 +232,24 @@ model InvoiceLineItem {
   unitPrice   Decimal      @db.Decimal(10, 2)
   lineTotal   Decimal      @db.Decimal(10, 2)
   itemType    LineItemType @default(LABOUR)
+  warrantyTerm String?
   sortOrder   Int          @default(0)
+}
+
+// Conceptos frecuentes del taller — autocompletado al facturar
+model SavedLineItem {
+  @@schema("mecanico")
+
+  id          String       @id @default(cuid())
+  shopId      String
+  shop        Shop         @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  description String
+  itemType    LineItemType @default(LABOUR)
+  unitPrice   Decimal      @db.Decimal(10, 2)
+  useCount    Int          @default(1)
+  lastUsedAt  DateTime     @default(now()) @updatedAt
+
+  @@unique([shopId, description])
 }
 
 enum LineItemType {

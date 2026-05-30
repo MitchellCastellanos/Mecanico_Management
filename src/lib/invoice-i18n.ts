@@ -38,6 +38,8 @@ type Strings = {
   grandTotal: string;
   notes: string;
   thankYou: string;
+  warrantyDisclosureTitle: string;
+  warrantyDisclosureIntro: string;
   itemTypes: Record<string, string>;
   statuses: Record<string, string>;
   months: string[];
@@ -92,6 +94,9 @@ const ES: Strings = {
   grandTotal: "TOTAL A PAGAR",
   notes: "Notas y condiciones",
   thankYou: "Gracias por confiar en nosotros.",
+  warrantyDisclosureTitle: "Garantía de piezas y servicios",
+  warrantyDisclosureIntro:
+    "Los conceptos siguientes incluyen garantía según se indica. Esta garantía cubre defectos de material o mano de obra bajo uso normal.",
   itemTypes: { LABOUR: "Mano de obra", PART: "Repuesto", OTHER: "Otro" },
   statuses: {
     DRAFT: "BORRADOR",
@@ -152,6 +157,9 @@ const EN: Strings = {
   grandTotal: "AMOUNT DUE",
   notes: "Notes & terms",
   thankYou: "Thank you for your business.",
+  warrantyDisclosureTitle: "Parts and labour warranty",
+  warrantyDisclosureIntro:
+    "The following items include the warranty periods shown below. Coverage applies to defects in parts or workmanship under normal use.",
   itemTypes: { LABOUR: "Labour", PART: "Part", OTHER: "Other" },
   statuses: {
     DRAFT: "DRAFT",
@@ -212,6 +220,9 @@ const FR: Strings = {
   grandTotal: "TOTAL À PAYER",
   notes: "Notes et conditions",
   thankYou: "Merci de votre confiance.",
+  warrantyDisclosureTitle: "Garantie pièces et main-d'œuvre",
+  warrantyDisclosureIntro:
+    "Les concepts suivants incluent une garantie tel qu'indiqué ci-dessous. La garantie couvre les défauts de pièces ou de main-d'œuvre en usage normal.",
   itemTypes: { LABOUR: "Main-d'œuvre", PART: "Pièce", OTHER: "Autre" },
   statuses: {
     DRAFT: "BROUILLON",

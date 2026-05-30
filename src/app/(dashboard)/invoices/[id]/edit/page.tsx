@@ -35,6 +35,7 @@ export default async function EditInvoicePage({ params }: PageProps) {
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
       itemType: item.itemType as "LABOUR" | "PART" | "OTHER",
+      warrantyTerm: item.warrantyTerm ?? "",
     })),
   };
 

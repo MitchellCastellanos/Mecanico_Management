@@ -11,9 +11,9 @@ import {
   deleteInvoice,
   revertInvoiceToDraft,
   revertInvoiceToSent,
-  sendInvoiceByEmail,
 } from "@/actions/invoices";
-import { FileText, Loader2, Ban, Trash2, RotateCcw, Mail, Send } from "lucide-react";
+import { InvoiceSendDialog } from "@/components/invoices/InvoiceSendDialog";
+import { FileText, Loader2, Ban, Trash2, RotateCcw, Mail } from "lucide-react";
 
 interface InvoiceActionsProps {
   invoiceId: string;
@@ -37,7 +37,6 @@ export function InvoiceActions({
 }: InvoiceActionsProps) {
   const router = useRouter();
   const [sentPending, startSent] = useTransition();
-  const [emailPending, startEmail] = useTransition();
   const [paidPending, startPaid] = useTransition();
   const [cancelPending, startCancel] = useTransition();
   const [deletePending, startDelete] = useTransition();
@@ -46,7 +45,6 @@ export function InvoiceActions({
 
   const isAnyPending =
     sentPending ||
-    emailPending ||
     paidPending ||
     cancelPending ||
     deletePending ||
@@ -56,22 +54,6 @@ export function InvoiceActions({
   const hasClientEmail = Boolean(clientEmail?.trim());
   const canEmail = EMAILABLE.has(status) && hasClientEmail;
   const isResend = emailSendCount > 0;
-
-  function handleSendEmail() {
-    startEmail(async () => {
-      const result = await sendInvoiceByEmail(invoiceId);
-      if (result?.error) {
-        toast.error(result.error);
-        return;
-      }
-      if (result.isResend) {
-        toast.success(`Factura reenviada a ${result.sentTo}`);
-      } else {
-        toast.success(`Factura enviada a ${result.sentTo}`);
-      }
-      router.refresh();
-    });
-  }
 
   function handleCancel() {
     if (
@@ -113,21 +95,13 @@ export function InvoiceActions({
       {EMAILABLE.has(status) && (
         <>
           {canEmail ? (
-            <button
-              type="button"
+            <InvoiceSendDialog
+              invoiceId={invoiceId}
+              invoiceNumber={invoiceNumber}
+              clientEmail={clientEmail!.trim()}
+              isResend={isResend}
               disabled={isAnyPending}
-              onClick={handleSendEmail}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
-            >
-              {emailPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : isResend ? (
-                <Send className="w-4 h-4" />
-              ) : (
-                <Mail className="w-4 h-4" />
-              )}
-              {isResend ? "Reenviar por email" : "Enviar por email"}
-            </button>
+            />
           ) : (
             <Link
               href={`/clients/${clientId}`}

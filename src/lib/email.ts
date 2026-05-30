@@ -124,6 +124,7 @@ interface InvoiceEmailSendData extends InvoiceEmailProps {
   to: string;
   pdfBuffer: Buffer;
   pdfFilename: string;
+  extraAttachments?: { filename: string; content: Buffer }[];
 }
 
 export async function sendInvoiceEmail(data: InvoiceEmailSendData) {
@@ -149,6 +150,7 @@ export async function sendInvoiceEmail(data: InvoiceEmailSendData) {
         filename: data.pdfFilename,
         content: data.pdfBuffer,
       },
+      ...(data.extraAttachments ?? []),
     ],
   });
 }
