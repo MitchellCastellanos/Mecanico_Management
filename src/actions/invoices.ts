@@ -15,7 +15,11 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
-import { formatInvoiceNumber, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  allocateNextInvoiceNumber,
+  isUniqueConstraintError,
+} from "@/lib/invoice-number";
 import { calculateTaxBreakdown, roundTaxRate } from "@/lib/taxes";
 import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
 import { generateInvoicePdf } from "@/lib/pdf";
@@ -84,44 +88,64 @@ export async function createInvoice(formData: InvoiceFormData) {
   const { taxAmount } = calculateTaxBreakdown(subtotal, taxRate);
   const total = subtotal.plus(taxAmount);
 
-  // Transacción: generar número único y crear factura de forma atómica
-  const invoice = await db.$transaction(async (tx) => {
-    // Contar facturas existentes de este shop para generar el siguiente número
-    const count = await tx.invoice.count({ where: { shopId } });
-    const invoiceNumber = formatInvoiceNumber(count + 1);
+  const invoiceData = {
+    shopId,
+    clientId,
+    vehicleId,
+    status: "DRAFT" as const,
+    subtotal: subtotal.toFixed(2),
+    taxRate: roundTaxRate(taxRate),
+    taxAmount: taxAmount.toFixed(2),
+    total: total.toFixed(2),
+    language,
+    notes: notes || null,
+    mileageIn: mileageIn ?? null,
+    mileageOut: mileageOut ?? null,
+    dueAt: dueAt ? new Date(dueAt) : null,
+    lineItems: {
+      create: lineItems.map((item, index) => ({
+        description: item.description,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toString(),
+        lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+        itemType: item.itemType,
+        warrantyTerm: item.warrantyTerm?.trim() || null,
+        sortOrder: index,
+      })),
+    },
+  };
 
-    return tx.invoice.create({
-      data: {
-        shopId,
-        clientId,
-        vehicleId,
-        invoiceNumber,
-        status: "DRAFT",
-        subtotal: subtotal.toFixed(2),
-        taxRate: roundTaxRate(taxRate),
-        taxAmount: taxAmount.toFixed(2),
-        total: total.toFixed(2),
-        language,
-        notes: notes || null,
-        mileageIn: mileageIn ?? null,
-        mileageOut: mileageOut ?? null,
-        dueAt: dueAt ? new Date(dueAt) : null,
-        lineItems: {
-          create: lineItems.map((item, index) => ({
-            description: item.description,
-            quantity: item.quantity.toString(),
-            unitPrice: item.unitPrice.toString(),
-            lineTotal: new Decimal(item.quantity)
-              .times(item.unitPrice)
-              .toFixed(2),
-            itemType: item.itemType,
-            warrantyTerm: item.warrantyTerm?.trim() || null,
-            sortOrder: index,
-          })),
-        },
+  let invoice;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      invoice = await db.$transaction(async (tx) => {
+        const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId);
+        return tx.invoice.create({
+          data: { ...invoiceData, invoiceNumber },
+        });
+      });
+      break;
+    } catch (err) {
+      if (!isUniqueConstraintError(err) || attempt === 4) {
+        console.error("createInvoice failed:", err);
+        return {
+          error: {
+            _form: [
+              "No se pudo asignar un número de factura único. Intenta de nuevo en unos segundos.",
+            ],
+          },
+        };
+      }
+    }
+  }
+
+  if (!invoice) {
+    return {
+      error: {
+        _form: ["No se pudo crear la factura. Intenta de nuevo."],
       },
-    });
-  });
+    };
+  }
 
   await syncSavedLineItems(shopId, lineItems);
 

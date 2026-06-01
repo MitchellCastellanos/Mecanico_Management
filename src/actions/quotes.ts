@@ -7,7 +7,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { quoteSchema, type QuoteFormData } from "@/lib/validations";
-import { formatQuoteNumber, formatInvoiceNumber, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
+import {
+  allocateNextInvoiceNumber,
+  allocateNextQuoteNumber,
+  isUniqueConstraintError,
+} from "@/lib/invoice-number";
 import { calculateTaxBreakdown, roundTaxRate } from "@/lib/taxes";
 import { serializeQuoteForPdf } from "@/lib/quote-serialize";
 import { generateQuotePdf } from "@/lib/pdf";
@@ -74,8 +79,7 @@ export async function createQuote(formData: QuoteFormData) {
   const total = subtotal.plus(taxAmount);
 
   const quote = await db.$transaction(async (tx) => {
-    const count = await tx.quote.count({ where: { shopId } });
-    const quoteNumber = formatQuoteNumber(count + 1);
+    const quoteNumber = await allocateNextQuoteNumber(tx, shopId);
 
     return tx.quote.create({
       data: {
@@ -335,8 +339,7 @@ export async function convertQuoteToInvoice(id: string) {
   }
 
   const invoice = await db.$transaction(async (tx) => {
-    const count = await tx.invoice.count({ where: { shopId } });
-    const invoiceNumber = formatInvoiceNumber(count + 1);
+    const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId);
 
     const created = await tx.invoice.create({
       data: {
