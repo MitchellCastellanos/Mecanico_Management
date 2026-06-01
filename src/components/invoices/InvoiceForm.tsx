@@ -451,7 +451,7 @@ export function InvoiceForm({
           disabled={isPending}
           className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
-          {isPending ? "Guardando..." : "Crear factura borrador"}
+          {isPending ? "Guardando..." : "Crear factura"}
         </button>
         <a
           href="/invoices"

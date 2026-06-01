@@ -6,6 +6,10 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `ALTER TABLE mecanico."Client" ALTER COLUMN "lastName" DROP NOT NULL`,
   `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "language" mecanico."InvoiceLanguage" NOT NULL DEFAULT 'ES'`,
   `ALTER TABLE mecanico."Invoice" ALTER COLUMN "taxRate" TYPE DECIMAL(6, 5)`,
+  // El estatus inicial pasó de DRAFT a PENDING (los borradores son cotizaciones).
+  // El rename del valor del enum se hace en ensureInvoicePendingStatus(); aquí solo
+  // realineamos el default de la columna (idempotente).
+  `ALTER TABLE mecanico."Invoice" ALTER COLUMN "status" SET DEFAULT 'PENDING'`,
 ] as const;
 
 export async function ensureInvoiceLanguageEnum() {
@@ -21,8 +25,28 @@ export async function ensureInvoiceLanguageEnum() {
   }
 }
 
+/**
+ * Renombra el valor del enum InvoiceStatus DRAFT → PENDING.
+ * Idempotente: si ya fue renombrado (DRAFT no existe o PENDING ya existe), no falla.
+ * ALTER TYPE ... RENAME VALUE actualiza automáticamente todas las filas existentes.
+ */
+export async function ensureInvoicePendingStatus() {
+  try {
+    await db.$executeRawUnsafe(
+      `ALTER TYPE mecanico."InvoiceStatus" RENAME VALUE 'DRAFT' TO 'PENDING'`
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // 'DRAFT' ya no existe (ya renombrado) o 'PENDING' ya existe → nada que hacer.
+    if (!msg.includes("does not exist") && !msg.includes("already exists")) {
+      throw err;
+    }
+  }
+}
+
 export async function runIncrementalMigrate() {
   await ensureInvoiceLanguageEnum();
+  await ensureInvoicePendingStatus();
   for (const statement of INCREMENTAL_MIGRATE_STATEMENTS) {
     await db.$executeRawUnsafe(statement);
   }

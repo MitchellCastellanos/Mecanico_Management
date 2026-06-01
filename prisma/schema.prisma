@@ -174,7 +174,7 @@ model Invoice {
   vehicleId     String
   vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
   invoiceNumber String        // e.g. "INV-0042" — unique per shop
-  status        InvoiceStatus @default(DRAFT)
+  status        InvoiceStatus @default(PENDING)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
   paidAt        DateTime?
@@ -198,7 +198,7 @@ model Invoice {
 enum InvoiceStatus {
   @@schema("mecanico")
 
-  DRAFT
+  PENDING
   SENT
   PAID
   OVERDUE

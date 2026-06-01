@@ -9,7 +9,7 @@ import { InvoiceActions } from "@/components/invoices/InvoiceActions";
 import Decimal from "decimal.js";
 
 const STATUS_BADGE: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-600",
+  PENDING: "bg-amber-100 text-amber-700",
   SENT: "bg-blue-100 text-blue-700",
   PAID: "bg-emerald-100 text-emerald-700",
   OVERDUE: "bg-red-100 text-red-700",
@@ -17,7 +17,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
+  PENDING: "Pendiente",
   SENT: "Enviada",
   PAID: "Pagada",
   OVERDUE: "Vencida",
@@ -94,6 +94,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             invoiceId={invoice.id}
             invoiceNumber={invoice.invoiceNumber}
             status={invoice.status}
+            clientEmail={invoice.client.email}
           />
         </div>
       </div>

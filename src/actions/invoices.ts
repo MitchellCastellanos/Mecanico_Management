@@ -15,6 +15,9 @@ import { getShopId } from "@/lib/shop-context";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
 import { formatInvoiceNumber } from "@/lib/utils";
 import { calculateTaxBreakdown, roundTaxRate } from "@/lib/taxes";
+import { generateInvoicePdf } from "@/lib/pdf";
+import { sendInvoiceEmail } from "@/lib/email";
+import { formatClientName } from "@/lib/client-name";
 import Decimal from "decimal.js";
 
 // ── READ ────────────────────────────────────────────────────
@@ -87,7 +90,7 @@ export async function createInvoice(formData: InvoiceFormData) {
         clientId,
         vehicleId,
         invoiceNumber,
-        status: "DRAFT",
+        status: "PENDING",
         subtotal: subtotal.toFixed(2),
         taxRate: roundTaxRate(taxRate),
         taxAmount: taxAmount.toFixed(2),
@@ -139,7 +142,95 @@ export async function markInvoiceAsPaid(id: string) {
   revalidatePath("/invoices");
 }
 
-const VOIDABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
+// ── ENVÍO POR EMAIL ─────────────────────────────────────────
+// Envía la factura al cliente con el PDF adjunto. Antes de enviar, el usuario
+// decide si la deja PENDIENTE o la marca como PAGADA (lo que añade la marca de
+// agua "PAGADA" al PDF). El cambio de estatus solo se persiste si el correo
+// se envió correctamente, para no marcar como pagada una factura que no salió.
+
+export async function sendInvoiceByEmail(id: string, markAsPaid: boolean) {
+  const shopId = await getShopId();
+
+  const invoice = await db.invoice.findFirst({
+    where: { id, shopId },
+    include: {
+      client: true,
+      vehicle: true,
+      lineItems: { orderBy: { sortOrder: "asc" } },
+      shop: true,
+    },
+  });
+
+  if (!invoice) return { error: "Factura no encontrada" };
+  if (invoice.status === "CANCELLED") {
+    return { error: "No se puede enviar una factura anulada" };
+  }
+  if (!invoice.client.email) {
+    return { error: "El cliente no tiene un correo registrado" };
+  }
+
+  // Estatus que verá el cliente en el PDF (la marca de agua depende de esto).
+  const targetStatus = markAsPaid ? "PAID" : invoice.status;
+
+  const invoiceData = {
+    ...invoice,
+    status: targetStatus,
+    subtotal: invoice.subtotal.toString(),
+    taxRate: invoice.taxRate.toString(),
+    taxAmount: invoice.taxAmount.toString(),
+    total: invoice.total.toString(),
+    lineItems: invoice.lineItems.map((item) => ({
+      ...item,
+      quantity: item.quantity.toString(),
+      unitPrice: item.unitPrice.toString(),
+      lineTotal: item.lineTotal.toString(),
+    })),
+  };
+
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generateInvoicePdf(invoiceData);
+  } catch (err) {
+    console.error("[sendInvoiceByEmail] PDF:", err);
+    return { error: "No se pudo generar el PDF de la factura" };
+  }
+
+  try {
+    await sendInvoiceEmail({
+      to: invoice.client.email,
+      clientName: formatClientName(invoice.client),
+      invoiceNumber: invoice.invoiceNumber,
+      total: invoice.total.toString(),
+      currency: invoice.shop.currency ?? "CAD",
+      dueAt: invoice.dueAt,
+      status: targetStatus,
+      language: invoice.language,
+      shopName: invoice.shop.name,
+      shopEmail: invoice.shop.email,
+      shopPhone: invoice.shop.phone,
+      pdfBuffer,
+    });
+  } catch (err) {
+    console.error("[sendInvoiceByEmail] email:", err);
+    const msg = err instanceof Error ? err.message : "Error enviando el correo";
+    return { error: msg };
+  }
+
+  // El correo salió: ahora sí persistimos el cambio de estatus si aplica.
+  if (markAsPaid) {
+    await db.invoice.updateMany({
+      where: { id, shopId },
+      data: { status: "PAID", paidAt: new Date() },
+    });
+  }
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  return { success: true, paid: markAsPaid };
+}
+
+const VOIDABLE_STATUSES = ["PENDING", "SENT", "PAID", "OVERDUE"] as const;
 
 export async function cancelInvoice(id: string) {
   const shopId = await getShopId();

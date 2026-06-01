@@ -8,7 +8,7 @@ CREATE TYPE "Role" AS ENUM ('SUPER_ADMIN', 'OWNER', 'MECHANIC', 'VIEWER');
 CREATE TYPE "MileageUnit" AS ENUM ('KM', 'MILES');
 
 -- CreateEnum
-CREATE TYPE "InvoiceStatus" AS ENUM ('DRAFT', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED');
+CREATE TYPE "InvoiceStatus" AS ENUM ('PENDING', 'SENT', 'PAID', 'OVERDUE', 'CANCELLED');
 
 -- CreateEnum
 CREATE TYPE "InvoiceLanguage" AS ENUM ('ES', 'EN', 'FR');
@@ -124,7 +124,7 @@ CREATE TABLE "Invoice" (
     "clientId" TEXT NOT NULL,
     "vehicleId" TEXT NOT NULL,
     "invoiceNumber" TEXT NOT NULL,
-    "status" "InvoiceStatus" NOT NULL DEFAULT 'DRAFT',
+    "status" "InvoiceStatus" NOT NULL DEFAULT 'PENDING',
     "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "dueAt" TIMESTAMP(3),
     "paidAt" TIMESTAMP(3),
