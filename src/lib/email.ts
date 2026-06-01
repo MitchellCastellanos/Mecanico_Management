@@ -1,6 +1,7 @@
 // Wrapper para Resend — envío de emails transaccionales
 // Enrutamiento por canal: ver src/lib/email-config.ts y docs/EMAIL_MATRIX.md
 
+import { render } from "@react-email/render";
 import { Resend } from "resend";
 import { ServiceReminderEmail } from "@/emails/ServiceReminderEmail";
 import { AccountingNotificationEmail } from "@/emails/AccountingNotificationEmail";
@@ -42,12 +43,14 @@ async function sendTransactionalEmail(options: TransactionalSendOptions) {
     throw new Error(`El canal ${options.channel} no usa Resend`);
   }
 
+  const html = await render(options.react);
+
   const { error } = await getResend().emails.send({
     from: route.from,
     replyTo: route.replyTo,
     to: options.to,
     subject: options.subject,
-    react: options.react,
+    html,
     attachments: options.attachments,
   });
 
