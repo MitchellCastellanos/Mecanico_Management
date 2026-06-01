@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 // Server Actions para facturas
 // La pieza más crítica: auto-numeración en transacción Prisma para evitar duplicados.
 //
@@ -55,7 +57,7 @@ export async function getInvoiceById(id: string) {
     },
   });
 
-  if (!invoice) redirect("/invoices");
+  if (!invoice) redirect(ADMIN.invoices);
   return invoice;
 }
 
@@ -123,8 +125,8 @@ export async function createInvoice(formData: InvoiceFormData) {
 
   await syncSavedLineItems(shopId, lineItems);
 
-  revalidatePath("/invoices");
-  redirect(`/invoices/${invoice.id}`);
+  revalidatePath(ADMIN.invoices);
+  redirect(`${ADMIN.invoices}/${invoice.id}`);
 }
 
 // ── UPDATE STATUS ───────────────────────────────────────────
@@ -142,7 +144,7 @@ export async function markInvoiceAsSent(id: string) {
     },
   });
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
+  revalidatePath(ADMIN.invoices);
 }
 
 const EMAILABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
@@ -226,8 +228,8 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   });
 
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
-  revalidatePath("/dashboard");
+  revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.dashboard);
 
   return {
     success: true,
@@ -243,7 +245,7 @@ export async function markInvoiceAsPaid(id: string) {
     data: { status: "PAID", paidAt: new Date() },
   });
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
+  revalidatePath(ADMIN.invoices);
 }
 
 export async function revertInvoiceToDraft(id: string) {
@@ -254,7 +256,7 @@ export async function revertInvoiceToDraft(id: string) {
   });
   if (result.count === 0) return { error: "La factura no está en estado Enviada" };
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
+  revalidatePath(ADMIN.invoices);
   return { success: true };
 }
 
@@ -266,7 +268,7 @@ export async function revertInvoiceToSent(id: string) {
   });
   if (result.count === 0) return { error: "La factura no está en estado Pagada" };
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
+  revalidatePath(ADMIN.invoices);
   return { success: true };
 }
 
@@ -289,8 +291,8 @@ export async function cancelInvoice(id: string) {
   }
 
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
-  revalidatePath("/dashboard");
+  revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.dashboard);
   return { success: true };
 }
 
@@ -305,9 +307,9 @@ export async function deleteInvoice(id: string) {
     return { error: "Factura no encontrada" };
   }
 
-  revalidatePath("/invoices");
-  revalidatePath("/dashboard");
-  redirect("/invoices");
+  revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.dashboard);
+  redirect(ADMIN.invoices);
 }
 
 // ── Guardar URL del PDF generado ───────────────────────────
@@ -385,8 +387,8 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
   await syncSavedLineItems(shopId, lineItems);
 
   revalidatePath(`/invoices/${id}`);
-  revalidatePath("/invoices");
-  redirect(`/invoices/${id}`);
+  revalidatePath(ADMIN.invoices);
+  redirect(`${ADMIN.invoices}/${id}`);
 }
 
 // ── Datos para el formulario de nueva factura ───────────────

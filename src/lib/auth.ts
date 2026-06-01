@@ -3,10 +3,12 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 
+import { ADMIN } from "@/lib/routes";
+
 export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   pages: {
-    signIn: "/login",
+    signIn: ADMIN.login,
   },
   callbacks: {
     async jwt({ token, user }) {

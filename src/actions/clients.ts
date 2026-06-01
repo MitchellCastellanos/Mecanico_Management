@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 // Server Actions para clientes
 // "use server" le dice a Next.js que estas funciones corren SOLO en el servidor.
 // Se pueden llamar directo desde formularios o componentes — sin fetch() manual.
@@ -52,7 +54,7 @@ export async function getClientById(id: string) {
     },
   });
 
-  if (!client) redirect("/clients");
+  if (!client) redirect(ADMIN.clients);
   return client;
 }
 
@@ -82,8 +84,8 @@ export async function createClient(formData: ClientFormData) {
 
   // revalidatePath invalida el caché de la lista de clientes
   // para que Next.js re-fetch los datos actualizados
-  revalidatePath("/clients");
-  redirect(`/clients/${client.id}`);
+  revalidatePath(ADMIN.clients);
+  redirect(`${ADMIN.clients}/${client.id}`);
 }
 
 // ── UPDATE ──────────────────────────────────────────────────
@@ -112,8 +114,8 @@ export async function updateClient(id: string, formData: ClientFormData) {
   });
 
   revalidatePath(`/clients/${id}`);
-  revalidatePath("/clients");
-  redirect(`/clients/${id}`);
+  revalidatePath(ADMIN.clients);
+  redirect(`${ADMIN.clients}/${id}`);
 }
 
 // ── DELETE ──────────────────────────────────────────────────
@@ -124,6 +126,6 @@ export async function deleteClient(id: string) {
   // deleteMany con shopId garantiza que no puedas borrar clientes de otro shop
   await db.client.deleteMany({ where: { id, shopId } });
 
-  revalidatePath("/clients");
-  redirect("/clients");
+  revalidatePath(ADMIN.clients);
+  redirect(ADMIN.clients);
 }

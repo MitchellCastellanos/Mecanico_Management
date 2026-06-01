@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
@@ -100,7 +102,7 @@ export async function updateShopSettings(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }
 
@@ -136,7 +138,7 @@ export async function uploadShopLogo(formData: FormData) {
     const logoUrl = `${publicUrl}?t=${Date.now()}`;
 
     await db.shop.update({ where: { id: shopId }, data: { logoUrl } });
-    revalidatePath("/settings");
+    revalidatePath(ADMIN.settings);
     return { success: true, logoUrl };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
@@ -148,7 +150,7 @@ export async function uploadShopLogo(formData: FormData) {
 
 export async function changePassword(formData: FormData) {
   const session = await auth();
-  if (!session?.user?.id) redirect("/login");
+  if (!session?.user?.id) redirect(ADMIN.login);
 
   const current = formData.get("currentPassword") as string;
   const next = formData.get("newPassword") as string;

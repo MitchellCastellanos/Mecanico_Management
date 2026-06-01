@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/permissions";
@@ -72,7 +74,7 @@ export async function createTeamMember(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }
 
@@ -102,7 +104,7 @@ export async function resetTeamMemberPassword(formData: FormData) {
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.user.update({ where: { id: userId }, data: { passwordHash } });
 
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }
 
@@ -136,7 +138,7 @@ export async function updateTeamMemberRole(formData: FormData) {
   }
 
   await db.user.update({ where: { id: userId }, data: { role: parsedRole.data } });
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }
 
@@ -164,6 +166,6 @@ export async function deleteTeamMember(userId: string) {
   }
 
   await db.user.delete({ where: { id: userId } });
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }

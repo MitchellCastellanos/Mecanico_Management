@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -51,8 +53,8 @@ export async function createReminder(formData: ReminderFormData) {
     },
   });
 
-  revalidatePath("/reminders");
-  redirect("/reminders");
+  revalidatePath(ADMIN.reminders);
+  redirect(ADMIN.reminders);
 }
 
 // ── SEND MANUAL ─────────────────────────────────────────────
@@ -94,7 +96,7 @@ export async function sendReminderNow(reminderId: string) {
     data: { status: "SENT", sentAt: new Date() },
   });
 
-  revalidatePath("/reminders");
+  revalidatePath(ADMIN.reminders);
   return { success: true };
 }
 
@@ -106,7 +108,7 @@ export async function dismissReminder(reminderId: string) {
     where: { id: reminderId, shopId },
     data: { status: "DISMISSED" },
   });
-  revalidatePath("/reminders");
+  revalidatePath(ADMIN.reminders);
 }
 
 // ── Para formulario: vehículos con sus clientes ─────────────

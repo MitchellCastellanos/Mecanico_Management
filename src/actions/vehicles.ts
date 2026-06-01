@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -28,7 +30,7 @@ export async function getVehicleById(vehicleId: string) {
     },
   });
 
-  if (!vehicle) redirect("/clients");
+  if (!vehicle) redirect(ADMIN.clients);
   return vehicle;
 }
 
@@ -37,7 +39,7 @@ export async function createVehicle(clientId: string, formData: VehicleFormData)
 
   // Verificar que el cliente pertenece a este shop
   const client = await db.client.findFirst({ where: { id: clientId, shopId } });
-  if (!client) redirect("/clients");
+  if (!client) redirect(ADMIN.clients);
 
   const parsed = vehicleSchema.safeParse(formData);
   if (!parsed.success) {
@@ -60,7 +62,7 @@ export async function createVehicle(clientId: string, formData: VehicleFormData)
   });
 
   revalidatePath(`/clients/${clientId}`);
-  redirect(`/clients/${clientId}`);
+  redirect(`${ADMIN.clients}/${clientId}`);
 }
 
 export async function updateVehicle(vehicleId: string, formData: VehicleFormData) {
@@ -69,7 +71,7 @@ export async function updateVehicle(vehicleId: string, formData: VehicleFormData
   const vehicle = await db.vehicle.findFirst({
     where: { id: vehicleId, client: { shopId } },
   });
-  if (!vehicle) redirect("/clients");
+  if (!vehicle) redirect(ADMIN.clients);
 
   const parsed = vehicleSchema.safeParse(formData);
   if (!parsed.success) {
@@ -92,7 +94,7 @@ export async function updateVehicle(vehicleId: string, formData: VehicleFormData
   });
 
   revalidatePath(`/clients/${vehicle.clientId}`);
-  redirect(`/clients/${vehicle.clientId}`);
+  redirect(`${ADMIN.clients}/${vehicle.clientId}`);
 }
 
 export async function deleteVehicle(vehicleId: string, clientId: string) {
@@ -103,5 +105,5 @@ export async function deleteVehicle(vehicleId: string, clientId: string) {
   });
 
   revalidatePath(`/clients/${clientId}`);
-  redirect(`/clients/${clientId}`);
+  redirect(`${ADMIN.clients}/${clientId}`);
 }

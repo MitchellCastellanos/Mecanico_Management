@@ -1,5 +1,7 @@
 "use client";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
@@ -167,7 +169,7 @@ export function ReminderForm({ vehicles, onSubmit }: ReminderFormProps) {
           {isPending ? "Guardando..." : "Crear recordatorio"}
         </button>
         <a
-          href="/reminders"
+          href={ADMIN.reminders}
           className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
         >
           Cancelar

@@ -15,47 +15,18 @@ import {
   Wrench,
 } from "lucide-react";
 
+import { ADMIN, PLATFORM } from "@/lib/routes";
+import { BRAND } from "@/config/brand";
+
 const navItems = [
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Clientes",
-    href: "/clients",
-    icon: Users,
-  },
-  {
-    label: "Facturas",
-    href: "/invoices",
-    icon: FileText,
-  },
-  {
-    label: "Cotizaciones",
-    href: "/quotes",
-    icon: FileSpreadsheet,
-  },
-  {
-    label: "Citas",
-    href: "/appointments",
-    icon: Calendar,
-  },
-  {
-    label: "Recordatorios",
-    href: "/reminders",
-    icon: Bell,
-  },
-  {
-    label: "Contabilidad",
-    href: "/accounting",
-    icon: FolderOpen,
-  },
-  {
-    label: "Configuración",
-    href: "/settings",
-    icon: Settings,
-  },
+  { label: "Dashboard", href: ADMIN.dashboard, icon: LayoutDashboard },
+  { label: "Clientes", href: ADMIN.clients, icon: Users },
+  { label: "Facturas", href: ADMIN.invoices, icon: FileText },
+  { label: "Cotizaciones", href: ADMIN.quotes, icon: FileSpreadsheet },
+  { label: "Citas", href: ADMIN.appointments, icon: Calendar },
+  { label: "Recordatorios", href: ADMIN.reminders, icon: Bell },
+  { label: "Contabilidad", href: ADMIN.accounting, icon: FolderOpen },
+  { label: "Configuración", href: ADMIN.settings, icon: Settings },
 ];
 
 export function Sidebar() {
@@ -70,10 +41,8 @@ export function Sidebar() {
             <Wrench className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-white font-semibold text-sm leading-none">
-              Mecanico
-            </p>
-            <p className="text-slate-400 text-xs mt-0.5">Management</p>
+            <p className="text-white font-semibold text-sm leading-none">{BRAND.shopName}</p>
+            <p className="text-slate-400 text-xs mt-0.5">Panel</p>
           </div>
         </div>
       </div>
@@ -83,8 +52,8 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
+            item.href === ADMIN.dashboard
+              ? pathname === ADMIN.dashboard
               : pathname.startsWith(item.href);
 
           return (

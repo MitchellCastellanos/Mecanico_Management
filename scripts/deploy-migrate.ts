@@ -7,6 +7,7 @@
  */
 import { runIncrementalMigrate, SCHEMA_VERSION } from "../src/lib/incremental-migrate";
 import { syncShopBrandDefaults } from "../src/lib/sync-shop-brand";
+import { updateOwnerCredentials } from "../src/lib/update-owner-credentials";
 import { db } from "../src/lib/db";
 
 async function main() {
@@ -36,6 +37,13 @@ async function main() {
   const brand = await syncShopBrandDefaults();
   if (brand.updated) {
     console.log(`[deploy-migrate] Buzones/slug del taller: ${brand.fields?.join(", ")}`);
+  }
+
+  if (process.env.UPDATE_OWNER_CREDENTIALS === "1") {
+    const owner = await updateOwnerCredentials(process.env.OWNER_PASSWORD ?? "Canada2026");
+    if (owner.ok) {
+      console.log(`[deploy-migrate] Dueño: ${owner.previousEmail} → ${owner.newEmail}`);
+    }
   }
 }
 

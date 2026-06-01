@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -88,7 +90,7 @@ export async function getAppointmentById(id: string) {
     },
   });
 
-  if (!appointment) redirect("/appointments");
+  if (!appointment) redirect(ADMIN.appointments);
   return appointment;
 }
 
@@ -169,8 +171,8 @@ export async function createAppointment(formData: AppointmentFormData) {
     },
   });
 
-  revalidatePath("/appointments");
-  redirect(`/appointments?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
+  revalidatePath(ADMIN.appointments);
+  redirect(`${ADMIN.appointments}?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
 }
 
 export async function updateAppointment(id: string, formData: AppointmentFormData) {
@@ -216,8 +218,8 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
     },
   });
 
-  revalidatePath("/appointments");
-  redirect(`/appointments?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
+  revalidatePath(ADMIN.appointments);
+  redirect(`${ADMIN.appointments}?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
 }
 
 export async function cancelAppointment(id: string) {
@@ -249,7 +251,7 @@ export async function cancelAppointment(id: string) {
     }
   }
 
-  revalidatePath("/appointments");
+  revalidatePath(ADMIN.appointments);
   return { success: true };
 }
 
@@ -295,7 +297,7 @@ export async function sendAppointmentConfirmation(id: string) {
     },
   });
 
-  revalidatePath("/appointments");
+  revalidatePath(ADMIN.appointments);
   return { success: true, sentTo: clientEmail };
 }
 
@@ -331,7 +333,7 @@ export async function sendAppointmentCancellation(id: string) {
     data: { cancellationSentAt: new Date() },
   });
 
-  revalidatePath("/appointments");
+  revalidatePath(ADMIN.appointments);
   return { success: true, sentTo: clientEmail };
 }
 

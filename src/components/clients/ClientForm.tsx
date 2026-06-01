@@ -1,5 +1,7 @@
 "use client";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 // ClientForm — formulario reutilizable para crear Y editar clientes.
 //
 // Conceptos clave aquí:
@@ -131,7 +133,7 @@ export function ClientForm({
           {isPending ? "Guardando..." : submitLabel}
         </button>
         <a
-          href="/clients"
+          href={ADMIN.clients}
           className="text-sm text-slate-500 hover:text-slate-800 transition-colors"
         >
           Cancelar

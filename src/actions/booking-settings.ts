@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/permissions";
@@ -115,7 +117,7 @@ export async function updateAppointmentBookingSettings(formData: FormData) {
     },
   });
 
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true, bookingUrl: getPublicBookingUrl(slug) };
 }
 
@@ -155,7 +157,7 @@ export async function updateShopWorkingHours(formData: FormData) {
     }),
   ]);
 
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }
 
@@ -173,6 +175,6 @@ export async function updateMechanicBookable(userId: string, bookable: boolean) 
   if (!user) return { error: "Mecánico no encontrado" };
 
   await db.user.update({ where: { id: userId }, data: { bookable } });
-  revalidatePath("/settings");
+  revalidatePath(ADMIN.settings);
   return { success: true };
 }

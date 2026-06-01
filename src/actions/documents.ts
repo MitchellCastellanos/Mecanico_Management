@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -135,6 +137,6 @@ export async function uploadDocument(formData: FormData) {
     console.error("Error enviando email a contadora:", err);
   }
 
-  revalidatePath("/accounting");
+  revalidatePath(ADMIN.accounting);
   return { success: true, fileName: file.name };
 }

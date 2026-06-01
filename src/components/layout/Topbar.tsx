@@ -1,5 +1,7 @@
 "use client";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { signOut } from "next-auth/react";
 import { LogOut, User } from "lucide-react";
 
@@ -17,7 +19,7 @@ export function Topbar({ userName }: TopbarProps) {
           <span>{userName ?? "Usuario"}</span>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: ADMIN.login })}
           className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900 transition-colors"
         >
           <LogOut className="w-4 h-4" />

@@ -1,5 +1,7 @@
 "use client";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
@@ -79,7 +81,7 @@ export function PlatformOverview({ shops }: { shops: ShopRow[] }) {
           return (
             <Link
               key={shop.id}
-              href={`/admin/shops/${shop.id}`}
+              href={PLATFORM.shop(shop.id)}
               className="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-300 hover:shadow-sm transition-all flex items-center justify-between gap-4"
             >
               <div className="flex items-start gap-4 min-w-0">

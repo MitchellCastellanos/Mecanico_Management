@@ -1,5 +1,7 @@
 "use client";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
@@ -206,7 +208,7 @@ export function AppointmentForm({
         >
           {isPending ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear cita"}
         </button>
-        <a href="/appointments" className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
+        <a href={ADMIN.appointments} className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
           Cancelar
         </a>
       </div>

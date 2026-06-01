@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { LayoutDashboard, LogOut, Shield } from "lucide-react";
+import { ADMIN, PLATFORM } from "@/lib/routes";
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -25,10 +26,10 @@ export function AdminSidebar() {
 
       <nav className="flex-1 px-3 py-4">
         <Link
-          href="/admin"
+          href={PLATFORM.home}
           className={cn(
             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-            pathname === "/admin"
+            pathname === PLATFORM.home || pathname === "/platform"
               ? "bg-amber-500 text-slate-950"
               : "text-slate-400 hover:text-white hover:bg-slate-800"
           )}
@@ -41,7 +42,7 @@ export function AdminSidebar() {
       <div className="px-3 py-4 border-t border-slate-800">
         <button
           type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOut({ callbackUrl: ADMIN.login })}
           className="flex items-center gap-2 w-full px-3 py-2 text-sm text-slate-400 hover:text-white transition-colors"
         >
           <LogOut className="w-4 h-4" />

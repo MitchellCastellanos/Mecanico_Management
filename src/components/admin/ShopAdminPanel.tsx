@@ -10,6 +10,7 @@ import {
   deleteShopUser,
 } from "@/actions/platform";
 import { ArrowLeft, KeyRound, Loader2, Trash2, UserPlus } from "lucide-react";
+import { PLATFORM } from "@/lib/routes";
 
 type ShopDetail = {
   id: string;
@@ -58,7 +59,7 @@ export function ShopAdminPanel({ shop }: { shop: ShopDetail }) {
 
   return (
     <div className="space-y-6">
-      <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
+      <Link href={PLATFORM.home} className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800">
         <ArrowLeft className="w-4 h-4" />
         Todos los talleres
       </Link>

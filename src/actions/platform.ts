@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/permissions";
@@ -76,7 +78,7 @@ export async function createShop(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin");
+  revalidatePath(PLATFORM.home);
   return { success: true, shopId: shop.id };
 }
 
@@ -117,8 +119,8 @@ export async function createShopOwner(formData: FormData) {
     },
   });
 
-  revalidatePath("/admin");
-  revalidatePath(`/admin/shops/${shopId}`);
+  revalidatePath(PLATFORM.home);
+  revalidatePath(PLATFORM.shop(shopId));
   return { success: true };
 }
 
@@ -150,8 +152,8 @@ export async function createShopUser(formData: FormData) {
     },
   });
 
-  revalidatePath(`/admin/shops/${shopId}`);
-  revalidatePath("/admin");
+  revalidatePath(PLATFORM.shop(shopId));
+  revalidatePath(PLATFORM.home);
   return { success: true };
 }
 
@@ -174,7 +176,7 @@ export async function resetShopUserPassword(formData: FormData) {
   const passwordHash = await bcrypt.hash(newPassword, 12);
   await db.user.update({ where: { id: userId }, data: { passwordHash } });
 
-  revalidatePath(`/admin/shops/${shopId}`);
+  revalidatePath(PLATFORM.shop(shopId));
   return { success: true };
 }
 
@@ -192,7 +194,7 @@ export async function deleteShopUser(userId: string, shopId: string) {
   }
 
   await db.user.delete({ where: { id: userId } });
-  revalidatePath(`/admin/shops/${shopId}`);
-  revalidatePath("/admin");
+  revalidatePath(PLATFORM.shop(shopId));
+  revalidatePath(PLATFORM.home);
   return { success: true };
 }

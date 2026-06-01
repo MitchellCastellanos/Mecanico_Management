@@ -1,5 +1,7 @@
 "use server";
 
+import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
@@ -47,7 +49,7 @@ export async function getQuoteById(id: string) {
     },
   });
 
-  if (!quote) redirect("/quotes");
+  if (!quote) redirect(ADMIN.quotes);
   return quote;
 }
 
@@ -108,8 +110,8 @@ export async function createQuote(formData: QuoteFormData) {
 
   await syncSavedLineItems(shopId, lineItems);
 
-  revalidatePath("/quotes");
-  redirect(`/quotes/${quote.id}`);
+  revalidatePath(ADMIN.quotes);
+  redirect(`${ADMIN.quotes}/${quote.id}`);
 }
 
 // ── UPDATE ──────────────────────────────────────────────────
@@ -175,8 +177,8 @@ export async function updateQuote(id: string, formData: QuoteFormData) {
   await syncSavedLineItems(shopId, lineItems);
 
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
-  redirect(`/quotes/${id}`);
+  revalidatePath(ADMIN.quotes);
+  redirect(`${ADMIN.quotes}/${id}`);
 }
 
 // ── STATUS ──────────────────────────────────────────────────
@@ -194,7 +196,7 @@ export async function markQuoteAsSent(id: string) {
     },
   });
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
+  revalidatePath(ADMIN.quotes);
 }
 
 const EMAILABLE_STATUSES = ["DRAFT", "SENT", "ACCEPTED"] as const;
@@ -278,8 +280,8 @@ export async function sendQuoteByEmail(id: string, formData?: FormData) {
   });
 
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
-  revalidatePath("/dashboard");
+  revalidatePath(ADMIN.quotes);
+  revalidatePath(ADMIN.dashboard);
 
   return {
     success: true,
@@ -296,7 +298,7 @@ export async function markQuoteAsAccepted(id: string) {
   });
   if (result.count === 0) return { error: "No se puede marcar como aceptada" };
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
+  revalidatePath(ADMIN.quotes);
   return { success: true };
 }
 
@@ -308,7 +310,7 @@ export async function markQuoteAsRejected(id: string) {
   });
   if (result.count === 0) return { error: "No se puede marcar como rechazada" };
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
+  revalidatePath(ADMIN.quotes);
   return { success: true };
 }
 
@@ -378,9 +380,9 @@ export async function convertQuoteToInvoice(id: string) {
   });
 
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
-  revalidatePath("/invoices");
-  redirect(`/invoices/${invoice.id}`);
+  revalidatePath(ADMIN.quotes);
+  revalidatePath(ADMIN.invoices);
+  redirect(`${ADMIN.invoices}/${invoice.id}`);
 }
 
 const VOIDABLE_STATUSES = ["DRAFT", "SENT", "ACCEPTED", "REJECTED", "EXPIRED"] as const;
@@ -402,7 +404,7 @@ export async function cancelQuote(id: string) {
   }
 
   revalidatePath(`/quotes/${id}`);
-  revalidatePath("/quotes");
+  revalidatePath(ADMIN.quotes);
   return { success: true };
 }
 
@@ -417,9 +419,9 @@ export async function deleteQuote(id: string) {
     return { error: "Cotización no encontrada" };
   }
 
-  revalidatePath("/quotes");
-  revalidatePath("/dashboard");
-  redirect("/quotes");
+  revalidatePath(ADMIN.quotes);
+  revalidatePath(ADMIN.dashboard);
+  redirect(ADMIN.quotes);
 }
 
 // ── Form data ───────────────────────────────────────────────
