@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { runIncrementalMigrate, getLatestSchemaVersion } from "@/lib/incremental-migrate";
+import { syncShopBrandDefaults } from "@/lib/sync-shop-brand";
 import { db } from "@/lib/db";
 
 export const maxDuration = 60;
@@ -39,12 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const count = await runIncrementalMigrate();
+    const brand = await syncShopBrandDefaults();
     const dbVersion = await getLatestSchemaVersion();
     return NextResponse.json({
       ok: true,
       file: "incremental-migrate",
       statements: count,
       schema_version: dbVersion,
+      shop_brand: brand,
     });
   } catch (err) {
     console.error("[migrate]", err);

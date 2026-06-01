@@ -2,6 +2,7 @@
  * Matriz de enrutamiento de correo por canal.
  * Ver docs/EMAIL_MATRIX.md para el mapa completo IONOS + Resend.
  */
+import { BRAND } from "@/config/brand";
 
 export type EmailChannel =
   | "INVOICE"
@@ -123,11 +124,21 @@ function readShopField(shop: ShopEmailConfig, field: keyof ShopEmailConfig): str
   return trimmed || null;
 }
 
+const BRAND_ENV_FROM: Record<string, string> = {
+  EMAIL_FROM_INVOICES: BRAND.mailFrom.invoices,
+  EMAIL_FROM_REMINDERS: BRAND.mailFrom.reminders,
+  EMAIL_FROM_ACCOUNTING: BRAND.mailFrom.accounting,
+  EMAIL_FROM_WEB: BRAND.mailFrom.web,
+  EMAIL_FROM: BRAND.mailFrom.fallback,
+};
+
 function readEnvAddress(key: string | null): string | null {
   if (!key) return null;
   const raw = process.env[key]?.trim();
-  if (!raw) return null;
-  return extractEmailAddress(raw) ?? raw;
+  if (raw) return extractEmailAddress(raw) ?? raw;
+  const brandRaw = BRAND_ENV_FROM[key];
+  if (brandRaw) return extractEmailAddress(brandRaw) ?? brandRaw;
+  return null;
 }
 
 /** Extrae la dirección de `"Nombre <mail@x.com>"` o devuelve el string si ya es email. */

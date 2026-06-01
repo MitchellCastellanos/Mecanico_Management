@@ -11,6 +11,7 @@ import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { execSync } from "child_process";
+import { BRAND } from "../src/config/brand";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL ?? "" });
 const prisma = new PrismaClient({ adapter });
@@ -54,13 +55,22 @@ async function main() {
   });
 
   const shop = await prisma.shop.upsert({
-    where: { id: "shop-carlos-mtl" },
-    update: {},
+    where: { id: BRAND.shopId },
+    update: {
+      name: BRAND.shopName,
+      email: BRAND.emails.contact,
+      billingEmail: BRAND.emails.billing,
+      infoEmail: BRAND.emails.info,
+      slug: BRAND.bookingSlug,
+    },
     create: {
-      id: "shop-carlos-mtl",
-      name: "Garage Carlos MTL",
-      phone: "514-555-0198",
-      email: "carlos@garagecarlosmtl.com",
+      id: BRAND.shopId,
+      name: BRAND.shopName,
+      phone: "",
+      email: BRAND.emails.contact,
+      billingEmail: BRAND.emails.billing,
+      infoEmail: BRAND.emails.info,
+      slug: BRAND.bookingSlug,
       currency: "CAD",
     },
   });

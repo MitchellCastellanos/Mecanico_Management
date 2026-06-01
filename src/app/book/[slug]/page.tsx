@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { getShopBySlug } from "@/lib/booking-slots";
 import { PublicBookingForm } from "@/components/booking/PublicBookingForm";
+import { BRAND } from "@/config/brand";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -55,7 +56,7 @@ export default async function PublicBookingPage({ params }: PageProps) {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Powered by Mecanico Management
+          {BRAND.shopName} · {BRAND.domain}
         </p>
       </div>
     </div>

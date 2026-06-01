@@ -1,4 +1,4 @@
-// Server Component — plain form POST to /api/auth/login, no client JS needed
+import { BRAND } from "@/config/brand";
 
 interface Props {
   searchParams: Promise<{ error?: string; callbackUrl?: string }>;
@@ -16,8 +16,8 @@ export default async function LoginPage({ searchParams }: Props) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Mecanico</h1>
-        <p className="text-slate-500 text-sm mt-1">Sistema de gestión</p>
+        <h1 className="text-2xl font-bold text-slate-900">{BRAND.shopName}</h1>
+        <p className="text-slate-500 text-sm mt-1">Sistema de gestión · {BRAND.domain}</p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">

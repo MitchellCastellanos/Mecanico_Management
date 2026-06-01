@@ -18,7 +18,7 @@ Guía para configurar mecánicos, horarios de apertura y la página pública de 
 Si acabas de desplegar cambios de schema, ejecuta la migración incremental en producción (ver también `docs/DOMAIN_SETUP.md` §0):
 
 ```bash
-curl -X POST "https://mecanico-management.vercel.app/api/setup/migrate" \
+curl -X POST "https://garagecarlosainc.ca/api/setup/migrate" \
   -H "x-setup-secret: TU_CRON_SECRET"
 ```
 
@@ -50,18 +50,18 @@ Zona horaria por defecto: `America/Montreal`.
 Botón o enlace directo:
 
 ```html
-<a href="https://mecanico-management.vercel.app/book/taller-carlos">
+<a href="https://garagecarlosainc.ca/book/garage-carlos-a">
   Reservar cita en línea
 </a>
 ```
 
-Cuando el taller tenga dominio propio en Vercel (`NEXT_PUBLIC_APP_URL`), sustituye la URL base.
+Cuando el taller tenga dominio propio (`NEXT_PUBLIC_APP_URL=https://garagecarlosainc.ca`), los enlaces usan esa base automáticamente.
 
 ### Iframe (opcional)
 
 ```html
 <iframe
-  src="https://mecanico-management.vercel.app/book/taller-carlos"
+  src="https://garagecarlosainc.ca/book/garage-carlos-a"
   title="Reservar cita"
   width="100%"
   height="900"

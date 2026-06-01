@@ -31,7 +31,7 @@ Sin esto, Vercel no tendrá `DATABASE_URL` durante el build y la migración no c
 ## Verificar estado
 
 ```bash
-curl https://mecanico-management.vercel.app/api/version
+curl https://garagecarlosainc.ca/api/version
 ```
 
 Respuesta:
@@ -49,7 +49,7 @@ Si `schema_ok` es `false`, la DB está desactualizada.
 ## Migración manual (emergencia)
 
 ```bash
-curl -X POST "https://mecanico-management.vercel.app/api/setup/migrate" \
+curl -X POST "https://garagecarlosainc.ca/api/setup/migrate" \
   -H "x-setup-secret: TU_CRON_SECRET"
 ```
 

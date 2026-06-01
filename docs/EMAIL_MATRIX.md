@@ -1,6 +1,6 @@
-# Matriz de correo — Mecanico Management
+# Matriz de correo — Garage Carlos A Inc.
 
-Dominio del cliente (IONOS) + envío automático (Resend). Los buzones IONOS son para **leer y responder**; Resend es para **mandar desde la app/web**.
+Dominio: **garagecarlosainc.ca** (IONOS) + envío (Resend).
 
 ## Canales activos
 
@@ -34,13 +34,14 @@ Dominio del cliente (IONOS) + envío automático (Resend). Los buzones IONOS son
 
 ```env
 RESEND_API_KEY=
-EMAIL_FROM="Taller Demo <noreply@tudominio.com>"
-EMAIL_FROM_INVOICES=
-EMAIL_FROM_REMINDERS=
-EMAIL_FROM_ACCOUNTING=
-EMAIL_FROM_WEB=
+EMAIL_FROM="Garage Carlos A <info@garagecarlosainc.ca>"
+EMAIL_FROM_INVOICES="Garage Carlos A <billing@garagecarlosainc.ca>"
+EMAIL_FROM_REMINDERS="Garage Carlos A <info@garagecarlosainc.ca>"
+EMAIL_FROM_ACCOUNTING="Garage Carlos A <billing@garagecarlosainc.ca>"
+EMAIL_FROM_WEB="Garage Carlos A <info@garagecarlosainc.ca>"
 ACCOUNTANT_EMAIL=
-NEXT_PUBLIC_APP_URL=
+NEXT_PUBLIC_APP_URL=https://garagecarlosainc.ca
+NEXTAUTH_URL=https://garagecarlosainc.ca
 ```
 
 ### Por taller (Configuración → Correos del taller)

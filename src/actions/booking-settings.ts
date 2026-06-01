@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/permissions";
 import { DEFAULT_WORKING_HOURS } from "@/lib/booking-slots";
 import { getPublicBookingUrl, isValidShopSlug, slugifyShopName } from "@/lib/shop-slug";
+import { BRAND } from "@/config/brand";
 import { DAY_LABELS, type WorkingHoursRow } from "@/lib/working-hours";
 import { z } from "zod";
 
@@ -43,7 +44,7 @@ export async function getAppointmentBookingSettings() {
     }));
   }
 
-  const slug = shop.slug ?? slugifyShopName(shop.name);
+  const slug = shop.slug ?? BRAND.bookingSlug;
 
   return {
     shop: {

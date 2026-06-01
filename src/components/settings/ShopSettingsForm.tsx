@@ -7,6 +7,7 @@ import { Upload, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { EmailRoutingPreview } from "@/components/settings/EmailRoutingPreview";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { BRAND } from "@/config/brand";
 
 interface Shop {
   name: string;
@@ -190,7 +191,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
               name="email"
               type="email"
               defaultValue={shop.email ?? ""}
-              placeholder="carlos@tallercarlos.com"
+              placeholder={`carlos@${BRAND.domain}`}
               className={inputClass}
             />
             <p className="text-xs text-slate-400 mt-1">
@@ -208,7 +209,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   name="billingEmail"
                   type="email"
                   defaultValue={shop.billingEmail ?? ""}
-                  placeholder="billing@tallercarlos.com"
+                  placeholder={`billing@${BRAND.domain}`}
                   className={inputClass}
                 />
               </div>
@@ -220,7 +221,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   name="infoEmail"
                   type="email"
                   defaultValue={shop.infoEmail ?? ""}
-                  placeholder="info@tallercarlos.com"
+                  placeholder={`info@${BRAND.domain}`}
                   className={inputClass}
                 />
               </div>
@@ -232,7 +233,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   name="providersEmail"
                   type="email"
                   defaultValue={shop.providersEmail ?? ""}
-                  placeholder="providers@tallercarlos.com"
+                  placeholder={`providers@${BRAND.domain}`}
                   className={inputClass}
                 />
                 <p className="text-xs text-slate-400 mt-1">Reservado para uso futuro</p>
@@ -245,7 +246,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   name="newsletterEmail"
                   type="email"
                   defaultValue={shop.newsletterEmail ?? ""}
-                  placeholder="newsletter@tallercarlos.com"
+                  placeholder={`newsletter@${BRAND.domain}`}
                   className={inputClass}
                 />
                 <p className="text-xs text-slate-400 mt-1">Para Brevo/Mailchimp más adelante</p>

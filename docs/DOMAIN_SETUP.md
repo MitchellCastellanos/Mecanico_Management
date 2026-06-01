@@ -1,79 +1,94 @@
-# Checklist: dominio propio (IONOS + Resend + Vercel)
+# Dominio `garagecarlosainc.ca` — configuración
 
-Usa esta lista cuando compres y configures el dominio del taller (ej. `tallercarlos.com`).
+Checklist para el taller **Garage Carlos A Inc.** (app + correo + website).
+
+## URLs del sistema
+
+| Uso | URL |
+|-----|-----|
+| App (login, facturas, citas) | https://garagecarlosainc.ca |
+| Reservas en línea | https://garagecarlosainc.ca/book/garage-carlos-a |
+| Health / schema | https://garagecarlosainc.ca/api/version |
+
+El host `mecanico-management.vercel.app` redirige automáticamente a `garagecarlosainc.ca`.
 
 ## 0. Base de datos — migraciones automáticas
 
-Las migraciones SQL se aplican **automáticamente en cada deploy de Vercel** (ver [`docs/MIGRATIONS.md`](./MIGRATIONS.md)).
+En cada deploy de Vercel se aplican migraciones SQL y se rellenan buzones vacíos del taller.
 
-### Requisito obligatorio en Vercel
+**Vercel:** `DATABASE_URL` debe estar marcada para **Build** y **Production**.
 
-Variable `DATABASE_URL` → marcar **Build** + **Production** (Settings → Environment Variables).
-
-### Verificar que la DB está al día
+Verificar:
 
 ```bash
-curl https://mecanico-management.vercel.app/api/version
+curl https://garagecarlosainc.ca/api/version
 ```
 
-Busca `"schema_ok": true`. Si es `false`, ejecuta migración manual:
+Debe mostrar `"schema_ok": true`.
+
+Manual (emergencia):
 
 ```bash
-curl -X POST "https://mecanico-management.vercel.app/api/setup/migrate" \
+curl -X POST "https://garagecarlosainc.ca/api/setup/migrate" \
   -H "x-setup-secret: TU_CRON_SECRET"
 ```
 
-- [ ] `DATABASE_URL` disponible en build de Vercel
-- [ ] `/api/version` muestra `schema_ok: true` tras deploy
-- [ ] `/dashboard` sin errores Prisma en logs
-
-Guía detallada: [`docs/MIGRATIONS.md`](./MIGRATIONS.md) · Citas web: [`docs/BOOKING.md`](./BOOKING.md)
+Más info: [`docs/MIGRATIONS.md`](./MIGRATIONS.md) · Citas web: [`docs/BOOKING.md`](./BOOKING.md)
 
 ## 1. IONOS — DNS y buzones
 
-- [ ] Comprar/registrar el dominio en IONOS
-- [ ] Crear buzones (o alias) según la matriz de correo:
-  - `billing@` — facturas y cotizaciones
-  - `info@` — recordatorios, citas y contacto web
-  - (Opcional) `providers@`, `newsletter@` para uso futuro
-- [ ] En **Configuración → Datos del taller**, completar los buzones del dominio
-- [ ] Verificar que puedes enviar/recibir desde cada buzón desde el webmail de IONOS
+- [x] Dominio: `garagecarlosainc.ca`
+- [ ] Buzones creados:
+  - `billing@garagecarlosainc.ca` — facturas y cotizaciones
+  - `info@garagecarlosainc.ca` — recordatorios, citas y web
+  - (Opcional) `providers@`, `newsletter@`
+- [ ] En **Configuración → Datos del taller**, confirmar buzones (el deploy los rellena si estaban vacíos)
+- [ ] Probar envío/recibo desde webmail IONOS
 
 ## 2. Resend — dominio verificado
 
-- [ ] Entrar a [Resend](https://resend.com) → **Domains** → **Add domain**
-- [ ] Añadir el dominio del taller (ej. `tallercarlos.com`)
-- [ ] Copiar los registros DNS que Resend indica (SPF, DKIM, opcional DMARC)
-- [ ] En IONOS → **DNS**, crear esos registros TXT/CNAME/MX según Resend
-- [ ] Esperar verificación en Resend (puede tardar hasta 48 h, normalmente minutos)
-- [ ] Confirmar estado **Verified** en Resend antes de enviar desde producción
+- [ ] Resend → **Domains** → `garagecarlosainc.ca` → **Verified**
+- [ ] DNS en IONOS: SPF, DKIM (y DMARC recomendado) según Resend
 
-## 3. Vercel — variables de entorno
+## 3. Vercel — variables de entorno (Production)
 
-En el proyecto de Vercel → **Settings → Environment Variables** (Production + Preview si aplica):
+| Variable | Valor recomendado |
+|----------|-------------------|
+| `NEXT_PUBLIC_APP_URL` | `https://garagecarlosainc.ca` |
+| `NEXTAUTH_URL` | `https://garagecarlosainc.ca` |
+| `AUTH_TRUST_HOST` | `true` |
+| `EMAIL_FROM_INVOICES` | `"Garage Carlos A" <billing@garagecarlosainc.ca>` |
+| `EMAIL_FROM_REMINDERS` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
+| `EMAIL_FROM_ACCOUNTING` | `"Garage Carlos A" <billing@garagecarlosainc.ca>` |
+| `EMAIL_FROM` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
+| `RESEND_API_KEY` | `re_...` |
+| `CRON_SECRET` | string largo |
+| `DATABASE_URL` | Supabase (Build + Runtime) |
+| `ACCOUNTANT_EMAIL` | email contadora |
 
-| Variable | Ejemplo | Uso |
-|----------|---------|-----|
-| `EMAIL_FROM_INVOICES` | `"Taller Carlos" <billing@tallercarlos.com>` | Facturas y cotizaciones |
-| `EMAIL_FROM_REMINDERS` | `"Taller Carlos" <info@tallercarlos.com>` | Recordatorios de servicio y citas |
-| `EMAIL_FROM_ACCOUNTING` | `"Taller Carlos" <billing@tallercarlos.com>` | Avisos a contabilidad |
-| `EMAIL_FROM` | Fallback general | Solo si no hay buzón específico |
-| `RESEND_API_KEY` | `re_...` | API key de Resend |
-| `CRON_SECRET` | string aleatorio largo | Protege `/api/webhooks/cron` |
-| `ACCOUNTANT_EMAIL` | email de la contadora | Canal contabilidad |
+- [ ] Dominio `garagecarlosainc.ca` añadido en Vercel → Project → Domains
+- [ ] Redeploy tras cambiar variables
+- [ ] Probar factura/cotización por email
+- [ ] Probar `/book/garage-carlos-a`
 
-- [ ] Redeploy después de cambiar variables (`Deployments → Redeploy`)
-- [ ] Probar envío de factura/cotización desde la app
-- [ ] Probar confirmación de cita y esperar cron de recordatorio (o invocar cron manualmente con `Authorization: Bearer $CRON_SECRET`)
+## 4. Website del taller
 
-## 4. Comprobaciones finales
+Enlazar reservas desde el sitio:
 
-- [ ] En **Configuración**, revisar la vista previa de enrutamiento de correo (todos los canales activos en verde)
-- [ ] Enviar email de prueba al cliente de prueba; revisar bandeja y spam
-- [ ] Confirmar que **Reply-To** apunta al buzón correcto del taller
-- [ ] Documentar credenciales IONOS y Resend en gestor de contraseñas del taller (no en el repo)
+```html
+<a href="https://garagecarlosainc.ca/book/garage-carlos-a">
+  Réserver un rendez-vous / Book appointment
+</a>
+```
 
-## Notas
+## 5. Comprobaciones finales
 
-- Si el taller aún no tiene dominio, Resend permite enviar desde dominio de prueba de Resend solo a direcciones verificadas — útil en desarrollo, no en producción.
-- Los buzones en la ficha del taller tienen prioridad sobre `EMAIL_FROM_*`; las variables de Vercel son fallback cuando el buzón no está configurado en la app.
+- [ ] `/api/version` → `schema_ok: true`
+- [ ] Login en https://garagecarlosainc.ca
+- [ ] Configuración → vista previa de correo en verde
+- [ ] Email de prueba no cae en spam
+- [ ] Activar **Reservas en línea** en Configuración si aún no está activo
+
+## Código de referencia
+
+Valores por defecto del taller: `src/config/brand.ts`

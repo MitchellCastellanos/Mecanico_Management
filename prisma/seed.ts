@@ -1,27 +1,36 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
+import { BRAND } from "../src/config/brand";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL ?? "",
 });
 const prisma = new PrismaClient({ adapter });
 
+const SHOP_DEFAULTS = {
+  name: BRAND.shopName,
+  address: "Montréal, QC",
+  phone: "",
+  email: BRAND.emails.contact,
+  billingEmail: BRAND.emails.billing,
+  infoEmail: BRAND.emails.info,
+  providersEmail: BRAND.emails.providers,
+  newsletterEmail: BRAND.emails.newsletter,
+  slug: BRAND.bookingSlug,
+  taxId: "",
+  currency: "CAD",
+} as const;
+
 async function main() {
   console.log("🌱 Iniciando seed...");
 
-  // ── Shop ──────────────────────────────────────────────────
   const shop = await prisma.shop.upsert({
-    where: { id: "shop-carlos-mtl" },
-    update: {},
+    where: { id: BRAND.shopId },
+    update: SHOP_DEFAULTS,
     create: {
-      id: "shop-carlos-mtl",
-      name: "Garage Carlos MTL",
-      address: "1234 Rue Saint-Denis, Montréal, QC H2X 3K1",
-      phone: "514-555-0198",
-      email: "carlos@garagecarlosmtl.com",
-      taxId: "TPS: 123456789 RT0001 | TVQ: 123456789 TQ0001",
-      currency: "CAD",
+      id: BRAND.shopId,
+      ...SHOP_DEFAULTS,
     },
   });
 

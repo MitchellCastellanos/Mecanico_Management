@@ -6,6 +6,7 @@
  * Environment Variables → marcar "Build" para Production).
  */
 import { runIncrementalMigrate, SCHEMA_VERSION } from "../src/lib/incremental-migrate";
+import { syncShopBrandDefaults } from "../src/lib/sync-shop-brand";
 import { db } from "../src/lib/db";
 
 async function main() {
@@ -31,6 +32,11 @@ async function main() {
 
   const count = await runIncrementalMigrate();
   console.log(`[deploy-migrate] OK — ${count} sentencias, versión ${SCHEMA_VERSION}`);
+
+  const brand = await syncShopBrandDefaults();
+  if (brand.updated) {
+    console.log(`[deploy-migrate] Buzones/slug del taller: ${brand.fields?.join(", ")}`);
+  }
 }
 
 main()
