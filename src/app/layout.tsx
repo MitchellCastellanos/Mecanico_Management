@@ -8,9 +8,20 @@ export const metadata: Metadata = {
     default: BRAND.shopName,
     template: `%s · ${BRAND.shopName}`,
   },
-  description: "Sistema de gestión para taller mecánico",
+  description: "Taller mecánico en Montréal — Garage Carlos A Inc.",
   alternates: {
     canonical: BRAND.appUrl,
+  },
+  icons: {
+    icon: [{ url: BRAND.logoPath, type: "image/png" }],
+    apple: [{ url: BRAND.logoPath, type: "image/png" }],
+  },
+  openGraph: {
+    title: BRAND.shopName,
+    description: "Taller mecánico en Montréal",
+    url: BRAND.appUrl,
+    siteName: BRAND.shopName,
+    images: [{ url: BRAND.logoPath, alt: BRAND.shopName }],
   },
 };
 

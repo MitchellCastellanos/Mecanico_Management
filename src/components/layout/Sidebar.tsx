@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import {
   LayoutDashboard,
   Users,
@@ -12,7 +13,6 @@ import {
   Bell,
   FolderOpen,
   Settings,
-  Wrench,
 } from "lucide-react";
 
 import { ADMIN, PLATFORM } from "@/lib/routes";
@@ -37,9 +37,13 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-6 py-5 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-            <Wrench className="w-4 h-4 text-white" />
-          </div>
+          <Image
+            src={BRAND.logoPath}
+            alt={BRAND.shopName}
+            width={40}
+            height={40}
+            className="h-10 w-auto object-contain flex-shrink-0"
+          />
           <div>
             <p className="text-white font-semibold text-sm leading-none">{BRAND.shopName}</p>
             <p className="text-slate-400 text-xs mt-0.5">Panel</p>

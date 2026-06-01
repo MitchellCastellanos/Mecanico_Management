@@ -11,5 +11,5 @@ export function getAppUrl(): string {
 
 /** Logo de respaldo cuando el taller no tiene logo propio. */
 export function getDefaultEmailLogoUrl(): string {
-  return `${getAppUrl()}/email/mecanico-logo.svg`;
+  return `${getAppUrl()}${BRAND.logoPath}`;
 }

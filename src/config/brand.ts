@@ -7,6 +7,8 @@ export const BRAND = {
   appUrl: "https://garagecarlosainc.ca",
   shopId: "shop-carlos-mtl",
   shopName: "Garage Carlos A Inc.",
+  /** Logo PNG sin fondo — favicon, homepage, emails de respaldo */
+  logoPath: "/logo.png",
   bookingSlug: "garage-carlos-a",
   timezone: "America/Montreal",
   emails: {
