@@ -1,3 +1,4 @@
+import { ADMIN } from "@/lib/routes";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { getAppointments } from "@/actions/appointments";
