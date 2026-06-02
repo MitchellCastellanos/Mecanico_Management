@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { sendReminderEmail, sendAppointmentEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
 import { formatClientName } from "@/lib/client-name";
+import { formatShopDateTime } from "@/lib/shop-timezone";
 
 // Cron Job — corre diariamente a las 8am (configurado en vercel.json)
 // Envía recordatorios de servicio con vencimiento en ≤7 días
@@ -106,14 +107,10 @@ export async function GET(request: Request) {
       }
 
       try {
-        const startsAtFormatted = new Intl.DateTimeFormat("fr-CA", {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }).format(appointment.startsAt);
+        const startsAtFormatted = formatShopDateTime(
+          appointment.startsAt,
+          appointment.shop.timezone
+        );
 
         await sendAppointmentEmail({
           shop: shopToEmailConfig(appointment.shop),

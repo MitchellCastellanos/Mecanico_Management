@@ -101,9 +101,9 @@ const ES: Strings = {
   grandTotal: "TOTAL A PAGAR",
   notes: "Notas y condiciones",
   thankYou: "Gracias por confiar en nosotros.",
-  warrantyDisclosureTitle: "Garantía de piezas y servicios",
+  warrantyDisclosureTitle: "Garantía de piezas",
   warrantyDisclosureIntro:
-    "Los conceptos siguientes incluyen garantía según se indica. Esta garantía cubre defectos de material o mano de obra bajo uso normal.",
+    "Las piezas siguientes incluyen garantía según se indica. Esta garantía cubre defectos de material bajo uso normal.",
   itemTypes: { LABOUR: "Mano de obra", PART: "Repuesto", OTHER: "Otro" },
   statuses: {
     DRAFT: "PENDIENTE",
@@ -172,9 +172,9 @@ const EN: Strings = {
   grandTotal: "AMOUNT DUE",
   notes: "Notes & terms",
   thankYou: "Thank you for your business.",
-  warrantyDisclosureTitle: "Parts and labour warranty",
+  warrantyDisclosureTitle: "Parts warranty",
   warrantyDisclosureIntro:
-    "The following items include the warranty periods shown below. Coverage applies to defects in parts or workmanship under normal use.",
+    "The following parts include the warranty periods shown below. Coverage applies to defects in material under normal use.",
   itemTypes: { LABOUR: "Labour", PART: "Part", OTHER: "Other" },
   statuses: {
     DRAFT: "PENDING",
@@ -243,9 +243,9 @@ const FR: Strings = {
   grandTotal: "TOTAL À PAYER",
   notes: "Notes et conditions",
   thankYou: "Merci de votre confiance.",
-  warrantyDisclosureTitle: "Garantie pièces et main-d'œuvre",
+  warrantyDisclosureTitle: "Garantie des pièces",
   warrantyDisclosureIntro:
-    "Les concepts suivants incluent une garantie tel qu'indiqué ci-dessous. La garantie couvre les défauts de pièces ou de main-d'œuvre en usage normal.",
+    "Les pièces suivantes incluent une garantie tel qu'indiqué ci-dessous. La garantie couvre les défauts de matériel en usage normal.",
   itemTypes: { LABOUR: "Main-d'œuvre", PART: "Pièce", OTHER: "Autre" },
   statuses: {
     DRAFT: "EN ATTENTE",

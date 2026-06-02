@@ -23,6 +23,7 @@ import {
   INVOICE_STATUS_LABEL,
   INVOICE_PENDING_STATUSES,
 } from "@/lib/invoice-status";
+import { getInvoiceRecordedRevenue } from "@/lib/invoice-payments";
 
 // Nombres cortos de meses en español
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -50,11 +51,11 @@ export default async function DashboardPage() {
     invoiceCount,
     pendingReminders,
     recentInvoices,
-    thisMonthRevenue,
-    lastMonthRevenue,
+    paidInvoicesThisMonth,
+    paidInvoicesLastMonth,
     paidInvoicesLast6Months,
     invoicesByStatus,
-    topClientsRaw,
+    allPaidInvoices,
   ] = await Promise.all([
     db.client.count({ where: { shopId } }),
     db.invoice.count({ where: { shopId } }),
@@ -66,19 +67,21 @@ export default async function DashboardPage() {
       include: { client: true },
     }),
     // Ingresos este mes
-    db.invoice.aggregate({
+    db.invoice.findMany({
       where: { shopId, status: "PAID", paidAt: { gte: startOfMonth } },
-      _sum: { total: true },
+      select: { total: true, recordedRevenue: true, status: true },
     }),
-    // Ingresos mes pasado (para % de cambio)
-    db.invoice.aggregate({
-      where: { shopId, status: "PAID", paidAt: { gte: startOfLastMonth, lte: endOfLastMonth } },
-      _sum: { total: true },
+    db.invoice.findMany({
+      where: {
+        shopId,
+        status: "PAID",
+        paidAt: { gte: startOfLastMonth, lte: endOfLastMonth },
+      },
+      select: { total: true, recordedRevenue: true, status: true },
     }),
-    // Facturas pagadas últimos 6 meses (para el BarChart)
     db.invoice.findMany({
       where: { shopId, status: "PAID", paidAt: { gte: sixMonthsAgo } },
-      select: { paidAt: true, total: true },
+      select: { paidAt: true, total: true, recordedRevenue: true, status: true },
     }),
     // Conteo por estado (para el PieChart)
     db.invoice.groupBy({
@@ -87,14 +90,20 @@ export default async function DashboardPage() {
       _count: { _all: true },
     }),
     // Top 5 clientes por ingreso
-    db.invoice.groupBy({
-      by: ["clientId"],
+    db.invoice.findMany({
       where: { shopId, status: "PAID" },
-      _sum: { total: true },
-      orderBy: { _sum: { total: "desc" } },
-      take: 5,
+      select: { clientId: true, total: true, recordedRevenue: true, status: true },
     }),
   ]);
+
+  const thisMonthRevenue = paidInvoicesThisMonth.reduce(
+    (sum, inv) => sum + getInvoiceRecordedRevenue(inv),
+    0
+  );
+  const lastMonthRevenue = paidInvoicesLastMonth.reduce(
+    (sum, inv) => sum + getInvoiceRecordedRevenue(inv),
+    0
+  );
 
   // ── Procesar datos para charts (serializar: sin Decimal ni Date) ──
 
@@ -108,7 +117,7 @@ export default async function DashboardPage() {
         const paid = inv.paidAt!;
         return paid.getFullYear() === year && paid.getMonth() === month;
       })
-      .reduce((sum, inv) => sum + Number(inv.total), 0);
+      .reduce((sum, inv) => sum + getInvoiceRecordedRevenue(inv), 0);
     return { month: label, revenue: Math.round(revenue * 100) / 100 };
   });
 
@@ -130,24 +139,32 @@ export default async function DashboardPage() {
     return { status, label, count, color };
   });
 
-  // Top clients — resolver nombres
-  const topClientIds = topClientsRaw.map((c) => c.clientId);
+  const revenueByClient = new Map<string, number>();
+  for (const inv of allPaidInvoices) {
+    revenueByClient.set(
+      inv.clientId,
+      (revenueByClient.get(inv.clientId) ?? 0) + getInvoiceRecordedRevenue(inv)
+    );
+  }
+  const topClientIds = [...revenueByClient.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([id]) => id);
   const topClientDetails = await db.client.findMany({
     where: { id: { in: topClientIds } },
     select: { id: true, firstName: true, lastName: true },
   });
-  const topClients = topClientsRaw.map((row) => {
-    const client = topClientDetails.find((c) => c.id === row.clientId);
+  const topClients = topClientIds.map((clientId) => {
+    const client = topClientDetails.find((c) => c.id === clientId);
     return {
-      id: row.clientId,
+      id: clientId,
       name: client ? formatClientName(client) : "—",
-      total: Number(row._sum.total ?? 0),
+      total: revenueByClient.get(clientId) ?? 0,
     };
   });
 
-  // % cambio mes actual vs mes pasado
-  const thisMonth = Number(thisMonthRevenue._sum.total ?? 0);
-  const lastMonth = Number(lastMonthRevenue._sum.total ?? 0);
+  const thisMonth = thisMonthRevenue;
+  const lastMonth = lastMonthRevenue;
   const revenueChange =
     lastMonth === 0 ? null : ((thisMonth - lastMonth) / lastMonth) * 100;
 

@@ -7,7 +7,12 @@ import { formatClientName } from "@/lib/client-name";
 import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
 import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
+import {
+  InvoicePaymentReceipts,
+  type PaymentReceiptView,
+} from "@/components/invoices/InvoicePaymentReceipts";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABEL, isInvoicePending } from "@/lib/invoice-status";
+import { publicUrlForStoragePath } from "@/lib/storage";
 import Decimal from "decimal.js";
 
 const ITEM_TYPE_LABEL: Record<string, string> = {
@@ -33,6 +38,24 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const tvqPct = new Decimal(TVQ_RATE).times(factor).times(100).toFixed(2);
   const langLabel =
     INVOICE_LANGUAGES.find((l) => l.value === invoice.language)?.label ?? invoice.language;
+
+  let cardReceiptIndex = 0;
+  const paymentReceipts: PaymentReceiptView[] = invoice.paymentEntries
+    .filter((e) => e.method === "CARD" && e.receiptPath)
+    .map((entry) => {
+      cardReceiptIndex++;
+      const fileName = entry.receiptPath!.split("/").pop() ?? "comprobante";
+      const isImage = /\.(jpe?g|png|webp)$/i.test(fileName);
+      return {
+        id: entry.id,
+        label: `Terminal tarjeta #${cardReceiptIndex} · ${formatCurrency(Number(entry.amount))}`,
+        url: publicUrlForStoragePath(entry.receiptPath!),
+        fileName,
+        isImage,
+      };
+    });
+
+  const paymentReceiptCount = paymentReceipts.length;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -95,6 +118,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             clientId={invoice.clientId}
             clientEmail={invoice.client.email}
             emailSendCount={invoice.emailSendCount}
+            subtotal={Number(invoice.subtotal)}
+            total={Number(invoice.total)}
+            paymentReceiptCount={paymentReceiptCount}
           />
         </div>
       </div>
@@ -231,13 +257,61 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               </span>
             </div>
             {invoice.paidAt && (
-              <p className="text-xs text-emerald-600 mt-2">
-                Pagada el {formatDate(invoice.paidAt)}
-              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs text-emerald-600">
+                  Pagada el {formatDate(invoice.paidAt)}
+                  {invoice.paymentMode && (
+                    <>
+                      {" "}
+                      ·{" "}
+                      {invoice.paymentMode === "CARD"
+                        ? "Tarjeta"
+                        : invoice.paymentMode === "CASH"
+                          ? "Efectivo"
+                          : "Tarjeta + efectivo"}
+                    </>
+                  )}
+                </p>
+                {invoice.recordedRevenue != null && (
+                  <p className="text-xs text-slate-500">
+                    Ingreso registrado: {formatCurrency(Number(invoice.recordedRevenue))}
+                  </p>
+                )}
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {invoice.status === "PAID" && invoice.paymentEntries.length > 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-5">
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+              Desglose de pago
+            </p>
+            <ul className="space-y-2">
+              {invoice.paymentEntries.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex justify-between text-sm text-slate-700"
+                >
+                  <span>{entry.method === "CARD" ? "Tarjeta" : "Efectivo"}</span>
+                  <span className="font-medium">{formatCurrency(Number(entry.amount))}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {paymentReceipts.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                Comprobantes de terminal
+              </p>
+              <InvoicePaymentReceipts receipts={paymentReceipts} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

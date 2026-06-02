@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260530-booking-v1";
+export const SCHEMA_VERSION = "20260601-invoice-payments-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -113,6 +113,25 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
     CONSTRAINT "ShopWorkingHours_pkey" PRIMARY KEY ("id")
   )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "ShopWorkingHours_shopId_dayOfWeek_key" ON mecanico."ShopWorkingHours"("shopId", "dayOfWeek")`,
+  `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "paymentMode" mecanico."InvoicePaymentMode"`,
+  `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "recordedRevenue" DECIMAL(10,2)`,
+  `CREATE TABLE IF NOT EXISTS mecanico."InvoicePaymentEntry" (
+    "id" TEXT NOT NULL,
+    "invoiceId" TEXT NOT NULL,
+    "method" mecanico."InvoicePaymentEntryMethod" NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "receiptPath" TEXT,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "InvoicePaymentEntry_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "InvoicePaymentEntry_invoiceId_idx" ON mecanico."InvoicePaymentEntry"("invoiceId")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."InvoicePaymentEntry"
+      ADD CONSTRAINT "InvoicePaymentEntry_invoiceId_fkey"
+      FOREIGN KEY ("invoiceId") REFERENCES mecanico."Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
@@ -154,6 +173,22 @@ export async function ensureAppointmentSourceEnum() {
   }
 }
 
+export async function ensureInvoicePaymentEnums() {
+  for (const sql of [
+    `CREATE TYPE mecanico."InvoicePaymentMode" AS ENUM ('CARD', 'CASH', 'MIXED')`,
+    `CREATE TYPE mecanico."InvoicePaymentEntryMethod" AS ENUM ('CARD', 'CASH')`,
+  ]) {
+    try {
+      await db.$executeRawUnsafe(sql);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (!msg.includes("already exists") && !msg.includes("duplicate")) {
+        throw err;
+      }
+    }
+  }
+}
+
 export async function ensureInvoiceLanguageEnum() {
   try {
     await db.$executeRawUnsafe(
@@ -169,6 +204,7 @@ export async function ensureInvoiceLanguageEnum() {
 
 export async function runIncrementalMigrate() {
   await ensureInvoiceLanguageEnum();
+  await ensureInvoicePaymentEnums();
   await ensureQuoteStatusEnum();
   await ensureAppointmentStatusEnum();
   await ensureAppointmentSourceEnum();

@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendInvoiceByEmail } from "@/actions/invoices";
 import { EMAIL_PENDING_CONFIRM_MESSAGE } from "@/lib/invoice-status";
-import { Loader2, Mail, Paperclip, Send, X, Camera } from "lucide-react";
+import { Loader2, Mail, Send, X } from "lucide-react";
+import { FileAttachmentButtons } from "@/components/ui/FileAttachmentButtons";
 
 interface InvoiceSendDialogProps {
   invoiceId: string;
@@ -14,7 +15,11 @@ interface InvoiceSendDialogProps {
   isResend: boolean;
   requiresPendingConfirm?: boolean;
   disabled?: boolean;
+  /** Comprobantes de terminal que se adjuntan automáticamente al enviar. */
+  paymentReceiptCount?: number;
 }
+
+const MAX_EMAIL_EXTRAS = 10;
 
 export function InvoiceSendDialog({
   invoiceId,
@@ -23,20 +28,22 @@ export function InvoiceSendDialog({
   isResend,
   requiresPendingConfirm = false,
   disabled,
+  paymentReceiptCount = 0,
 }: InvoiceSendDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const maxUserFiles = Math.max(0, MAX_EMAIL_EXTRAS - paymentReceiptCount);
 
-  function addFiles(list: FileList | null) {
-    if (!list) return;
-    const incoming = Array.from(list);
-    const merged = [...files, ...incoming].slice(0, 5);
-    if (files.length + incoming.length > 5) {
-      toast.error("Máximo 5 archivos adjuntos");
+  function addFiles(incoming: File[]) {
+    const merged = [...files, ...incoming].slice(0, maxUserFiles);
+    if (files.length + incoming.length > maxUserFiles) {
+      toast.error(
+        maxUserFiles === 0
+          ? "Los comprobantes de pago ya ocupan el límite de adjuntos del correo"
+          : `Máximo ${maxUserFiles} archivo(s) extra en este envío`
+      );
     }
     setFiles(merged);
   }
@@ -111,52 +118,23 @@ export function InvoiceSendDialog({
 
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-600">
-                La factura PDF se adjunta automáticamente. Aquí puedes agregar documentos
-                extra (alineación, garantía de proveedor, fotos, etc.).
+                La factura PDF se adjunta automáticamente.
+                {paymentReceiptCount > 0 && (
+                  <>
+                    {" "}
+                    También se incluyen {paymentReceiptCount} comprobante(s) de terminal
+                    registrados al pagar.
+                  </>
+                )}{" "}
+                Aquí puedes agregar documentos extra si lo necesitas.
               </p>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Paperclip className="w-4 h-4" />
-                  Subir archivo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Camera className="w-4 h-4" />
-                  Cámara / escáner
-                </button>
+                <FileAttachmentButtons
+                  disabled={pending || maxUserFiles === 0}
+                  onFilesSelected={addFiles}
+                />
               </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <input
-                ref={cameraInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
 
               {files.length > 0 && (
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
@@ -179,7 +157,9 @@ export function InvoiceSendDialog({
               )}
 
               <p className="text-xs text-slate-400">
-                PDF o imágenes · Máx. 5 archivos · 5 MB c/u
+                PDF o imágenes · Máx. {maxUserFiles} archivo(s) extra · 5 MB c/u
+                {paymentReceiptCount > 0 &&
+                  ` · ${paymentReceiptCount} comprobante(s) de pago incluidos automáticamente`}
               </p>
             </div>
 

@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  markInvoiceAsPaid,
   cancelInvoice,
   deleteInvoice,
   revertInvoiceToPending,
 } from "@/actions/invoices";
 import { InvoiceSendDialog } from "@/components/invoices/InvoiceSendDialog";
+import { InvoiceMarkPaidDialog } from "@/components/invoices/InvoiceMarkPaidDialog";
 import { isInvoicePending } from "@/lib/invoice-status";
 import { Ban, Trash2, RotateCcw, Mail, Loader2 } from "lucide-react";
 
@@ -21,6 +21,9 @@ interface InvoiceActionsProps {
   clientId: string;
   clientEmail?: string | null;
   emailSendCount?: number;
+  subtotal?: number;
+  total?: number;
+  paymentReceiptCount?: number;
 }
 
 const VOIDABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
@@ -33,14 +36,16 @@ export function InvoiceActions({
   clientId,
   clientEmail,
   emailSendCount = 0,
+  subtotal = 0,
+  total = 0,
+  paymentReceiptCount = 0,
 }: InvoiceActionsProps) {
   const router = useRouter();
-  const [paidPending, startPaid] = useTransition();
   const [cancelPending, startCancel] = useTransition();
   const [deletePending, startDelete] = useTransition();
   const [revertPendingPending, startRevertPending] = useTransition();
 
-  const isAnyPending = paidPending || cancelPending || deletePending || revertPendingPending;
+  const isAnyPending = cancelPending || deletePending || revertPendingPending;
 
   const hasClientEmail = Boolean(clientEmail?.trim());
   const canEmail = EMAILABLE.has(status) && hasClientEmail;
@@ -94,6 +99,7 @@ export function InvoiceActions({
               isResend={isResend}
               requiresPendingConfirm={isPending}
               disabled={isAnyPending}
+              paymentReceiptCount={paymentReceiptCount}
             />
           ) : (
             <Link
@@ -109,21 +115,13 @@ export function InvoiceActions({
       )}
 
       {isPending && (
-        <button
-          type="button"
+        <InvoiceMarkPaidDialog
+          invoiceId={invoiceId}
+          invoiceNumber={invoiceNumber}
+          subtotal={subtotal}
+          total={total}
           disabled={isAnyPending}
-          onClick={() =>
-            startPaid(async () => {
-              await markInvoiceAsPaid(invoiceId);
-              toast.success("Factura marcada como pagada");
-              router.refresh();
-            })
-          }
-          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
-        >
-          {paidPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-          Marcar como pagada
-        </button>
+        />
       )}
 
       {status === "PAID" && (

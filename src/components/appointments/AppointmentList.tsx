@@ -8,6 +8,11 @@ import {
   sendAppointmentConfirmation,
 } from "@/actions/appointments";
 import { formatClientName } from "@/lib/client-name";
+import {
+  formatShopDate,
+  formatShopDayHeader,
+  formatShopTimeLabel,
+} from "@/lib/shop-timezone";
 import { Calendar, Clock, Loader2, Mail, User, Ban } from "lucide-react";
 
 interface Appointment {
@@ -25,7 +30,9 @@ interface Appointment {
 
 interface AppointmentListProps {
   appointments: Appointment[];
-  weekStart: string;
+  timeZone: string;
+  emptyLabel: string;
+  periodLabel?: string;
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -44,25 +51,10 @@ const STATUS_LABEL: Record<string, string> = {
   NO_SHOW: "No asistió",
 };
 
-function formatTime(date: Date | string) {
-  return new Intl.DateTimeFormat("fr-CA", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(date));
-}
-
-function formatDayHeader(date: Date | string) {
-  return new Intl.DateTimeFormat("fr-CA", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  }).format(new Date(date));
-}
-
-function groupByDay(appointments: Appointment[]) {
+function groupByDay(appointments: Appointment[], timeZone: string) {
   const groups = new Map<string, Appointment[]>();
   for (const apt of appointments) {
-    const key = new Date(apt.startsAt).toISOString().split("T")[0];
+    const key = formatShopDate(new Date(apt.startsAt), timeZone);
     const list = groups.get(key) ?? [];
     list.push(apt);
     groups.set(key, list);
@@ -70,7 +62,13 @@ function groupByDay(appointments: Appointment[]) {
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
-function AppointmentRow({ appointment }: { appointment: Appointment }) {
+function AppointmentRow({
+  appointment,
+  timeZone,
+}: {
+  appointment: Appointment;
+  timeZone: string;
+}) {
   const router = useRouter();
   const [confirmPending, startConfirm] = useTransition();
   const [cancelPending, startCancel] = useTransition();
@@ -85,7 +83,7 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
       <div className="flex items-center gap-3 min-w-[100px]">
         <Clock className="w-4 h-4 text-teal-600 flex-shrink-0" />
         <span className="text-sm font-semibold text-slate-900">
-          {formatTime(appointment.startsAt)}
+          {formatShopTimeLabel(appointment.startsAt, timeZone)}
         </span>
         <span className="text-xs text-slate-400">{appointment.durationMinutes} min</span>
       </div>
@@ -175,17 +173,22 @@ function AppointmentRow({ appointment }: { appointment: Appointment }) {
   );
 }
 
-export function AppointmentList({ appointments, weekStart }: AppointmentListProps) {
-  const groups = groupByDay(appointments);
+export function AppointmentList({
+  appointments,
+  timeZone,
+  emptyLabel,
+  periodLabel,
+}: AppointmentListProps) {
+  const groups = groupByDay(appointments, timeZone);
 
   if (appointments.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
         <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-        <p className="text-slate-500 font-medium">No hay citas esta semana</p>
-        <p className="text-slate-400 text-sm mt-1">
-          Semana del {formatDayHeader(weekStart)}
-        </p>
+        <p className="text-slate-500 font-medium">{emptyLabel}</p>
+        {periodLabel && (
+          <p className="text-slate-400 text-sm mt-1 capitalize">{periodLabel}</p>
+        )}
       </div>
     );
   }
@@ -196,12 +199,12 @@ export function AppointmentList({ appointments, weekStart }: AppointmentListProp
         <div key={day} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
             <h3 className="text-sm font-semibold text-slate-700 capitalize">
-              {formatDayHeader(day)}
+              {formatShopDayHeader(day, timeZone)}
             </h3>
           </div>
           <div className="divide-y divide-slate-100">
             {dayAppointments.map((apt) => (
-              <AppointmentRow key={apt.id} appointment={apt} />
+              <AppointmentRow key={apt.id} appointment={apt} timeZone={timeZone} />
             ))}
           </div>
         </div>

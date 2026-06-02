@@ -43,6 +43,8 @@ interface InvoiceData {
   language?: InvoiceLanguage | string | null;
   notes?: string | null;
   documentKind?: "invoice" | "quote";
+  /** Factura pagada en efectivo: PDF sin desglose de impuestos. */
+  suppressTaxes?: boolean;
   lineItems: LineItem[];
   client: {
     firstName: string;
@@ -711,7 +713,10 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
       : null;
 
   const lastIndex = invoice.lineItems.length - 1;
-  const warrantyItems = invoice.lineItems.filter((item) => item.warrantyTerm?.trim());
+  const warrantyItems = invoice.lineItems.filter(
+    (item) => item.itemType === "PART" && item.warrantyTerm?.trim()
+  );
+  const suppressTaxes = Boolean(invoice.suppressTaxes);
 
   return (
     <Document title={docTitle} author={invoice.shop.name}>
@@ -874,30 +879,39 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                       {fmtCurrency(invoice.subtotal, currency)}
                     </Text>
                   </View>
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>{t.tps(tpsPct)}</Text>
-                    <Text style={styles.totalValue}>
-                      {fmtCurrency(tpsAmount.toString(), currency)}
-                    </Text>
-                  </View>
-                  <View style={styles.totalRow}>
-                    <Text style={styles.totalLabel}>{t.tvq(tvqPct)}</Text>
-                    <Text style={styles.totalValue}>
-                      {fmtCurrency(tvqAmount.toString(), currency)}
-                    </Text>
-                  </View>
-                  <View style={styles.totalRow}>
-                    <Text style={[styles.totalLabel, { color: SLATE_400 }]}>{t.taxesTotal}</Text>
-                    <Text style={styles.totalValue}>
-                      {fmtCurrency(taxAmount.toString(), currency)}
-                    </Text>
-                  </View>
+                  {!suppressTaxes && (
+                    <>
+                      <View style={styles.totalRow}>
+                        <Text style={styles.totalLabel}>{t.tps(tpsPct)}</Text>
+                        <Text style={styles.totalValue}>
+                          {fmtCurrency(tpsAmount.toString(), currency)}
+                        </Text>
+                      </View>
+                      <View style={styles.totalRow}>
+                        <Text style={styles.totalLabel}>{t.tvq(tvqPct)}</Text>
+                        <Text style={styles.totalValue}>
+                          {fmtCurrency(tvqAmount.toString(), currency)}
+                        </Text>
+                      </View>
+                      <View style={styles.totalRow}>
+                        <Text style={[styles.totalLabel, { color: SLATE_400 }]}>
+                          {t.taxesTotal}
+                        </Text>
+                        <Text style={styles.totalValue}>
+                          {fmtCurrency(taxAmount.toString(), currency)}
+                        </Text>
+                      </View>
+                    </>
+                  )}
                   <View style={styles.totalDivider} />
                 </View>
                 <View style={styles.grandTotalRow}>
                   <Text style={styles.grandTotalLabel}>{t.grandTotal}</Text>
                   <Text style={styles.grandTotalValue}>
-                    {fmtCurrency(invoice.total, currency)}
+                    {fmtCurrency(
+                      suppressTaxes ? invoice.subtotal : invoice.total,
+                      currency
+                    )}
                   </Text>
                 </View>
               </View>

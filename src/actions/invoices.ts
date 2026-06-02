@@ -25,11 +25,36 @@ import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
 import { generateInvoicePdf } from "@/lib/pdf";
 import { sendInvoiceEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
-import { parseEmailAttachments } from "@/lib/email-attachments";
+import {
+  mergeEmailAttachments,
+  maxUserEmailAttachments,
+  parseEmailAttachments,
+} from "@/lib/email-attachments";
 import { syncSavedLineItems } from "@/actions/line-items";
 import { formatClientName } from "@/lib/client-name";
 import { INVOICE_PENDING_FILTER, INVOICE_PENDING_STATUSES } from "@/lib/invoice-status";
+import {
+  paymentTargetAmount,
+  shouldSuppressTaxesOnPdf,
+  sumPaymentEntries,
+  type InvoicePaymentMode,
+  type PaymentEntryInput,
+} from "@/lib/invoice-payments";
+import { archivePaidInvoiceToAccountant } from "@/lib/invoice-accounting";
+import { uploadToStorage, downloadFromStorage } from "@/lib/storage";
+import { auth } from "@/lib/auth";
 import Decimal from "decimal.js";
+import { z } from "zod";
+
+const paymentEntrySchema = z.object({
+  method: z.enum(["CARD", "CASH"]),
+  amount: z.number().positive(),
+});
+
+const markPaidPayloadSchema = z.object({
+  paymentMode: z.enum(["CARD", "CASH", "MIXED"]),
+  entries: z.array(paymentEntrySchema).min(1),
+});
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -62,6 +87,7 @@ export async function getInvoiceById(id: string) {
       client: true,
       vehicle: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
+      paymentEntries: { orderBy: { sortOrder: "asc" } },
       shop: true,
     },
   });
@@ -171,6 +197,7 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
       client: true,
       vehicle: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
+      paymentEntries: { orderBy: { sortOrder: "asc" } },
       shop: true,
     },
   });
@@ -195,13 +222,46 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   }
 
   const isResend = invoice.emailSendCount > 0;
-  const pdfBuffer = await generateInvoicePdf(serializeInvoiceForPdf(invoice));
+  const pdfSerialized = serializeInvoiceForPdf(invoice);
+  const pdfBuffer = await generateInvoicePdf(pdfSerialized);
   const clientName = formatClientName(invoice.client);
   const vehicleDescription = `${invoice.vehicle.year} ${invoice.vehicle.make} ${invoice.vehicle.model}`;
 
-  const attachmentResult = await parseEmailAttachments(formData);
+  const paymentReceiptCount = invoice.paymentEntries.filter(
+    (e) => e.method === "CARD" && e.receiptPath
+  ).length;
+
+  const attachmentResult = await parseEmailAttachments(formData, {
+    maxUserFiles: maxUserEmailAttachments(paymentReceiptCount),
+  });
   if ("error" in attachmentResult) {
     return { error: attachmentResult.error };
+  }
+
+  const paymentReceiptAttachments: { filename: string; content: Buffer }[] = [];
+  let receiptIdx = 0;
+  for (const entry of invoice.paymentEntries) {
+    if (entry.method === "CARD" && entry.receiptPath) {
+      try {
+        const buf = await downloadFromStorage(entry.receiptPath);
+        receiptIdx++;
+        const base = entry.receiptPath.split("/").pop() ?? "comprobante.jpg";
+        paymentReceiptAttachments.push({
+          filename: `comprobante-terminal-${receiptIdx}-${base}`,
+          content: buf,
+        });
+      } catch (err) {
+        console.error("No se pudo adjuntar comprobante de pago:", err);
+      }
+    }
+  }
+
+  const merged = mergeEmailAttachments(
+    attachmentResult.attachments,
+    paymentReceiptAttachments
+  );
+  if ("error" in merged) {
+    return { error: merged.error };
   }
 
   try {
@@ -210,7 +270,7 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
       to: clientEmail,
       pdfBuffer,
       pdfFilename: `${invoice.invoiceNumber}.pdf`,
-      extraAttachments: attachmentResult.attachments,
+      extraAttachments: merged.attachments,
       clientName,
       shopName: invoice.shop.name,
       shopPhone: invoice.shop.phone,
@@ -250,21 +310,186 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   };
 }
 
-export async function markInvoiceAsPaid(id: string) {
+export async function markInvoiceAsPaid(id: string, formData: FormData) {
   const shopId = await getShopId();
-  await db.invoice.updateMany({
-    where: { id, shopId },
-    data: { status: "PAID", paidAt: new Date() },
+  const session = await auth();
+  const uploaderName = session?.user?.name ?? "Taller";
+
+  const invoice = await db.invoice.findFirst({
+    where: { id, shopId, status: { in: [...INVOICE_PENDING_STATUSES] } },
+    include: {
+      client: true,
+      vehicle: true,
+      lineItems: { orderBy: { sortOrder: "asc" } },
+      shop: true,
+    },
   });
+
+  if (!invoice) {
+    return { error: "La factura no está pendiente o no existe" };
+  }
+
+  const paymentMode = formData.get("paymentMode") as InvoicePaymentMode | null;
+  let entries: PaymentEntryInput[] = [];
+  try {
+    entries = JSON.parse(String(formData.get("entries") ?? "[]")) as PaymentEntryInput[];
+  } catch {
+    return { error: "Datos de pago inválidos" };
+  }
+
+  const parsed = markPaidPayloadSchema.safeParse({ paymentMode, entries });
+  if (!parsed.success) {
+    return { error: "Completa el registro de pago correctamente" };
+  }
+
+  const { paymentMode: mode, entries: validEntries } = parsed.data;
+  const target = paymentTargetAmount(
+    mode,
+    invoice.subtotal.toString(),
+    invoice.total.toString()
+  );
+  const paidSum = validEntries.reduce(
+    (s, e) => s.plus(e.amount),
+    new Decimal(0)
+  );
+
+  if (!paidSum.equals(target)) {
+    return {
+      error: `El total registrado (${paidSum.toFixed(2)}) debe ser ${target.toFixed(2)}`,
+    };
+  }
+
+  if (mode === "CARD" && validEntries.some((e) => e.method !== "CARD")) {
+    return { error: "En pago con tarjeta todos los montos deben ser con tarjeta" };
+  }
+  if (mode === "CASH" && validEntries.some((e) => e.method !== "CASH")) {
+    return { error: "En pago en efectivo todos los montos deben ser en efectivo" };
+  }
+
+  const cardEntries = validEntries.filter((e) => e.method === "CARD");
+  const receiptFiles: File[] = [];
+  for (let i = 0; i < cardEntries.length; i++) {
+    const f = formData.get(`receipt_${i}`);
+    if (!(f instanceof File) || f.size === 0) {
+      return { error: "Adjunta el comprobante de terminal por cada cobro con tarjeta" };
+    }
+    if (f.size > 5 * 1024 * 1024) {
+      return { error: `${f.name} supera 5 MB` };
+    }
+    receiptFiles.push(f);
+  }
+
+  const recordedRevenue = sumPaymentEntries(
+    validEntries.map((e) => ({ amount: e.amount }))
+  );
+
+  let cardReceiptIdx = 0;
+  const paymentRows: {
+    method: "CARD" | "CASH";
+    amount: Decimal;
+    receiptPath: string | null;
+    sortOrder: number;
+  }[] = [];
+
+  for (let i = 0; i < validEntries.length; i++) {
+    const e = validEntries[i];
+    let receiptPath: string | null = null;
+    if (e.method === "CARD") {
+      const file = receiptFiles[cardReceiptIdx++];
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const stored = await uploadToStorage(
+        shopId,
+        `invoice-payments/${invoice.invoiceNumber}`,
+        file.name,
+        buffer,
+        file.type || "image/jpeg"
+      );
+      receiptPath = stored.storagePath;
+    }
+    paymentRows.push({
+      method: e.method,
+      amount: new Decimal(e.amount),
+      receiptPath,
+      sortOrder: i,
+    });
+  }
+
+  await db.$transaction(async (tx) => {
+    await tx.invoicePaymentEntry.deleteMany({ where: { invoiceId: id } });
+    await tx.invoice.update({
+      where: { id },
+      data: {
+        status: "PAID",
+        paidAt: new Date(),
+        paymentMode: mode,
+        recordedRevenue,
+      },
+    });
+    await tx.invoicePaymentEntry.createMany({
+      data: paymentRows.map((row) => ({
+        invoiceId: id,
+        method: row.method,
+        amount: row.amount,
+        receiptPath: row.receiptPath,
+        sortOrder: row.sortOrder,
+      })),
+    });
+  });
+
+  const pdfInvoice = {
+    ...serializeInvoiceForPdf({
+      ...invoice,
+      paymentMode: mode,
+    }),
+    suppressTaxes: shouldSuppressTaxesOnPdf(mode),
+  };
+  const pdfBuffer = await generateInvoicePdf(pdfInvoice);
+
+  const archiveFiles: { fileName: string; buffer: Buffer; mimeType: string }[] = [
+    {
+      fileName: `${invoice.invoiceNumber}.pdf`,
+      buffer: pdfBuffer,
+      mimeType: "application/pdf",
+    },
+  ];
+
+  for (let i = 0; i < cardEntries.length; i++) {
+    const file = receiptFiles[i];
+    archiveFiles.push({
+      fileName: `terminal-${i + 1}-${file.name}`,
+      buffer: Buffer.from(await file.arrayBuffer()),
+      mimeType: file.type || "image/jpeg",
+    });
+  }
+
+  await archivePaidInvoiceToAccountant({
+    shopId,
+    invoiceId: id,
+    invoiceNumber: invoice.invoiceNumber,
+    uploaderName,
+    files: archiveFiles,
+  });
+
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.dashboard);
+  revalidatePath(ADMIN.accounting);
+  return { success: true };
 }
 
 export async function revertInvoiceToPending(id: string) {
   const shopId = await getShopId();
+  await db.invoicePaymentEntry.deleteMany({
+    where: { invoice: { id, shopId } },
+  });
   const result = await db.invoice.updateMany({
     where: { id, shopId, status: "PAID" },
-    data: { status: "SENT", paidAt: null },
+    data: {
+      status: "SENT",
+      paidAt: null,
+      paymentMode: null,
+      recordedRevenue: null,
+    },
   });
   if (result.count === 0) return { error: "La factura no está en estado Pagada" };
   revalidatePath(`/invoices/${id}`);
@@ -283,12 +508,16 @@ export async function cancelInvoice(id: string) {
       shopId,
       status: { in: [...VOIDABLE_STATUSES] },
     },
-    data: { status: "CANCELLED", paidAt: null },
+    data: { status: "CANCELLED", paidAt: null, paymentMode: null, recordedRevenue: null },
   });
 
   if (result.count === 0) {
     return { error: "No se puede anular esta factura" };
   }
+
+  await db.invoicePaymentEntry.deleteMany({
+    where: { invoice: { id, shopId } },
+  });
 
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);

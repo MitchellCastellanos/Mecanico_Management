@@ -212,12 +212,43 @@ model Invoice {
   pdfUrl        String?       // Supabase Storage URL
   mileageIn     Int?
   mileageOut    Int?
+  paymentMode   InvoicePaymentMode?
+  recordedRevenue Decimal?      @db.Decimal(10, 2) // ingresos reales (efectivo sin impuestos, tarjeta con impuestos)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  lineItems InvoiceLineItem[]
+  lineItems       InvoiceLineItem[]
+  paymentEntries  InvoicePaymentEntry[]
 
   @@unique([shopId, invoiceNumber])
+}
+
+enum InvoicePaymentMode {
+  @@schema("mecanico")
+
+  CARD
+  CASH
+  MIXED
+}
+
+model InvoicePaymentEntry {
+  @@schema("mecanico")
+
+  id           String                    @id @default(cuid())
+  invoiceId    String
+  invoice      Invoice                   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  method       InvoicePaymentEntryMethod
+  amount       Decimal                   @db.Decimal(10, 2)
+  receiptPath  String?                   // comprobante terminal (tarjeta)
+  sortOrder    Int                       @default(0)
+  createdAt    DateTime                  @default(now())
+}
+
+enum InvoicePaymentEntryMethod {
+  @@schema("mecanico")
+
+  CARD
+  CASH
 }
 
 enum InvoiceStatus {

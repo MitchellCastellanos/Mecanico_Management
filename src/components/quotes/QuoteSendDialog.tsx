@@ -1,10 +1,11 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendQuoteByEmail } from "@/actions/quotes";
-import { Loader2, Mail, Paperclip, Send, X, Camera } from "lucide-react";
+import { Loader2, Mail, Send, X } from "lucide-react";
+import { FileAttachmentButtons } from "@/components/ui/FileAttachmentButtons";
 
 interface QuoteSendDialogProps {
   quoteId: string;
@@ -25,12 +26,7 @@ export function QuoteSendDialog({
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  function addFiles(list: FileList | null) {
-    if (!list) return;
-    const incoming = Array.from(list);
+  function addFiles(incoming: File[]) {
     const merged = [...files, ...incoming].slice(0, 5);
     if (files.length + incoming.length > 5) {
       toast.error("Máximo 5 archivos adjuntos");
@@ -106,47 +102,11 @@ export function QuoteSendDialog({
               </p>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Paperclip className="w-4 h-4" />
-                  Subir archivo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cameraInputRef.current?.click()}
-                  className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50"
-                >
-                  <Camera className="w-4 h-4" />
-                  Cámara / escáner
-                </button>
+                <FileAttachmentButtons
+                  disabled={pending}
+                  onFilesSelected={addFiles}
+                />
               </div>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                accept="application/pdf,image/jpeg,image/png,image/webp"
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
-              <input
-                ref={cameraInputRef}
-                type="file"
-                multiple
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={(e) => {
-                  addFiles(e.target.files);
-                  e.target.value = "";
-                }}
-              />
 
               {files.length > 0 && (
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">

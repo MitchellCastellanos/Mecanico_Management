@@ -85,3 +85,20 @@ export async function uploadShopLogoToStorage(
   const { data } = supabase.storage.from(ACCOUNTING_BUCKET).getPublicUrl(storagePath);
   return { storagePath, publicUrl: data.publicUrl };
 }
+
+/** URL pública de un archivo ya subido al bucket accounting. */
+export function publicUrlForStoragePath(storagePath: string): string {
+  const supabase = getClient();
+  const { data } = supabase.storage.from(ACCOUNTING_BUCKET).getPublicUrl(storagePath);
+  return data.publicUrl;
+}
+
+/** Descarga un archivo del bucket accounting por su path interno. */
+export async function downloadFromStorage(storagePath: string): Promise<Buffer> {
+  const supabase = getClient();
+  const { data, error } = await supabase.storage.from(ACCOUNTING_BUCKET).download(storagePath);
+  if (error || !data) {
+    throw new Error(`Supabase download error: ${error?.message ?? "empty"}`);
+  }
+  return Buffer.from(await data.arrayBuffer());
+}

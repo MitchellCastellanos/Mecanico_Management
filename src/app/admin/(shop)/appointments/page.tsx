@@ -1,39 +1,51 @@
 import { ADMIN } from "@/lib/routes";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { getAppointments } from "@/actions/appointments";
 import { AppointmentList } from "@/components/appointments/AppointmentList";
+import { AppointmentMonthCalendar } from "@/components/appointments/AppointmentMonthCalendar";
+import { AppointmentViewControls } from "@/components/appointments/AppointmentViewControls";
+import type { AppointmentView } from "@/lib/shop-timezone";
+import { monthFromDate } from "@/lib/shop-timezone";
 
 interface PageProps {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; week?: string }>;
 }
 
-function shiftWeek(weekStart: string, delta: number) {
-  const d = new Date(`${weekStart}T00:00:00`);
-  d.setDate(d.getDate() + delta * 7);
-  return d.toISOString().split("T")[0];
-}
-
-function formatWeekLabel(weekStart: string) {
-  const start = new Date(`${weekStart}T00:00:00`);
-  const end = new Date(start);
-  end.setDate(end.getDate() + 6);
-  const fmt = new Intl.DateTimeFormat("fr-CA", { day: "numeric", month: "short" });
-  return `${fmt.format(start)} — ${fmt.format(end)}`;
-}
+const VIEW_LABELS: Record<AppointmentView, string> = {
+  month: "este mes",
+  week: "esta semana",
+  day: "este día",
+};
 
 export default async function AppointmentsPage({ searchParams }: PageProps) {
-  const { week } = await searchParams;
-  const { appointments, weekStart } = await getAppointments(week);
+  const params = await searchParams;
+  const view = (["month", "week", "day"].includes(params.view ?? "")
+    ? params.view
+    : "month") as AppointmentView;
+  const date = params.date ?? params.week;
+
+  const { appointments, anchor, timeZone, view: resolvedView } = await getAppointments({
+    view,
+    date,
+    week: params.week,
+  });
+
+  const month =
+    resolvedView === "month"
+      ? anchor.length === 7
+        ? anchor
+        : monthFromDate(anchor)
+      : monthFromDate(anchor);
+
+  const countLabel = `${appointments.length} cita${appointments.length !== 1 ? "s" : ""} ${VIEW_LABELS[resolvedView]}`;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Citas</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            {appointments.length} cita{appointments.length !== 1 ? "s" : ""} esta semana
-          </p>
+          <p className="text-slate-500 text-sm mt-1">{countLabel}</p>
         </div>
         <Link
           href={`${ADMIN.appointments}/new`}
@@ -44,27 +56,21 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
-      <div className="flex items-center justify-between bg-white rounded-xl border border-slate-200 px-4 py-3">
-        <Link
-          href={`/appointments?week=${shiftWeek(weekStart, -1)}`}
-          className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg hover:bg-slate-50"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Semana anterior
-        </Link>
-        <span className="text-sm font-semibold text-slate-900 capitalize">
-          {formatWeekLabel(weekStart)}
-        </span>
-        <Link
-          href={`/appointments?week=${shiftWeek(weekStart, 1)}`}
-          className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900 px-2 py-1 rounded-lg hover:bg-slate-50"
-        >
-          Semana siguiente
-          <ChevronRight className="w-4 h-4" />
-        </Link>
-      </div>
+      <AppointmentViewControls view={resolvedView} anchor={anchor} timeZone={timeZone} />
 
-      <AppointmentList appointments={appointments} weekStart={weekStart} />
+      {resolvedView === "month" ? (
+        <AppointmentMonthCalendar
+          month={month}
+          appointments={appointments}
+          timeZone={timeZone}
+        />
+      ) : (
+        <AppointmentList
+          appointments={appointments}
+          timeZone={timeZone}
+          emptyLabel={`No hay citas ${VIEW_LABELS[resolvedView]}`}
+        />
+      )}
     </div>
   );
 }

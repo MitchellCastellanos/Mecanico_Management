@@ -99,3 +99,37 @@ export async function uploadToDrive(
 export function driveFileUrl(fileId: string): string {
   return `https://drive.google.com/file/d/${fileId}/view`;
 }
+
+/** Carpeta contadora: Facturas pagadas / {invoiceNumber} / archivo */
+export const PAID_INVOICES_DRIVE_FOLDER = "Facturas pagadas";
+
+export async function uploadToPaidInvoiceFolder(
+  invoiceNumber: string,
+  fileName: string,
+  buffer: Buffer,
+  mimeType: string
+): Promise<{ driveFileId: string; driveFolderId: string }> {
+  const rootFolderId = process.env.GOOGLE_DRIVE_ROOT_FOLDER_ID;
+  if (!rootFolderId) throw new Error("GOOGLE_DRIVE_ROOT_FOLDER_ID not set");
+
+  const drive = getDriveClient();
+  const paidFolderId = await getOrCreateFolder(drive, PAID_INVOICES_DRIVE_FOLDER, rootFolderId);
+  const invoiceFolderId = await getOrCreateFolder(drive, invoiceNumber, paidFolderId);
+
+  const file = await drive.files.create({
+    requestBody: {
+      name: fileName,
+      parents: [invoiceFolderId],
+    },
+    media: {
+      mimeType,
+      body: Readable.from(buffer),
+    },
+    fields: "id",
+  });
+
+  return {
+    driveFileId: file.data.id!,
+    driveFolderId: invoiceFolderId,
+  };
+}

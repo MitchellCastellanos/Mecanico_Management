@@ -1,6 +1,6 @@
 "use server";
 
-import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+import { ADMIN } from "@/lib/routes";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -10,36 +10,55 @@ import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
 import { formatClientName } from "@/lib/client-name";
 import { sendAppointmentEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { BRAND } from "@/config/brand";
+import {
+  type AppointmentView,
+  addShopDays,
+  currentShopDate,
+  formatShopDate,
+  formatShopDateTime,
+  formatShopTime,
+  getDayRangeShop,
+  getMonthRange,
+  getWeekRangeShop,
+  monthFromDate,
+  parseShopDateTime,
+  shiftMonth,
+} from "@/lib/shop-timezone";
 
-function parseStartsAt(date: string, time: string): Date {
-  const [hours, minutes] = time.split(":").map(Number);
-  const startsAt = new Date(`${date}T00:00:00`);
-  startsAt.setHours(hours, minutes, 0, 0);
-  return startsAt;
+async function getShopTimezone(shopId: string): Promise<string> {
+  const shop = await db.shop.findUnique({
+    where: { id: shopId },
+    select: { timezone: true },
+  });
+  return shop?.timezone ?? BRAND.timezone;
 }
 
-function getWeekRange(weekStart?: string) {
-  const start = weekStart ? new Date(`${weekStart}T00:00:00`) : new Date();
-  const day = start.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  start.setDate(start.getDate() + diff);
-  start.setHours(0, 0, 0, 0);
-
-  const end = new Date(start);
-  end.setDate(end.getDate() + 7);
-
-  return { start, end };
+function parseStartsAt(date: string, time: string, timeZone: string): Date {
+  return parseShopDateTime(date, time, timeZone);
 }
 
-function formatAppointmentDateTime(date: Date): string {
-  return new Intl.DateTimeFormat("fr-CA", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+function resolveRange(
+  view: AppointmentView,
+  date: string | undefined,
+  timeZone: string
+) {
+  const today = currentShopDate(timeZone);
+
+  if (view === "day") {
+    const day = date ?? today;
+    return { ...getDayRangeShop(day, timeZone), anchor: day, view };
+  }
+
+  if (view === "week") {
+    const anchor = date ?? today;
+    const range = getWeekRangeShop(anchor, timeZone);
+    return { ...range, anchor: range.weekStart, view };
+  }
+
+  const month = date ? monthFromDate(date.length === 7 ? `${date}-01` : date) : monthFromDate(today);
+  const range = getMonthRange(month, timeZone);
+  return { ...range, anchor: range.month, view };
 }
 
 // ── READ ────────────────────────────────────────────────────
@@ -57,9 +76,18 @@ export async function getMechanics() {
   });
 }
 
-export async function getAppointments(weekStart?: string) {
+export async function getAppointments(options?: {
+  view?: AppointmentView;
+  date?: string;
+  /** @deprecated use date + view=week */
+  week?: string;
+}) {
   const shopId = await getShopId();
-  const { start, end } = getWeekRange(weekStart);
+  const timeZone = await getShopTimezone(shopId);
+
+  const view: AppointmentView = options?.view ?? "month";
+  const dateParam = options?.date ?? options?.week;
+  const { start, end, anchor, view: resolvedView } = resolveRange(view, dateParam, timeZone);
 
   const appointments = await db.appointment.findMany({
     where: {
@@ -74,7 +102,13 @@ export async function getAppointments(weekStart?: string) {
     orderBy: { startsAt: "asc" },
   });
 
-  return { appointments, weekStart: start.toISOString().split("T")[0], weekEnd: end };
+  return {
+    appointments,
+    view: resolvedView,
+    anchor,
+    timeZone,
+    weekStart: resolvedView === "week" ? anchor : getWeekRangeShop(anchor, timeZone).weekStart,
+  };
 }
 
 export async function getAppointmentById(id: string) {
@@ -137,6 +171,7 @@ export async function checkMechanicConflict(
 
 export async function createAppointment(formData: AppointmentFormData) {
   const shopId = await getShopId();
+  const timeZone = await getShopTimezone(shopId);
 
   const parsed = appointmentSchema.safeParse(formData);
   if (!parsed.success) {
@@ -146,7 +181,7 @@ export async function createAppointment(formData: AppointmentFormData) {
   const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes } =
     parsed.data;
 
-  const startsAt = parseStartsAt(date, time);
+  const startsAt = parseStartsAt(date, time, timeZone);
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   if (mechanicId) {
@@ -172,11 +207,12 @@ export async function createAppointment(formData: AppointmentFormData) {
   });
 
   revalidatePath(ADMIN.appointments);
-  redirect(`${ADMIN.appointments}?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
+  redirect(`${ADMIN.appointments}?view=day&date=${date}`);
 }
 
 export async function updateAppointment(id: string, formData: AppointmentFormData) {
   const shopId = await getShopId();
+  const timeZone = await getShopTimezone(shopId);
 
   const existing = await db.appointment.findFirst({
     where: { id, shopId, status: { notIn: ["CANCELLED", "COMPLETED"] } },
@@ -194,7 +230,7 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
   const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes } =
     parsed.data;
 
-  const startsAt = parseStartsAt(date, time);
+  const startsAt = parseStartsAt(date, time, timeZone);
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   if (mechanicId) {
@@ -219,7 +255,7 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
   });
 
   revalidatePath(ADMIN.appointments);
-  redirect(`${ADMIN.appointments}?week=${getWeekRange(date).start.toISOString().split("T")[0]}`);
+  redirect(`${ADMIN.appointments}?view=day&date=${date}`);
 }
 
 export async function cancelAppointment(id: string) {
@@ -281,7 +317,7 @@ export async function sendAppointmentConfirmation(id: string) {
       type: "confirmation",
       clientName: formatClientName(appointment.client),
       title: appointment.title,
-      startsAtFormatted: formatAppointmentDateTime(appointment.startsAt),
+      startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
       shopPhone: appointment.shop.phone,
     });
   } catch (err) {
@@ -324,7 +360,7 @@ export async function sendAppointmentCancellation(id: string) {
     type: "cancellation",
     clientName: formatClientName(appointment.client),
     title: appointment.title,
-    startsAtFormatted: formatAppointmentDateTime(appointment.startsAt),
+    startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
     shopPhone: appointment.shop.phone,
   });
 
@@ -360,7 +396,7 @@ export async function sendAppointmentReminder(id: string) {
     type: "reminder",
     clientName: formatClientName(appointment.client),
     title: appointment.title,
-    startsAtFormatted: formatAppointmentDateTime(appointment.startsAt),
+    startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
     shopPhone: appointment.shop.phone,
   });
 
@@ -371,3 +407,13 @@ export async function sendAppointmentReminder(id: string) {
 
   return { success: true, sentTo: clientEmail };
 }
+
+/** Para formulario de edición: fecha y hora en zona del taller */
+export async function appointmentToFormValues(startsAt: Date, shopTimezone: string) {
+  return {
+    date: formatShopDate(startsAt, shopTimezone),
+    time: formatShopTime(startsAt, shopTimezone),
+  };
+}
+
+export { shiftMonth, addShopDays };

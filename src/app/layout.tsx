@@ -12,10 +12,6 @@ export const metadata: Metadata = {
   alternates: {
     canonical: BRAND.appUrl,
   },
-  icons: {
-    icon: [{ url: BRAND.logoPath, type: "image/png" }],
-    apple: [{ url: BRAND.logoPath, type: "image/png" }],
-  },
   openGraph: {
     title: BRAND.shopName,
     description: "Taller mecánico en Montréal",
