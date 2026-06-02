@@ -4,6 +4,11 @@ import { BRAND } from "./src/config/brand";
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer", "googleapis", "canvas"],
 
+  // Envío de factura con adjuntos; el registro de pago usa /api/.../payment-receipt
+  serverActions: {
+    bodySizeLimit: "10mb",
+  },
+
   images: {
     remotePatterns: [
       {

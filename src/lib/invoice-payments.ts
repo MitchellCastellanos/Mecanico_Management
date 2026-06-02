@@ -5,7 +5,8 @@ export type InvoicePaymentMode = "CARD" | "CASH" | "MIXED";
 export type PaymentEntryInput = {
   method: "CARD" | "CASH";
   amount: number;
-  receiptIndex?: number;
+  /** Path en Supabase, subido vía POST /api/invoices/[id]/payment-receipt */
+  receiptPath?: string;
 };
 
 /** Monto objetivo según modo de pago. */

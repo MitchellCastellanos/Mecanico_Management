@@ -136,21 +136,41 @@ export function InvoiceMarkPaidDialog({
     }
 
     startTransition(async () => {
+      const payload: PaymentEntryInput[] = [];
+      const cardUploads = entries.filter((e) => e.method === "CARD" && e.receiptFile);
+      if (cardUploads.length > 0) {
+        toast.info("Subiendo comprobantes…");
+      }
+
+      for (const e of entries) {
+        let receiptPath: string | undefined;
+        if (e.method === "CARD" && e.receiptFile) {
+          const uploadData = new FormData();
+          uploadData.append("file", e.receiptFile);
+          const uploadRes = await fetch(`/api/invoices/${invoiceId}/payment-receipt`, {
+            method: "POST",
+            body: uploadData,
+          });
+          const uploadJson = (await uploadRes.json()) as {
+            storagePath?: string;
+            error?: string;
+          };
+          if (!uploadRes.ok || !uploadJson.storagePath) {
+            toast.error(uploadJson.error ?? "Error al subir comprobante");
+            return;
+          }
+          receiptPath = uploadJson.storagePath;
+        }
+        payload.push({
+          method: e.method,
+          amount: e.amount,
+          receiptPath,
+        });
+      }
+
       const formData = new FormData();
       formData.append("paymentMode", mode);
-      const payload: PaymentEntryInput[] = entries.map((e) => ({
-        method: e.method,
-        amount: e.amount,
-      }));
       formData.append("entries", JSON.stringify(payload));
-
-      let cardIdx = 0;
-      for (const e of entries) {
-        if (e.method === "CARD" && e.receiptFile) {
-          formData.append(`receipt_${cardIdx}`, e.receiptFile);
-          cardIdx++;
-        }
-      }
 
       const result = await markInvoiceAsPaid(invoiceId, formData);
       if (result?.error) {

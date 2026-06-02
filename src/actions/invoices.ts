@@ -41,7 +41,7 @@ import {
   type PaymentEntryInput,
 } from "@/lib/invoice-payments";
 import { archivePaidInvoiceToAccountant } from "@/lib/invoice-accounting";
-import { uploadToStorage, downloadFromStorage } from "@/lib/storage";
+import { downloadFromStorage } from "@/lib/storage";
 import { auth } from "@/lib/auth";
 import Decimal from "decimal.js";
 import { z } from "zod";
@@ -49,6 +49,7 @@ import { z } from "zod";
 const paymentEntrySchema = z.object({
   method: z.enum(["CARD", "CASH"]),
   amount: z.number().positive(),
+  receiptPath: z.string().min(1).optional(),
 });
 
 const markPaidPayloadSchema = z.object({
@@ -367,52 +368,27 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
   }
 
   const cardEntries = validEntries.filter((e) => e.method === "CARD");
-  const receiptFiles: File[] = [];
-  for (let i = 0; i < cardEntries.length; i++) {
-    const f = formData.get(`receipt_${i}`);
-    if (!(f instanceof File) || f.size === 0) {
+  const paymentPrefix = `${shopId}/invoice-payments/`;
+
+  for (const entry of cardEntries) {
+    if (!entry.receiptPath?.trim()) {
       return { error: "Adjunta el comprobante de terminal por cada cobro con tarjeta" };
     }
-    if (f.size > 5 * 1024 * 1024) {
-      return { error: `${f.name} supera 5 MB` };
+    if (!entry.receiptPath.startsWith(paymentPrefix)) {
+      return { error: "Comprobante de pago inválido" };
     }
-    receiptFiles.push(f);
   }
 
   const recordedRevenue = sumPaymentEntries(
     validEntries.map((e) => ({ amount: e.amount }))
   );
 
-  let cardReceiptIdx = 0;
-  const paymentRows: {
-    method: "CARD" | "CASH";
-    amount: Decimal;
-    receiptPath: string | null;
-    sortOrder: number;
-  }[] = [];
-
-  for (let i = 0; i < validEntries.length; i++) {
-    const e = validEntries[i];
-    let receiptPath: string | null = null;
-    if (e.method === "CARD") {
-      const file = receiptFiles[cardReceiptIdx++];
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const stored = await uploadToStorage(
-        shopId,
-        `invoice-payments/${invoice.invoiceNumber}`,
-        file.name,
-        buffer,
-        file.type || "image/jpeg"
-      );
-      receiptPath = stored.storagePath;
-    }
-    paymentRows.push({
-      method: e.method,
-      amount: new Decimal(e.amount),
-      receiptPath,
-      sortOrder: i,
-    });
-  }
+  const paymentRows = validEntries.map((e, i) => ({
+    method: e.method,
+    amount: new Decimal(e.amount),
+    receiptPath: e.method === "CARD" ? (e.receiptPath ?? null) : null,
+    sortOrder: i,
+  }));
 
   await db.$transaction(async (tx) => {
     await tx.invoicePaymentEntry.deleteMany({ where: { invoiceId: id } });
@@ -454,12 +430,21 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
   ];
 
   for (let i = 0; i < cardEntries.length; i++) {
-    const file = receiptFiles[i];
-    archiveFiles.push({
-      fileName: `terminal-${i + 1}-${file.name}`,
-      buffer: Buffer.from(await file.arrayBuffer()),
-      mimeType: file.type || "image/jpeg",
-    });
+    const path = cardEntries[i].receiptPath!;
+    try {
+      const buffer = await downloadFromStorage(path);
+      const base = path.split("/").pop() ?? "comprobante";
+      const mimeType = base.toLowerCase().endsWith(".pdf")
+        ? "application/pdf"
+        : "image/jpeg";
+      archiveFiles.push({
+        fileName: `terminal-${i + 1}-${base}`,
+        buffer,
+        mimeType,
+      });
+    } catch (err) {
+      console.error("Archivo contadora comprobante:", err);
+    }
   }
 
   await archivePaidInvoiceToAccountant({
