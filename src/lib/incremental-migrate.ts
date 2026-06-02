@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260601-invoice-payments-v1";
+export const SCHEMA_VERSION = "20260602-invoice-pdf-package-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -132,6 +132,7 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
       FOREIGN KEY ("invoiceId") REFERENCES mecanico."Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
+  `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "paymentExtraPaths" JSONB NOT NULL DEFAULT '[]'`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {

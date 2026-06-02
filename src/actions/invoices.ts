@@ -25,11 +25,13 @@ import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
 import { generateInvoicePdf } from "@/lib/pdf";
 import { sendInvoiceEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { parseEmailAttachments } from "@/lib/email-attachments";
 import {
-  mergeEmailAttachments,
-  maxUserEmailAttachments,
-  parseEmailAttachments,
-} from "@/lib/email-attachments";
+  buildInvoicePackagePdf,
+  emailAttachmentsToParts,
+  storagePathsToParts,
+} from "@/lib/invoice-document-package";
+import { uploadToStorage } from "@/lib/storage";
 import { syncSavedLineItems } from "@/actions/line-items";
 import { formatClientName } from "@/lib/client-name";
 import { INVOICE_PENDING_FILTER, INVOICE_PENDING_STATUSES } from "@/lib/invoice-status";
@@ -41,7 +43,6 @@ import {
   type PaymentEntryInput,
 } from "@/lib/invoice-payments";
 import { archivePaidInvoiceToAccountant } from "@/lib/invoice-accounting";
-import { downloadFromStorage } from "@/lib/storage";
 import { auth } from "@/lib/auth";
 import Decimal from "decimal.js";
 import { z } from "zod";
@@ -56,6 +57,19 @@ const markPaidPayloadSchema = z.object({
   paymentMode: z.enum(["CARD", "CASH", "MIXED"]),
   entries: z.array(paymentEntrySchema).min(1),
 });
+
+function parsePaymentExtraPaths(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((p): p is string => typeof p === "string" && p.length > 0);
+}
+
+function isValidPaymentStoragePath(
+  shopId: string,
+  invoiceNumber: string,
+  path: string
+): boolean {
+  return path.startsWith(`${shopId}/invoice-payments/${invoiceNumber}/`);
+}
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -228,50 +242,36 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const clientName = formatClientName(invoice.client);
   const vehicleDescription = `${invoice.vehicle.year} ${invoice.vehicle.make} ${invoice.vehicle.model}`;
 
-  const paymentReceiptCount = invoice.paymentEntries.filter(
-    (e) => e.method === "CARD" && e.receiptPath
-  ).length;
-
-  const attachmentResult = await parseEmailAttachments(formData, {
-    maxUserFiles: maxUserEmailAttachments(paymentReceiptCount),
-  });
+  const attachmentResult = await parseEmailAttachments(formData);
   if ("error" in attachmentResult) {
     return { error: attachmentResult.error };
   }
 
-  const paymentReceiptAttachments: { filename: string; content: Buffer }[] = [];
-  let receiptIdx = 0;
-  for (const entry of invoice.paymentEntries) {
-    if (entry.method === "CARD" && entry.receiptPath) {
-      try {
-        const buf = await downloadFromStorage(entry.receiptPath);
-        receiptIdx++;
-        const base = entry.receiptPath.split("/").pop() ?? "comprobante.jpg";
-        paymentReceiptAttachments.push({
-          filename: `comprobante-terminal-${receiptIdx}-${base}`,
-          content: buf,
-        });
-      } catch (err) {
-        console.error("No se pudo adjuntar comprobante de pago:", err);
-      }
-    }
-  }
+  const storedExtraPaths = parsePaymentExtraPaths(invoice.paymentExtraPaths);
+  const middleParts = [
+    ...(await storagePathsToParts(storedExtraPaths)),
+    ...emailAttachmentsToParts(attachmentResult.attachments),
+  ];
 
-  const merged = mergeEmailAttachments(
-    attachmentResult.attachments,
-    paymentReceiptAttachments
-  );
-  if ("error" in merged) {
-    return { error: merged.error };
-  }
+  const receiptPaths = invoice.paymentEntries
+    .filter((e) => e.method === "CARD" && e.receiptPath)
+    .map((e) => e.receiptPath!);
+  const receiptParts =
+    invoice.status === "PAID" ? await storagePathsToParts(receiptPaths) : [];
+
+  const packagePdf = await buildInvoicePackagePdf({
+    invoicePdf: pdfBuffer,
+    middle: middleParts,
+    receipts: receiptParts,
+  });
 
   try {
     await sendInvoiceEmail({
       shop: shopToEmailConfig(invoice.shop),
       to: clientEmail,
-      pdfBuffer,
+      pdfBuffer: packagePdf,
       pdfFilename: `${invoice.invoiceNumber}.pdf`,
-      extraAttachments: merged.attachments,
+      extraAttachments: [],
       clientName,
       shopName: invoice.shop.name,
       shopPhone: invoice.shop.phone,
@@ -368,14 +368,26 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
   }
 
   const cardEntries = validEntries.filter((e) => e.method === "CARD");
-  const paymentPrefix = `${shopId}/invoice-payments/`;
+
+  let extraPaths: string[] = [];
+  try {
+    extraPaths = JSON.parse(String(formData.get("extraPaths") ?? "[]")) as string[];
+  } catch {
+    return { error: "Documentos adicionales inválidos" };
+  }
 
   for (const entry of cardEntries) {
     if (!entry.receiptPath?.trim()) {
       return { error: "Adjunta el comprobante de terminal por cada cobro con tarjeta" };
     }
-    if (!entry.receiptPath.startsWith(paymentPrefix)) {
+    if (!isValidPaymentStoragePath(shopId, invoice.invoiceNumber, entry.receiptPath)) {
       return { error: "Comprobante de pago inválido" };
+    }
+  }
+
+  for (const path of extraPaths) {
+    if (!isValidPaymentStoragePath(shopId, invoice.invoiceNumber, path)) {
+      return { error: "Documento adicional inválido" };
     }
   }
 
@@ -399,6 +411,7 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
         paidAt: new Date(),
         paymentMode: mode,
         recordedRevenue,
+        paymentExtraPaths: extraPaths,
       },
     });
     await tx.invoicePaymentEntry.createMany({
@@ -419,32 +432,33 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     }),
     suppressTaxes: shouldSuppressTaxesOnPdf(mode),
   };
-  const pdfBuffer = await generateInvoicePdf(pdfInvoice);
+  const invoicePdfBuffer = await generateInvoicePdf(pdfInvoice);
 
-  const archiveFiles: { fileName: string; buffer: Buffer; mimeType: string }[] = [
-    {
-      fileName: `${invoice.invoiceNumber}.pdf`,
-      buffer: pdfBuffer,
-      mimeType: "application/pdf",
-    },
-  ];
+  const middleParts = await storagePathsToParts(extraPaths);
+  const receiptParts = await storagePathsToParts(
+    cardEntries.map((e) => e.receiptPath!).filter(Boolean)
+  );
 
-  for (let i = 0; i < cardEntries.length; i++) {
-    const path = cardEntries[i].receiptPath!;
-    try {
-      const buffer = await downloadFromStorage(path);
-      const base = path.split("/").pop() ?? "comprobante";
-      const mimeType = base.toLowerCase().endsWith(".pdf")
-        ? "application/pdf"
-        : "image/jpeg";
-      archiveFiles.push({
-        fileName: `terminal-${i + 1}-${base}`,
-        buffer,
-        mimeType,
-      });
-    } catch (err) {
-      console.error("Archivo contadora comprobante:", err);
-    }
+  const packagePdf = await buildInvoicePackagePdf({
+    invoicePdf: invoicePdfBuffer,
+    middle: middleParts,
+    receipts: receiptParts,
+  });
+
+  const packageFileName = `${invoice.invoiceNumber}-completo.pdf`;
+  let pdfUrl: string | undefined;
+  try {
+    const stored = await uploadToStorage(
+      shopId,
+      `paid-invoices/${invoice.invoiceNumber}`,
+      packageFileName,
+      packagePdf,
+      "application/pdf"
+    );
+    pdfUrl = stored.publicUrl;
+    await db.invoice.update({ where: { id }, data: { pdfUrl } });
+  } catch (err) {
+    console.error("Guardar paquete PDF factura:", err);
   }
 
   await archivePaidInvoiceToAccountant({
@@ -452,7 +466,13 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     invoiceId: id,
     invoiceNumber: invoice.invoiceNumber,
     uploaderName,
-    files: archiveFiles,
+    files: [
+      {
+        fileName: packageFileName,
+        buffer: packagePdf,
+        mimeType: "application/pdf",
+      },
+    ],
   });
 
   revalidatePath(`/invoices/${id}`);
@@ -474,6 +494,7 @@ export async function revertInvoiceToPending(id: string) {
       paidAt: null,
       paymentMode: null,
       recordedRevenue: null,
+      paymentExtraPaths: [],
     },
   });
   if (result.count === 0) return { error: "La factura no está en estado Pagada" };
@@ -493,7 +514,13 @@ export async function cancelInvoice(id: string) {
       shopId,
       status: { in: [...VOIDABLE_STATUSES] },
     },
-    data: { status: "CANCELLED", paidAt: null, paymentMode: null, recordedRevenue: null },
+    data: {
+      status: "CANCELLED",
+      paidAt: null,
+      paymentMode: null,
+      recordedRevenue: null,
+      paymentExtraPaths: [],
+    },
   });
 
   if (result.count === 0) {

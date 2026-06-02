@@ -33,6 +33,22 @@ export function sumPaymentEntries(entries: { amount: string | number }[]): numbe
     .toNumber();
 }
 
+/** Etiquetas: Tarjeta #1, Efectivo #1, etc. (mismo orden que sortOrder). */
+export function labelPaymentEntries(
+  entries: { method: "CARD" | "CASH" | string }[]
+): string[] {
+  let cardN = 0;
+  let cashN = 0;
+  return entries.map((e) => {
+    if (e.method === "CARD") {
+      cardN += 1;
+      return `Tarjeta #${cardN}`;
+    }
+    cashN += 1;
+    return `Efectivo #${cashN}`;
+  });
+}
+
 export function getInvoiceRecordedRevenue(invoice: {
   recordedRevenue?: { toString(): string } | null;
   total: { toString(): string };

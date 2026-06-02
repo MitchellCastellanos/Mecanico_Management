@@ -1,15 +1,14 @@
-// Route Handler — GET /api/invoices/[id]/pdf
-//
-// ¿Por qué un Route Handler y no una Server Action?
-// Porque el navegador necesita una URL para descargar un archivo.
-// Un <a href="/api/invoices/INV001/pdf" download> funciona nativamente.
-// Las Server Actions son llamadas de función — no generan URLs descargables.
-
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { generateInvoicePdf } from "@/lib/pdf";
 import { serializeInvoiceForPdf } from "@/lib/invoice-serialize";
+import { buildInvoicePackagePdf, storagePathsToParts } from "@/lib/invoice-document-package";
+
+function parsePaymentExtraPaths(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((p): p is string => typeof p === "string" && p.length > 0);
+}
 
 export async function GET(
   _request: Request,
@@ -23,13 +22,13 @@ export async function GET(
   const { id } = await params;
   const shopId = session.user.shopId;
 
-  // Obtener factura (scoped al shop — seguridad)
   const invoice = await db.invoice.findFirst({
     where: { id, shopId },
     include: {
       client: true,
       vehicle: true,
       lineItems: { orderBy: { sortOrder: "asc" } },
+      paymentEntries: { orderBy: { sortOrder: "asc" } },
       shop: true,
     },
   });
@@ -38,18 +37,36 @@ export async function GET(
     return NextResponse.json({ error: "Factura no encontrada" }, { status: 404 });
   }
 
-  // Serializar campos Decimal de Prisma a string antes de pasarlos al PDF
   const invoiceData = serializeInvoiceForPdf(invoice);
+  let pdfBuffer = await generateInvoicePdf(invoiceData);
 
-  // Generar PDF como Buffer
-  const pdfBuffer = await generateInvoicePdf(invoiceData);
+  const filename =
+    invoice.status === "PAID"
+      ? `${invoice.invoiceNumber}-completo.pdf`
+      : `${invoice.invoiceNumber}.pdf`;
 
-  // Devolver como stream con headers correctos para descarga
-  // NextResponse en Next.js 16 no acepta Buffer directamente — usar Uint8Array
+  if (invoice.status === "PAID") {
+    const extraPaths = parsePaymentExtraPaths(invoice.paymentExtraPaths);
+    const receiptPaths = invoice.paymentEntries
+      .filter((e) => e.method === "CARD" && e.receiptPath)
+      .map((e) => e.receiptPath!);
+
+    const middle = await storagePathsToParts(extraPaths);
+    const receipts = await storagePathsToParts(receiptPaths);
+
+    if (middle.length > 0 || receipts.length > 0) {
+      pdfBuffer = await buildInvoicePackagePdf({
+        invoicePdf: pdfBuffer,
+        middle,
+        receipts,
+      });
+    }
+  }
+
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${invoice.invoiceNumber}.pdf"`,
+      "Content-Disposition": `attachment; filename="${filename}"`,
       "Content-Length": pdfBuffer.length.toString(),
     },
   });

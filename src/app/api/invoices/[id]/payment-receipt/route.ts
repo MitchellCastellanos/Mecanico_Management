@@ -60,11 +60,14 @@ export async function POST(
     );
   }
 
+  const kind = String(formData.get("kind") ?? "receipt");
+  const subfolder = kind === "extra" ? "extras" : "receipts";
+
   try {
     const buffer = Buffer.from(await file.arrayBuffer());
     const stored = await uploadToStorage(
       shopId,
-      `invoice-payments/${invoice.invoiceNumber}`,
+      `invoice-payments/${invoice.invoiceNumber}/${subfolder}`,
       file.name,
       buffer,
       mimeType

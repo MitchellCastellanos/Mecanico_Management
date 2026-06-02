@@ -214,6 +214,7 @@ model Invoice {
   mileageOut    Int?
   paymentMode   InvoicePaymentMode?
   recordedRevenue Decimal?      @db.Decimal(10, 2) // ingresos reales (efectivo sin impuestos, tarjeta con impuestos)
+  paymentExtraPaths Json        @default("[]") // PDFs/fotos extra (alineación, etc.) — van en paquete PDF
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

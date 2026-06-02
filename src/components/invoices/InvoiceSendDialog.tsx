@@ -15,11 +15,11 @@ interface InvoiceSendDialogProps {
   isResend: boolean;
   requiresPendingConfirm?: boolean;
   disabled?: boolean;
-  /** Comprobantes de terminal que se adjuntan automáticamente al enviar. */
-  paymentReceiptCount?: number;
+  /** Si la factura está pagada, comprobantes ya van dentro del PDF único. */
+  isPaid?: boolean;
 }
 
-const MAX_EMAIL_EXTRAS = 10;
+const MAX_EMAIL_EXTRAS = 8;
 
 export function InvoiceSendDialog({
   invoiceId,
@@ -28,22 +28,17 @@ export function InvoiceSendDialog({
   isResend,
   requiresPendingConfirm = false,
   disabled,
-  paymentReceiptCount = 0,
+  isPaid = false,
 }: InvoiceSendDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
-  const maxUserFiles = Math.max(0, MAX_EMAIL_EXTRAS - paymentReceiptCount);
 
   function addFiles(incoming: File[]) {
-    const merged = [...files, ...incoming].slice(0, maxUserFiles);
-    if (files.length + incoming.length > maxUserFiles) {
-      toast.error(
-        maxUserFiles === 0
-          ? "Los comprobantes de pago ya ocupan el límite de adjuntos del correo"
-          : `Máximo ${maxUserFiles} archivo(s) extra en este envío`
-      );
+    const merged = [...files, ...incoming].slice(0, MAX_EMAIL_EXTRAS);
+    if (files.length + incoming.length > MAX_EMAIL_EXTRAS) {
+      toast.error(`Máximo ${MAX_EMAIL_EXTRAS} documentos extra`);
     }
     setFiles(merged);
   }
@@ -118,20 +113,16 @@ export function InvoiceSendDialog({
 
             <div className="p-5 space-y-4">
               <p className="text-sm text-slate-600">
-                La factura PDF se adjunta automáticamente.
-                {paymentReceiptCount > 0 && (
-                  <>
-                    {" "}
-                    También se incluyen {paymentReceiptCount} comprobante(s) de terminal
-                    registrados al pagar.
-                  </>
-                )}{" "}
-                Aquí puedes agregar documentos extra si lo necesitas.
+                Se envía un solo PDF con la factura
+                {isPaid
+                  ? ", los documentos que agregues aquí y los comprobantes de pago al final"
+                  : " y los documentos que agregues aquí"}
+                .
               </p>
 
               <div className="flex flex-wrap gap-2">
                 <FileAttachmentButtons
-                  disabled={pending || maxUserFiles === 0}
+                  disabled={pending}
                   onFilesSelected={addFiles}
                 />
               </div>
@@ -157,9 +148,8 @@ export function InvoiceSendDialog({
               )}
 
               <p className="text-xs text-slate-400">
-                PDF o imágenes · Máx. {maxUserFiles} archivo(s) extra · 5 MB c/u
-                {paymentReceiptCount > 0 &&
-                  ` · ${paymentReceiptCount} comprobante(s) de pago incluidos automáticamente`}
+                PDF o imágenes · Máx. {MAX_EMAIL_EXTRAS} documentos · 5 MB c/u · un solo archivo
+                adjunto al correo
               </p>
             </div>
 

@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import Decimal from "decimal.js";
 import { markInvoiceAsPaid } from "@/actions/invoices";
 import {
+  labelPaymentEntries,
   paymentTargetAmount,
   type InvoicePaymentMode,
   type PaymentEntryInput,
@@ -66,6 +67,7 @@ export function InvoiceMarkPaidDialog({
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [draftMethod, setDraftMethod] = useState<"CARD" | "CASH">("CARD");
   const [draftAmount, setDraftAmount] = useState("");
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
 
   const target = useMemo(
@@ -80,9 +82,37 @@ export function InvoiceMarkPaidDialog({
 
   const remaining = target.minus(paidSoFar);
 
+  const entryLabels = useMemo(
+    () => labelPaymentEntries(entries.map((e) => ({ method: e.method }))),
+    [entries]
+  );
+
+  async function uploadPaymentFile(
+    file: File,
+    kind: "receipt" | "extra"
+  ): Promise<string | null> {
+    const uploadData = new FormData();
+    uploadData.append("file", file);
+    uploadData.append("kind", kind);
+    const uploadRes = await fetch(`/api/invoices/${invoiceId}/payment-receipt`, {
+      method: "POST",
+      body: uploadData,
+    });
+    const uploadJson = (await uploadRes.json()) as {
+      storagePath?: string;
+      error?: string;
+    };
+    if (!uploadRes.ok || !uploadJson.storagePath) {
+      toast.error(uploadJson.error ?? "Error al subir archivo");
+      return null;
+    }
+    return uploadJson.storagePath;
+  }
+
   function resetDraftForMode(nextMode: InvoicePaymentMode) {
     setMode(nextMode);
     setEntries([]);
+    setExtraFiles([]);
     setDraftMethod(nextMode === "CASH" ? "CASH" : "CARD");
     setDraftAmount("");
   }
@@ -142,24 +172,19 @@ export function InvoiceMarkPaidDialog({
         toast.info("Subiendo comprobantes…");
       }
 
+      const extraPaths: string[] = [];
+      for (const file of extraFiles) {
+        const path = await uploadPaymentFile(file, "extra");
+        if (!path) return;
+        extraPaths.push(path);
+      }
+
       for (const e of entries) {
         let receiptPath: string | undefined;
         if (e.method === "CARD" && e.receiptFile) {
-          const uploadData = new FormData();
-          uploadData.append("file", e.receiptFile);
-          const uploadRes = await fetch(`/api/invoices/${invoiceId}/payment-receipt`, {
-            method: "POST",
-            body: uploadData,
-          });
-          const uploadJson = (await uploadRes.json()) as {
-            storagePath?: string;
-            error?: string;
-          };
-          if (!uploadRes.ok || !uploadJson.storagePath) {
-            toast.error(uploadJson.error ?? "Error al subir comprobante");
-            return;
-          }
-          receiptPath = uploadJson.storagePath;
+          const path = await uploadPaymentFile(e.receiptFile, "receipt");
+          if (!path) return;
+          receiptPath = path;
         }
         payload.push({
           method: e.method,
@@ -171,6 +196,7 @@ export function InvoiceMarkPaidDialog({
       const formData = new FormData();
       formData.append("paymentMode", mode);
       formData.append("entries", JSON.stringify(payload));
+      formData.append("extraPaths", JSON.stringify(extraPaths));
 
       const result = await markInvoiceAsPaid(invoiceId, formData);
       if (result?.error) {
@@ -180,6 +206,7 @@ export function InvoiceMarkPaidDialog({
       toast.success("Factura marcada como pagada");
       setOpen(false);
       setEntries([]);
+      setExtraFiles([]);
       router.refresh();
     });
   }
@@ -209,6 +236,7 @@ export function InvoiceMarkPaidDialog({
                 onClick={() => {
                   setOpen(false);
                   setEntries([]);
+                  setExtraFiles([]);
                 }}
                 className="p-1 rounded-lg hover:bg-slate-100 text-slate-500"
               >
@@ -217,6 +245,9 @@ export function InvoiceMarkPaidDialog({
             </div>
 
             <div className="p-5 space-y-4">
+              <p className="text-xs text-slate-500">
+                Al confirmar se genera un solo PDF: factura, documentos extra y comprobantes al final.
+              </p>
               <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-600">Total a cubrir</span>
@@ -327,13 +358,12 @@ export function InvoiceMarkPaidDialog({
 
               {entries.length > 0 && (
                 <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
-                  {entries.map((e) => (
+                  {entries.map((e, i) => (
                     <li key={e.id} className="p-3 space-y-2">
                       <div className="flex items-center justify-between gap-2">
                         <div>
                           <p className="text-sm font-medium text-slate-900">
-                            {e.method === "CARD" ? "Tarjeta" : "Efectivo"} ·{" "}
-                            {formatCurrency(e.amount)}
+                            {entryLabels[i]} · {formatCurrency(e.amount)}
                           </p>
                           {e.method === "CARD" && (
                             <p className="text-xs text-slate-500">
@@ -364,6 +394,39 @@ export function InvoiceMarkPaidDialog({
                   ))}
                 </ul>
               )}
+
+              <div className="border-t border-slate-100 pt-4 space-y-2">
+                <p className="text-xs font-semibold text-slate-500 uppercase">
+                  Documentos adicionales (opcional)
+                </p>
+                <p className="text-xs text-slate-500">
+                  Alineación, cotización, fotos de servicio, etc. Van en el PDF después de la factura.
+                </p>
+                <FileAttachmentButtons
+                  disabled={pending}
+                  onFilesSelected={(files) =>
+                    setExtraFiles((prev) => [...prev, ...files].slice(0, 8))
+                  }
+                />
+                {extraFiles.length > 0 && (
+                  <ul className="text-xs text-slate-600 space-y-1">
+                    {extraFiles.map((f, i) => (
+                      <li key={`${f.name}-${i}`} className="flex justify-between gap-2">
+                        <span className="truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          className="text-red-500 shrink-0"
+                          onClick={() =>
+                            setExtraFiles((prev) => prev.filter((_, j) => j !== i))
+                          }
+                        >
+                          Quitar
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 p-5 border-t border-slate-100">
@@ -373,6 +436,7 @@ export function InvoiceMarkPaidDialog({
                 onClick={() => {
                   setOpen(false);
                   setEntries([]);
+                  setExtraFiles([]);
                 }}
                 className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-50 rounded-lg"
               >

@@ -12,6 +12,7 @@ import {
   type PaymentReceiptView,
 } from "@/components/invoices/InvoicePaymentReceipts";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABEL, isInvoicePending } from "@/lib/invoice-status";
+import { labelPaymentEntries } from "@/lib/invoice-payments";
 import { publicUrlForStoragePath } from "@/lib/storage";
 import Decimal from "decimal.js";
 
@@ -39,23 +40,22 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
   const langLabel =
     INVOICE_LANGUAGES.find((l) => l.value === invoice.language)?.label ?? invoice.language;
 
-  let cardReceiptIndex = 0;
+  const paymentLabels = labelPaymentEntries(invoice.paymentEntries);
+
   const paymentReceipts: PaymentReceiptView[] = invoice.paymentEntries
-    .filter((e) => e.method === "CARD" && e.receiptPath)
-    .map((entry) => {
-      cardReceiptIndex++;
+    .map((entry, i) => ({ entry, i }))
+    .filter(({ entry }) => entry.method === "CARD" && entry.receiptPath)
+    .map(({ entry, i }) => {
       const fileName = entry.receiptPath!.split("/").pop() ?? "comprobante";
       const isImage = /\.(jpe?g|png|webp)$/i.test(fileName);
       return {
         id: entry.id,
-        label: `Terminal tarjeta #${cardReceiptIndex} · ${formatCurrency(Number(entry.amount))}`,
+        label: `${paymentLabels[i]} · ${formatCurrency(Number(entry.amount))}`,
         url: publicUrlForStoragePath(entry.receiptPath!),
         fileName,
         isImage,
       };
     });
-
-  const paymentReceiptCount = paymentReceipts.length;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -104,7 +104,11 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
           {/* PDF download */}
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
-            download={`${invoice.invoiceNumber}.pdf`}
+            download={
+              invoice.status === "PAID"
+                ? `${invoice.invoiceNumber}-completo.pdf`
+                : `${invoice.invoiceNumber}.pdf`
+            }
             className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
           >
             <Download className="w-4 h-4" />
@@ -120,7 +124,7 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             emailSendCount={invoice.emailSendCount}
             subtotal={Number(invoice.subtotal)}
             total={Number(invoice.total)}
-            paymentReceiptCount={paymentReceiptCount}
+            isPaid={invoice.status === "PAID"}
           />
         </div>
       </div>
@@ -290,12 +294,12 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               Desglose de pago
             </p>
             <ul className="space-y-2">
-              {invoice.paymentEntries.map((entry) => (
+              {invoice.paymentEntries.map((entry, i) => (
                 <li
                   key={entry.id}
                   className="flex justify-between text-sm text-slate-700"
                 >
-                  <span>{entry.method === "CARD" ? "Tarjeta" : "Efectivo"}</span>
+                  <span>{paymentLabels[i]}</span>
                   <span className="font-medium">{formatCurrency(Number(entry.amount))}</span>
                 </li>
               ))}

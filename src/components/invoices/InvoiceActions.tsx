@@ -23,7 +23,7 @@ interface InvoiceActionsProps {
   emailSendCount?: number;
   subtotal?: number;
   total?: number;
-  paymentReceiptCount?: number;
+  isPaid?: boolean;
 }
 
 const VOIDABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
@@ -38,7 +38,7 @@ export function InvoiceActions({
   emailSendCount = 0,
   subtotal = 0,
   total = 0,
-  paymentReceiptCount = 0,
+  isPaid = false,
 }: InvoiceActionsProps) {
   const router = useRouter();
   const [cancelPending, startCancel] = useTransition();
@@ -99,7 +99,7 @@ export function InvoiceActions({
               isResend={isResend}
               requiresPendingConfirm={isPending}
               disabled={isAnyPending}
-              paymentReceiptCount={paymentReceiptCount}
+              isPaid={isPaid}
             />
           ) : (
             <Link
