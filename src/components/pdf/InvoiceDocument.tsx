@@ -395,6 +395,25 @@ const styles = StyleSheet.create({
     color: WHITE,
     flexShrink: 0,
   },
+  // Marca de agua diagonal y discreta para facturas pagadas.
+  // Centrada verticalmente (media página), rotada -45°, en gris muy tenue.
+  watermark: {
+    position: "absolute",
+    top: "45%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    transform: "rotate(-45deg)",
+    transformOrigin: "center",
+  },
+  watermarkText: {
+    fontSize: 88,
+    fontFamily: "Helvetica-Bold",
+    color: EMERALD,
+    opacity: 0.07,
+    letterSpacing: 8,
+    textAlign: "center",
+  },
   footer: {
     position: "absolute",
     bottom: 0,
@@ -440,7 +459,7 @@ function fmtQty(val: string | number): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  DRAFT: { bg: SLATE_200, color: SLATE_700 },
+  PENDING: { bg: "#fef3c7", color: "#b45309" },
   SENT: { bg: "#dbeafe", color: BLUE },
   PAID: { bg: "#d1fae5", color: EMERALD },
   OVERDUE: { bg: "#fee2e2", color: "#dc2626" },
@@ -578,7 +597,8 @@ function InvoiceFooter({
 
 export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   const t = getInvoiceStrings(invoice.language);
-  const statusColors = STATUS_COLORS[invoice.status] ?? STATUS_COLORS.DRAFT;
+  const statusColors = STATUS_COLORS[invoice.status] ?? STATUS_COLORS.PENDING;
+  const isPaid = invoice.status === "PAID";
   const statusLabel = t.statuses[invoice.status] ?? invoice.status;
   const currency = invoice.shop.currency ?? "CAD";
 
@@ -600,6 +620,11 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   return (
     <Document title={t.documentTitle(invoice.invoiceNumber)} author={invoice.shop.name}>
       <Page size="LETTER" style={styles.page} wrap>
+        {isPaid && (
+          <View style={styles.watermark} fixed>
+            <Text style={styles.watermarkText}>{t.statuses.PAID}</Text>
+          </View>
+        )}
         <InvoiceHeader
           invoice={invoice}
           t={t}

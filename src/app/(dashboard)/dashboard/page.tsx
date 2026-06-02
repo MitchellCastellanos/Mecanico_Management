@@ -21,7 +21,7 @@ import { StatusPie } from "@/components/dashboard/StatusPie";
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "#94a3b8",
+  PENDING: "#f59e0b",
   SENT: "#3b82f6",
   PAID: "#10b981",
   OVERDUE: "#ef4444",
@@ -29,7 +29,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Borrador",
+  PENDING: "Pendiente",
   SENT: "Enviada",
   PAID: "Pagada",
   OVERDUE: "Vencida",
@@ -358,17 +358,17 @@ export default async function DashboardPage() {
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    DRAFT: "bg-slate-100 text-slate-600",
+    PENDING: "bg-amber-100 text-amber-700",
     SENT: "bg-blue-100 text-blue-700",
     PAID: "bg-emerald-100 text-emerald-700",
     OVERDUE: "bg-red-100 text-red-700",
     CANCELLED: "bg-slate-100 text-slate-400",
   };
   const labels: Record<string, string> = {
-    DRAFT: "Borrador", SENT: "Enviada", PAID: "Pagada", OVERDUE: "Vencida", CANCELLED: "Cancelada",
+    PENDING: "Pendiente", SENT: "Enviada", PAID: "Pagada", OVERDUE: "Vencida", CANCELLED: "Cancelada",
   };
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles[status] ?? styles.DRAFT}`}>
+    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles[status] ?? styles.PENDING}`}>
       {labels[status] ?? status}
     </span>
   );

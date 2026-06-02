@@ -77,7 +77,7 @@ const ES: Strings = {
   thankYou: "Gracias por confiar en nosotros.",
   itemTypes: { LABOUR: "Mano de obra", PART: "Repuesto", OTHER: "Otro" },
   statuses: {
-    DRAFT: "BORRADOR",
+    PENDING: "PENDIENTE",
     SENT: "ENVIADA",
     PAID: "PAGADA",
     OVERDUE: "VENCIDA",
@@ -120,7 +120,7 @@ const EN: Strings = {
   thankYou: "Thank you for your business.",
   itemTypes: { LABOUR: "Labour", PART: "Part", OTHER: "Other" },
   statuses: {
-    DRAFT: "DRAFT",
+    PENDING: "PENDING",
     SENT: "SENT",
     PAID: "PAID",
     OVERDUE: "OVERDUE",
@@ -163,7 +163,7 @@ const FR: Strings = {
   thankYou: "Merci de votre confiance.",
   itemTypes: { LABOUR: "Main-d'œuvre", PART: "Pièce", OTHER: "Autre" },
   statuses: {
-    DRAFT: "BROUILLON",
+    PENDING: "EN ATTENTE",
     SENT: "ENVOYÉE",
     PAID: "PAYÉE",
     OVERDUE: "EN RETARD",
@@ -177,4 +177,95 @@ const MAP: Record<InvoiceLanguage, Strings> = { ES, EN, FR };
 export function getInvoiceStrings(language: InvoiceLanguage | string | null | undefined): Strings {
   const key = (language ?? "ES") as InvoiceLanguage;
   return MAP[key] ?? ES;
+}
+
+// ── i18n del correo de envío de factura ──────────────────────
+// El idioma del email sigue al idioma de la factura (invoice.language),
+// para que el cliente reciba el correo en su lengua.
+
+export type EmailStrings = {
+  htmlLang: string;
+  subject: (num: string, shop: string) => string;
+  preview: (num: string) => string;
+  heading: string;
+  greeting: (name: string) => string;
+  intro: (shop: string) => string;
+  paidIntro: (shop: string) => string;
+  invoiceNo: string;
+  totalLabel: string;
+  dueLabel: string;
+  statusLabel: string;
+  attachmentNote: string;
+  questions: string;
+  footer: (shop: string) => string;
+};
+
+const EMAIL_ES: EmailStrings = {
+  htmlLang: "es",
+  subject: (num, shop) => `Tu factura ${num} de ${shop}`,
+  preview: (num) => `Factura ${num} adjunta en PDF`,
+  heading: "Tu factura",
+  greeting: (name) => `Hola, ${name} 👋`,
+  intro: (shop) =>
+    `Adjuntamos tu factura de ${shop} en formato PDF. A continuación el resumen:`,
+  paidIntro: (shop) =>
+    `Gracias por tu pago. Adjuntamos tu factura pagada de ${shop} en formato PDF. A continuación el resumen:`,
+  invoiceNo: "No. de factura",
+  totalLabel: "Total",
+  dueLabel: "Vence el",
+  statusLabel: "Estado",
+  attachmentNote: "📎 Encontrarás la factura completa en el PDF adjunto.",
+  questions: "Si tienes cualquier pregunta, no dudes en contactarnos.",
+  footer: (shop) => `Este correo fue enviado por ${shop}.`,
+};
+
+const EMAIL_EN: EmailStrings = {
+  htmlLang: "en",
+  subject: (num, shop) => `Your invoice ${num} from ${shop}`,
+  preview: (num) => `Invoice ${num} attached as PDF`,
+  heading: "Your invoice",
+  greeting: (name) => `Hi ${name} 👋`,
+  intro: (shop) =>
+    `Please find your invoice from ${shop} attached as a PDF. Here is the summary:`,
+  paidIntro: (shop) =>
+    `Thank you for your payment. Your paid invoice from ${shop} is attached as a PDF. Here is the summary:`,
+  invoiceNo: "Invoice number",
+  totalLabel: "Total",
+  dueLabel: "Due on",
+  statusLabel: "Status",
+  attachmentNote: "📎 The full invoice is in the attached PDF.",
+  questions: "If you have any questions, feel free to reach out.",
+  footer: (shop) => `This email was sent by ${shop}.`,
+};
+
+const EMAIL_FR: EmailStrings = {
+  htmlLang: "fr",
+  subject: (num, shop) => `Votre facture ${num} de ${shop}`,
+  preview: (num) => `Facture ${num} jointe en PDF`,
+  heading: "Votre facture",
+  greeting: (name) => `Bonjour ${name} 👋`,
+  intro: (shop) =>
+    `Vous trouverez ci-joint votre facture de ${shop} au format PDF. Voici le résumé :`,
+  paidIntro: (shop) =>
+    `Merci pour votre paiement. Votre facture payée de ${shop} est jointe au format PDF. Voici le résumé :`,
+  invoiceNo: "No de facture",
+  totalLabel: "Total",
+  dueLabel: "Échéance le",
+  statusLabel: "Statut",
+  attachmentNote: "📎 La facture complète se trouve dans le PDF joint.",
+  questions: "Pour toute question, n'hésitez pas à nous contacter.",
+  footer: (shop) => `Ce courriel a été envoyé par ${shop}.`,
+};
+
+const EMAIL_MAP: Record<InvoiceLanguage, EmailStrings> = {
+  ES: EMAIL_ES,
+  EN: EMAIL_EN,
+  FR: EMAIL_FR,
+};
+
+export function getInvoiceEmailStrings(
+  language: InvoiceLanguage | string | null | undefined
+): EmailStrings {
+  const key = (language ?? "ES") as InvoiceLanguage;
+  return EMAIL_MAP[key] ?? EMAIL_ES;
 }
