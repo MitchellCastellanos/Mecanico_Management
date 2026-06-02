@@ -45,6 +45,7 @@ type Strings = {
   warrantyDisclosureIntro: string;
   itemTypes: Record<string, string>;
   statuses: Record<string, string>;
+  paidWatermark: string;
   months: string[];
   mail: {
     preview: (num: string, shop: string) => string;
@@ -105,8 +106,8 @@ const ES: Strings = {
     "Los conceptos siguientes incluyen garantía según se indica. Esta garantía cubre defectos de material o mano de obra bajo uso normal.",
   itemTypes: { LABOUR: "Mano de obra", PART: "Repuesto", OTHER: "Otro" },
   statuses: {
-    DRAFT: "BORRADOR",
-    SENT: "ENVIADA",
+    DRAFT: "PENDIENTE",
+    SENT: "PENDIENTE",
     PAID: "PAGADA",
     OVERDUE: "VENCIDA",
     CANCELLED: "CANCELADA",
@@ -115,6 +116,7 @@ const ES: Strings = {
     EXPIRED: "VENCIDA",
     CONVERTED: "CONVERTIDA",
   },
+  paidWatermark: "PAGADO",
   months: ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"],
   mail: {
     preview: (num, shop) => `Factura ${num} de ${shop}`,
@@ -175,8 +177,8 @@ const EN: Strings = {
     "The following items include the warranty periods shown below. Coverage applies to defects in parts or workmanship under normal use.",
   itemTypes: { LABOUR: "Labour", PART: "Part", OTHER: "Other" },
   statuses: {
-    DRAFT: "DRAFT",
-    SENT: "SENT",
+    DRAFT: "PENDING",
+    SENT: "PENDING",
     PAID: "PAID",
     OVERDUE: "OVERDUE",
     CANCELLED: "CANCELLED",
@@ -185,6 +187,7 @@ const EN: Strings = {
     EXPIRED: "EXPIRED",
     CONVERTED: "CONVERTED",
   },
+  paidWatermark: "PAID",
   months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
   mail: {
     preview: (num, shop) => `Invoice ${num} from ${shop}`,
@@ -245,8 +248,8 @@ const FR: Strings = {
     "Les concepts suivants incluent une garantie tel qu'indiqué ci-dessous. La garantie couvre les défauts de pièces ou de main-d'œuvre en usage normal.",
   itemTypes: { LABOUR: "Main-d'œuvre", PART: "Pièce", OTHER: "Autre" },
   statuses: {
-    DRAFT: "BROUILLON",
-    SENT: "ENVOYÉE",
+    DRAFT: "EN ATTENTE",
+    SENT: "EN ATTENTE",
     PAID: "PAYÉE",
     OVERDUE: "EN RETARD",
     CANCELLED: "ANNULÉE",
@@ -255,6 +258,7 @@ const FR: Strings = {
     EXPIRED: "EXPIRÉE",
     CONVERTED: "CONVERTIE",
   },
+  paidWatermark: "PAYÉ",
   months: ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."],
   mail: {
     preview: (num, shop) => `Facture ${num} de ${shop}`,

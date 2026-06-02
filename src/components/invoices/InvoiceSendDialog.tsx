@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { sendInvoiceByEmail } from "@/actions/invoices";
+import { EMAIL_PENDING_CONFIRM_MESSAGE } from "@/lib/invoice-status";
 import { Loader2, Mail, Paperclip, Send, X, Camera } from "lucide-react";
 
 interface InvoiceSendDialogProps {
@@ -11,6 +12,7 @@ interface InvoiceSendDialogProps {
   invoiceNumber: string;
   clientEmail: string;
   isResend: boolean;
+  requiresPendingConfirm?: boolean;
   disabled?: boolean;
 }
 
@@ -19,6 +21,7 @@ export function InvoiceSendDialog({
   invoiceNumber,
   clientEmail,
   isResend,
+  requiresPendingConfirm = false,
   disabled,
 }: InvoiceSendDialogProps) {
   const router = useRouter();
@@ -40,6 +43,13 @@ export function InvoiceSendDialog({
 
   function removeFile(index: number) {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  function openDialog() {
+    if (requiresPendingConfirm && !confirm(EMAIL_PENDING_CONFIRM_MESSAGE)) {
+      return;
+    }
+    setOpen(true);
   }
 
   function handleSend() {
@@ -68,7 +78,7 @@ export function InvoiceSendDialog({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={openDialog}
         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition-colors"
       >
         {isResend ? <Send className="w-4 h-4" /> : <Mail className="w-4 h-4" />}

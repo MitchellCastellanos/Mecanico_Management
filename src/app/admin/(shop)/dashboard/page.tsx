@@ -17,25 +17,17 @@ import {
 } from "lucide-react";
 import { RevenueChart } from "@/components/dashboard/RevenueChart";
 import { StatusPie } from "@/components/dashboard/StatusPie";
+import {
+  INVOICE_STATUS_BADGE,
+  INVOICE_STATUS_CHART_COLOR,
+  INVOICE_STATUS_LABEL,
+  INVOICE_PENDING_STATUSES,
+} from "@/lib/invoice-status";
 
 // Nombres cortos de meses en español
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "#94a3b8",
-  SENT: "#3b82f6",
-  PAID: "#10b981",
-  OVERDUE: "#ef4444",
-  CANCELLED: "#cbd5e1",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviada",
-  PAID: "Pagada",
-  OVERDUE: "Vencida",
-  CANCELLED: "Cancelada",
-};
+const PIE_STATUSES = ["PENDING", "PAID", "OVERDUE", "CANCELLED"] as const;
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -120,13 +112,23 @@ export default async function DashboardPage() {
     return { month: label, revenue: Math.round(revenue * 100) / 100 };
   });
 
-  // Status pie data
-  const statusPieData = Object.entries(STATUS_LABELS).map(([status, label]) => ({
-    status,
-    label,
-    count: invoicesByStatus.find((s) => s.status === status)?._count._all ?? 0,
-    color: STATUS_COLORS[status] ?? "#94a3b8",
-  }));
+  const pendingCount = invoicesByStatus
+    .filter((s) => (INVOICE_PENDING_STATUSES as readonly string[]).includes(s.status))
+    .reduce((sum, s) => sum + s._count._all, 0);
+
+  const statusPieData = PIE_STATUSES.map((status) => {
+    const count =
+      status === "PENDING"
+        ? pendingCount
+        : invoicesByStatus.find((s) => s.status === status)?._count._all ?? 0;
+    const label =
+      status === "PENDING" ? "Pendiente" : (INVOICE_STATUS_LABEL[status] ?? status);
+    const color =
+      status === "PENDING"
+        ? INVOICE_STATUS_CHART_COLOR.SENT
+        : (INVOICE_STATUS_CHART_COLOR[status] ?? "#94a3b8");
+    return { status, label, count, color };
+  });
 
   // Top clients — resolver nombres
   const topClientIds = topClientsRaw.map((c) => c.clientId);
@@ -358,19 +360,11 @@ export default async function DashboardPage() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    DRAFT: "bg-slate-100 text-slate-600",
-    SENT: "bg-blue-100 text-blue-700",
-    PAID: "bg-emerald-100 text-emerald-700",
-    OVERDUE: "bg-red-100 text-red-700",
-    CANCELLED: "bg-slate-100 text-slate-400",
-  };
-  const labels: Record<string, string> = {
-    DRAFT: "Borrador", SENT: "Enviada", PAID: "Pagada", OVERDUE: "Vencida", CANCELLED: "Cancelada",
-  };
   return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${styles[status] ?? styles.DRAFT}`}>
-      {labels[status] ?? status}
+    <span
+      className={`text-xs px-2 py-0.5 rounded-full font-medium ${INVOICE_STATUS_BADGE[status] ?? "bg-slate-100 text-slate-500"}`}
+    >
+      {INVOICE_STATUS_LABEL[status] ?? status}
     </span>
   );
 }

@@ -1,6 +1,7 @@
 import { getVehicleById, deleteVehicle } from "@/actions/vehicles";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
+import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABEL } from "@/lib/invoice-status";
 import Link from "next/link";
 import { ChevronLeft, Pencil, Car, FileText, Bell, Plus } from "lucide-react";
 import { DeleteVehicleButton } from "@/components/clients/DeleteVehicleButton";
@@ -128,19 +129,11 @@ export default async function VehicleDetailPage({ params }: Props) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const styles: Record<string, string> = {
-    DRAFT: "bg-slate-100 text-slate-600",
-    SENT: "bg-blue-100 text-blue-700",
-    PAID: "bg-emerald-100 text-emerald-700",
-    OVERDUE: "bg-red-100 text-red-700",
-    CANCELLED: "bg-slate-100 text-slate-400",
-  };
-  const labels: Record<string, string> = {
-    DRAFT: "Borrador", SENT: "Enviada", PAID: "Pagada", OVERDUE: "Vencida", CANCELLED: "Cancelada",
-  };
   return (
-    <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${styles[status] ?? styles.DRAFT}`}>
-      {labels[status] ?? status}
+    <span
+      className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${INVOICE_STATUS_BADGE[status] ?? "bg-slate-100 text-slate-500"}`}
+    >
+      {INVOICE_STATUS_LABEL[status] ?? status}
     </span>
   );
 }

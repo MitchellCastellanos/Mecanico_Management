@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { InvoiceForm } from "@/components/invoices/InvoiceForm";
 import { getInvoiceById, getInvoiceFormData, updateInvoice } from "@/actions/invoices";
 import { type InvoiceFormData } from "@/lib/validations";
+import { isInvoicePending } from "@/lib/invoice-status";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -18,7 +19,7 @@ export default async function EditInvoicePage({ params }: PageProps) {
     getInvoiceFormData(),
   ]);
 
-  if (invoice.status !== "DRAFT") {
+  if (!isInvoicePending(invoice.status)) {
     redirect(`${ADMIN.invoices}/${id}`);
   }
 

@@ -196,11 +196,11 @@ model Invoice {
   vehicleId     String
   vehicle       Vehicle       @relation(fields: [vehicleId], references: [id])
   invoiceNumber String        // e.g. "INV-0042" — unique per shop
-  status        InvoiceStatus @default(DRAFT)
+  status        InvoiceStatus @default(SENT)
   issuedAt      DateTime      @default(now())
   dueAt         DateTime?
   paidAt        DateTime?
-  sentAt        DateTime?     // primera vez marcada/enviada como SENT
+  sentAt        DateTime?     // primera vez registrada como pendiente (SENT)
   emailSentAt   DateTime?     // último envío por correo al cliente
   emailSendCount Int          @default(0)
   subtotal      Decimal         @db.Decimal(10, 2)

@@ -4,31 +4,11 @@ import { FileText, Plus } from "lucide-react";
 import { getInvoices } from "@/actions/invoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
-
-const STATUS_TABS = [
-  { value: "ALL", label: "Todas" },
-  { value: "DRAFT", label: "Borrador" },
-  { value: "SENT", label: "Enviada" },
-  { value: "PAID", label: "Pagada" },
-  { value: "OVERDUE", label: "Vencida" },
-  { value: "CANCELLED", label: "Cancelada" },
-];
-
-const STATUS_BADGE: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-600",
-  SENT: "bg-blue-100 text-blue-700",
-  PAID: "bg-emerald-100 text-emerald-700",
-  OVERDUE: "bg-red-100 text-red-700",
-  CANCELLED: "bg-slate-100 text-slate-400",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviada",
-  PAID: "Pagada",
-  OVERDUE: "Vencida",
-  CANCELLED: "Cancelada",
-};
+import {
+  INVOICE_LIST_STATUS_TABS,
+  INVOICE_STATUS_BADGE,
+  INVOICE_STATUS_LABEL,
+} from "@/lib/invoice-status";
 
 interface PageProps {
   searchParams: Promise<{ status?: string }>;
@@ -47,7 +27,9 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
           <h1 className="text-2xl font-bold text-slate-900">Facturas</h1>
           <p className="text-slate-500 text-sm mt-1">
             {invoices.length} factura{invoices.length !== 1 ? "s" : ""}
-            {activeTab !== "ALL" ? ` · ${STATUS_LABEL[activeTab] ?? activeTab}` : ""}
+            {activeTab !== "ALL"
+              ? ` · ${INVOICE_STATUS_LABEL[activeTab] ?? INVOICE_LIST_STATUS_TABS.find((t) => t.value === activeTab)?.label ?? activeTab}`
+              : ""}
           </p>
         </div>
         <Link
@@ -61,7 +43,7 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
 
       {/* Status tabs */}
       <div className="flex gap-1 bg-slate-100 p-1 rounded-lg w-fit">
-        {STATUS_TABS.map((tab) => (
+        {INVOICE_LIST_STATUS_TABS.map((tab) => (
           <Link
             key={tab.value}
             href={tab.value === "ALL" ? "/invoices" : `/invoices?status=${tab.value}`}
@@ -82,7 +64,9 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
           <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="text-slate-500 font-medium">
-            {activeTab === "ALL" ? "No hay facturas todavía" : `No hay facturas en estado "${STATUS_LABEL[activeTab] ?? activeTab}"`}
+            {activeTab === "ALL"
+              ? "No hay facturas todavía"
+              : `No hay facturas en estado "${INVOICE_STATUS_LABEL[activeTab] ?? INVOICE_LIST_STATUS_TABS.find((t) => t.value === activeTab)?.label ?? activeTab}"`}
           </p>
           {activeTab === "ALL" && (
             <Link
@@ -138,9 +122,9 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
                 {/* Status badge */}
                 <div className="hidden sm:block">
                   <span
-                    className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}
-                  >
-                    {STATUS_LABEL[invoice.status] ?? invoice.status}
+                className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${INVOICE_STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}
+              >
+                {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
                   </span>
                 </div>
 
@@ -150,8 +134,8 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
                     {formatCurrency(Number(invoice.total))}
                   </p>
                   {/* Mobile: status badge */}
-                  <span className={`sm:hidden inline-flex px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}>
-                    {STATUS_LABEL[invoice.status] ?? invoice.status}
+                  <span className={`sm:hidden inline-flex px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${INVOICE_STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}>
+                    {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
                   </span>
                 </div>
               </Link>

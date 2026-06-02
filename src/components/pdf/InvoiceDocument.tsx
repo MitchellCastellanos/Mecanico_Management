@@ -12,6 +12,7 @@ import {
 import { formatClientName } from "@/lib/client-name";
 import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
 import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
+import { invoiceStatusLabelForPdf } from "@/lib/invoice-status";
 import Decimal from "decimal.js";
 
 // Por defecto @react-pdf parte palabras a media sílaba cuando no caben en la
@@ -306,6 +307,26 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.8,
     marginBottom: 6,
+  },
+  lineItemsSection: {
+    position: "relative",
+    marginBottom: 14,
+  },
+  paidWatermark: {
+    position: "absolute",
+    top: "38%",
+    left: 0,
+    right: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paidWatermarkText: {
+    fontSize: 72,
+    fontFamily: "Helvetica-Bold",
+    color: EMERALD,
+    opacity: 0.14,
+    letterSpacing: 6,
+    transform: "rotate(-38deg)",
   },
   tableHeader: {
     flexDirection: "row",
@@ -669,7 +690,8 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   const t = getInvoiceStrings(invoice.language);
   const isQuote = invoice.documentKind === "quote";
   const statusColors = STATUS_COLORS[invoice.status] ?? STATUS_COLORS.DRAFT;
-  const statusLabel = t.statuses[invoice.status] ?? invoice.status;
+  const statusLabel = invoiceStatusLabelForPdf(t.statuses, invoice.status);
+  const showPaidWatermark = !isQuote && invoice.status === "PAID";
   const currency = invoice.shop.currency ?? "CAD";
   const docTitle = isQuote
     ? `Cotización ${invoice.invoiceNumber}`
@@ -768,44 +790,52 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             </View>
           </View>
 
-          <View wrap={false}>
-            <Text style={styles.sectionTitle}>{t.colDescription}</Text>
-            <View style={styles.tableHeader}>
-              <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
-              <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
-              <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
-              <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
-              <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
-            </View>
-          </View>
-
-          {invoice.lineItems.map((item, i) => (
-            <View
-              key={i}
-              style={[
-                styles.tableRow,
-                i % 2 === 1 ? styles.tableRowAlt : {},
-                i === lastIndex ? styles.tableRowLast : {},
-              ]}
-              wrap={false}
-            >
-              <View style={styles.colDesc}>
-                <Text style={styles.tableCellBold}>{item.description}</Text>
+          <View style={styles.lineItemsSection}>
+            {showPaidWatermark && (
+              <View style={styles.paidWatermark}>
+                <Text style={styles.paidWatermarkText}>{t.paidWatermark}</Text>
               </View>
-              <View style={styles.colType}>
-                <Text style={styles.tableCell}>
-                  {t.itemTypes[item.itemType] ?? item.itemType}
+            )}
+
+            <View wrap={false}>
+              <Text style={styles.sectionTitle}>{t.colDescription}</Text>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
+                <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
+                <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
+                <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
+                <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
+              </View>
+            </View>
+
+            {invoice.lineItems.map((item, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.tableRow,
+                  i % 2 === 1 ? styles.tableRowAlt : {},
+                  i === lastIndex ? styles.tableRowLast : {},
+                ]}
+                wrap={false}
+              >
+                <View style={styles.colDesc}>
+                  <Text style={styles.tableCellBold}>{item.description}</Text>
+                </View>
+                <View style={styles.colType}>
+                  <Text style={styles.tableCell}>
+                    {t.itemTypes[item.itemType] ?? item.itemType}
+                  </Text>
+                </View>
+                <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
+                <Text style={[styles.tableCell, styles.colPrice]}>
+                  {fmtCurrency(item.unitPrice, currency)}
+                </Text>
+                <Text style={[styles.tableCellBold, styles.colTotal]}>
+                  {fmtCurrency(item.lineTotal, currency)}
                 </Text>
               </View>
-              <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
-              <Text style={[styles.tableCell, styles.colPrice]}>
-                {fmtCurrency(item.unitPrice, currency)}
-              </Text>
-              <Text style={[styles.tableCellBold, styles.colTotal]}>
-                {fmtCurrency(item.lineTotal, currency)}
-              </Text>
-            </View>
-          ))}
+            ))}
+          </View>
 
           {warrantyItems.length > 0 && (
             <View style={styles.warrantyCard} wrap={false}>

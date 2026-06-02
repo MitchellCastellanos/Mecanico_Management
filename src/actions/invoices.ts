@@ -28,6 +28,7 @@ import { shopToEmailConfig } from "@/lib/email-config";
 import { parseEmailAttachments } from "@/lib/email-attachments";
 import { syncSavedLineItems } from "@/actions/line-items";
 import { formatClientName } from "@/lib/client-name";
+import { INVOICE_PENDING_FILTER, INVOICE_PENDING_STATUSES } from "@/lib/invoice-status";
 import Decimal from "decimal.js";
 
 // ── READ ────────────────────────────────────────────────────
@@ -38,7 +39,11 @@ export async function getInvoices(status?: string) {
   return db.invoice.findMany({
     where: {
       shopId,
-      ...(status && status !== "ALL" ? { status: status as never } : {}),
+      ...(status === INVOICE_PENDING_FILTER
+        ? { status: { in: [...INVOICE_PENDING_STATUSES] } }
+        : status && status !== "ALL"
+          ? { status: status as never }
+          : {}),
     },
     include: {
       client: true,
@@ -92,7 +97,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     shopId,
     clientId,
     vehicleId,
-    status: "DRAFT" as const,
+    status: "SENT" as const,
     subtotal: subtotal.toFixed(2),
     taxRate: roundTaxRate(taxRate),
     taxAmount: taxAmount.toFixed(2),
@@ -154,22 +159,6 @@ export async function createInvoice(formData: InvoiceFormData) {
 }
 
 // ── UPDATE STATUS ───────────────────────────────────────────
-
-export async function markInvoiceAsSent(id: string) {
-  const shopId = await getShopId();
-  const invoice = await db.invoice.findFirst({ where: { id, shopId } });
-  if (!invoice) return;
-
-  await db.invoice.update({
-    where: { id },
-    data: {
-      status: "SENT",
-      sentAt: invoice.sentAt ?? new Date(),
-    },
-  });
-  revalidatePath(`/invoices/${id}`);
-  revalidatePath(ADMIN.invoices);
-}
 
 const EMAILABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
 
@@ -244,7 +233,6 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   await db.invoice.update({
     where: { id },
     data: {
-      status: invoice.status === "DRAFT" ? "SENT" : invoice.status,
       sentAt: invoice.sentAt ?? now,
       emailSentAt: now,
       emailSendCount: { increment: 1 },
@@ -272,19 +260,7 @@ export async function markInvoiceAsPaid(id: string) {
   revalidatePath(ADMIN.invoices);
 }
 
-export async function revertInvoiceToDraft(id: string) {
-  const shopId = await getShopId();
-  const result = await db.invoice.updateMany({
-    where: { id, shopId, status: "SENT" },
-    data: { status: "DRAFT" },
-  });
-  if (result.count === 0) return { error: "La factura no está en estado Enviada" };
-  revalidatePath(`/invoices/${id}`);
-  revalidatePath(ADMIN.invoices);
-  return { success: true };
-}
-
-export async function revertInvoiceToSent(id: string) {
+export async function revertInvoiceToPending(id: string) {
   const shopId = await getShopId();
   const result = await db.invoice.updateMany({
     where: { id, shopId, status: "PAID" },
@@ -353,11 +329,15 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
   const shopId = await getShopId();
 
   const existing = await db.invoice.findFirst({
-    where: { id, shopId, status: "DRAFT" },
+    where: { id, shopId, status: { in: [...INVOICE_PENDING_STATUSES] } },
   });
 
   if (!existing) {
-    return { error: { _form: ["Factura no encontrada o no disponible para edición"] } };
+    return {
+      error: {
+        _form: ["Factura no encontrada o no disponible para edición (solo pendientes)"],
+      },
+    };
   }
 
   const parsed = invoiceSchema.safeParse(formData);

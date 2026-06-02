@@ -7,23 +7,8 @@ import { formatClientName } from "@/lib/client-name";
 import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
 import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
+import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABEL, isInvoicePending } from "@/lib/invoice-status";
 import Decimal from "decimal.js";
-
-const STATUS_BADGE: Record<string, string> = {
-  DRAFT: "bg-slate-100 text-slate-600",
-  SENT: "bg-blue-100 text-blue-700",
-  PAID: "bg-emerald-100 text-emerald-700",
-  OVERDUE: "bg-red-100 text-red-700",
-  CANCELLED: "bg-slate-100 text-slate-400",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  SENT: "Enviada",
-  PAID: "Pagada",
-  OVERDUE: "Vencida",
-  CANCELLED: "Cancelada",
-};
 
 const ITEM_TYPE_LABEL: Record<string, string> = {
   LABOUR: "Mano de obra",
@@ -66,9 +51,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
                 {invoice.invoiceNumber}
               </h1>
               <span
-                className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}
+                className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${INVOICE_STATUS_BADGE[invoice.status] ?? "bg-slate-100 text-slate-500"}`}
               >
-                {STATUS_LABEL[invoice.status] ?? invoice.status}
+                {INVOICE_STATUS_LABEL[invoice.status] ?? invoice.status}
               </span>
             </div>
             <p className="text-slate-500 text-sm mt-0.5">
@@ -83,8 +68,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Edit — solo borradores */}
-          {invoice.status === "DRAFT" && (
+          {/* Edit — solo pendientes */}
+          {isInvoicePending(invoice.status) && (
             <Link
               href={`/invoices/${invoice.id}/edit`}
               className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50 transition-colors"
