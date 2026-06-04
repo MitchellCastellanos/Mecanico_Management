@@ -85,7 +85,7 @@ export function ClientForm({
 
       {/* Email y Teléfono */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Email" error={errors.email?.message}>
+        <Field label="Email (opcional)" error={errors.email?.message}>
           <input
             {...register("email")}
             type="email"

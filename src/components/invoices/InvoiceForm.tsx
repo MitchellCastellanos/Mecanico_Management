@@ -199,10 +199,10 @@ export function InvoiceForm({
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Km entrada
+              Km entrada (opcional)
             </label>
             <input
-              {...register("mileageIn", { valueAsNumber: true })}
+              {...register("mileageIn", { setValueAs: emptyToNull })}
               type="number"
               min={0}
               placeholder="75,000"
@@ -211,10 +211,10 @@ export function InvoiceForm({
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Km salida
+              Km salida (opcional)
             </label>
             <input
-              {...register("mileageOut", { valueAsNumber: true })}
+              {...register("mileageOut", { setValueAs: emptyToNull })}
               type="number"
               min={0}
               placeholder="75,050"
@@ -503,6 +503,15 @@ export function InvoiceForm({
       </div>
     </form>
   );
+}
+
+// Convierte el valor de un <input type="number"> vacío a null (campo opcional).
+// Sin esto, valueAsNumber produciría NaN y Zod rechazaría el campo, volviéndolo
+// efectivamente obligatorio.
+function emptyToNull(value: unknown): number | null {
+  if (value === "" || value === null || value === undefined) return null;
+  const num = Number(value);
+  return Number.isNaN(num) ? null : num;
 }
 
 function inputClass(hasError: boolean) {
