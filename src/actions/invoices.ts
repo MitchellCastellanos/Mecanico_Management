@@ -376,11 +376,12 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     return { error: "Documentos adicionales inválidos" };
   }
 
+  // El comprobante de terminal es opcional: solo validamos la ruta si se adjuntó.
   for (const entry of cardEntries) {
-    if (!entry.receiptPath?.trim()) {
-      return { error: "Adjunta el comprobante de terminal por cada cobro con tarjeta" };
-    }
-    if (!isValidPaymentStoragePath(shopId, invoice.invoiceNumber, entry.receiptPath)) {
+    if (
+      entry.receiptPath?.trim() &&
+      !isValidPaymentStoragePath(shopId, invoice.invoiceNumber, entry.receiptPath)
+    ) {
       return { error: "Comprobante de pago inválido" };
     }
   }

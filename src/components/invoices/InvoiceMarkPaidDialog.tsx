@@ -26,6 +26,9 @@ interface InvoiceMarkPaidDialogProps {
 type LocalEntry = PaymentEntryInput & {
   id: string;
   receiptFile?: File;
+  // Para cobros con tarjeta: si el usuario ya decidió subir o no el recibo de
+  // terminal. undefined = aún no responde la pregunta. El recibo es opcional.
+  receiptChoice?: "yes" | "no";
 };
 
 const MODES: {
@@ -37,7 +40,7 @@ const MODES: {
   {
     value: "CARD",
     label: "Tarjeta",
-    hint: "Con impuestos · comprobante de terminal por cada cobro",
+    hint: "Con impuestos · comprobante de terminal opcional por cada cobro",
     icon: CreditCard,
   },
   {
@@ -143,7 +146,26 @@ export function InvoiceMarkPaidDialog({
     const file = files[0];
     if (!file) return;
     setEntries((prev) =>
-      prev.map((e) => (e.id === entryId ? { ...e, receiptFile: file } : e))
+      prev.map((e) =>
+        e.id === entryId ? { ...e, receiptFile: file, receiptChoice: "yes" } : e
+      )
+    );
+  }
+
+  // Responde la pregunta "¿deseas subir el recibo de la terminal?" por cada
+  // cobro con tarjeta. "no" continúa sin recibo; "yes" muestra los botones de
+  // subida. Al elegir "no" se descarta cualquier archivo ya adjuntado.
+  function setReceiptChoice(entryId: string, choice: "yes" | "no") {
+    setEntries((prev) =>
+      prev.map((e) =>
+        e.id === entryId
+          ? {
+              ...e,
+              receiptChoice: choice,
+              receiptFile: choice === "no" ? undefined : e.receiptFile,
+            }
+          : e
+      )
     );
   }
 
@@ -157,13 +179,7 @@ export function InvoiceMarkPaidDialog({
       return;
     }
 
-    const cardEntries = entries.filter((e) => e.method === "CARD");
-    for (const e of cardEntries) {
-      if (!e.receiptFile) {
-        toast.error("Cada cobro con tarjeta requiere el comprobante de la terminal");
-        return;
-      }
-    }
+    // El comprobante de terminal es opcional — no bloqueamos si falta.
 
     startTransition(async () => {
       const payload: PaymentEntryInput[] = [];
@@ -369,7 +385,9 @@ export function InvoiceMarkPaidDialog({
                             <p className="text-xs text-slate-500">
                               {e.receiptFile
                                 ? `Comprobante: ${e.receiptFile.name}`
-                                : "Falta comprobante de terminal"}
+                                : e.receiptChoice === "no"
+                                ? "Sin comprobante de terminal"
+                                : "Comprobante de terminal (opcional)"}
                             </p>
                           )}
                         </div>
@@ -381,14 +399,52 @@ export function InvoiceMarkPaidDialog({
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
+
+                      {/* Pago con tarjeta: preguntamos si desea subir el recibo
+                          de terminal. El recibo es opcional — puede continuar
+                          sin subirlo. */}
                       {e.method === "CARD" && !e.receiptFile && (
-                        <FileAttachmentButtons
-                          onFilesSelected={(files) => attachReceipt(e.id, files)}
-                          multiple={false}
-                          accept="image/jpeg,image/png,image/webp,application/pdf"
-                          uploadLabel="Subir comprobante"
-                          cameraLabel="Foto comprobante"
-                        />
+                        <div className="space-y-2">
+                          {e.receiptChoice === undefined ? (
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                              <p className="text-sm text-slate-700">
+                                ¿Deseas subir el recibo de la terminal?
+                              </p>
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => setReceiptChoice(e.id, "yes")}
+                                  className="flex-1 py-1.5 rounded-lg text-sm border border-blue-500 bg-blue-50 text-blue-800 font-medium hover:bg-blue-100"
+                                >
+                                  Sí, subir recibo
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setReceiptChoice(e.id, "no")}
+                                  className="flex-1 py-1.5 rounded-lg text-sm border border-slate-300 text-slate-600 hover:bg-slate-100"
+                                >
+                                  No, continuar sin recibo
+                                </button>
+                              </div>
+                            </div>
+                          ) : e.receiptChoice === "yes" ? (
+                            <FileAttachmentButtons
+                              onFilesSelected={(files) => attachReceipt(e.id, files)}
+                              multiple={false}
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              uploadLabel="Subir comprobante"
+                              cameraLabel="Foto comprobante"
+                            />
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setReceiptChoice(e.id, "yes")}
+                              className="text-xs text-blue-600 hover:text-blue-800 underline"
+                            >
+                              Subir recibo de la terminal
+                            </button>
+                          )}
+                        </div>
                       )}
                     </li>
                   ))}
