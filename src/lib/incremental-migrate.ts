@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260602-invoice-pdf-package-v1";
+export const SCHEMA_VERSION = "20260608-invoice-multi-vehicle-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -133,6 +133,133 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
   `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "paymentExtraPaths" JSONB NOT NULL DEFAULT '[]'`,
+  // ── Multi-vehículo: InvoiceVehicle / QuoteVehicle ─────────────
+  `CREATE TABLE IF NOT EXISTS mecanico."InvoiceVehicle" (
+    "id" TEXT NOT NULL,
+    "invoiceId" TEXT NOT NULL,
+    "vehicleId" TEXT NOT NULL,
+    "mileageIn" INTEGER,
+    "mileageOut" INTEGER,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "InvoiceVehicle_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "InvoiceVehicle_invoiceId_idx" ON mecanico."InvoiceVehicle"("invoiceId")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."InvoiceVehicle"
+      ADD CONSTRAINT "InvoiceVehicle_invoiceId_fkey"
+      FOREIGN KEY ("invoiceId") REFERENCES mecanico."Invoice"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."InvoiceVehicle"
+      ADD CONSTRAINT "InvoiceVehicle_vehicleId_fkey"
+      FOREIGN KEY ("vehicleId") REFERENCES mecanico."Vehicle"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'Invoice' AND column_name = 'vehicleId'
+    ) THEN
+      INSERT INTO mecanico."InvoiceVehicle" ("id", "invoiceId", "vehicleId", "mileageIn", "mileageOut", "sortOrder")
+      SELECT "id" || '_veh', "id", "vehicleId", "mileageIn", "mileageOut", 0
+      FROM mecanico."Invoice"
+      ON CONFLICT ("id") DO NOTHING;
+    END IF;
+  END $$`,
+  `ALTER TABLE mecanico."InvoiceLineItem" ADD COLUMN IF NOT EXISTS "invoiceVehicleId" TEXT`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'InvoiceLineItem' AND column_name = 'invoiceId'
+    ) THEN
+      UPDATE mecanico."InvoiceLineItem"
+      SET "invoiceVehicleId" = "invoiceId" || '_veh'
+      WHERE "invoiceVehicleId" IS NULL;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'InvoiceLineItem'
+        AND column_name = 'invoiceVehicleId' AND is_nullable = 'YES'
+    ) THEN
+      ALTER TABLE mecanico."InvoiceLineItem" ALTER COLUMN "invoiceVehicleId" SET NOT NULL;
+    END IF;
+  END $$`,
+  `ALTER TABLE mecanico."InvoiceLineItem" DROP COLUMN IF EXISTS "invoiceId"`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."InvoiceLineItem"
+      ADD CONSTRAINT "InvoiceLineItem_invoiceVehicleId_fkey"
+      FOREIGN KEY ("invoiceVehicleId") REFERENCES mecanico."InvoiceVehicle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `ALTER TABLE mecanico."Invoice" DROP COLUMN IF EXISTS "vehicleId"`,
+  `ALTER TABLE mecanico."Invoice" DROP COLUMN IF EXISTS "mileageIn"`,
+  `ALTER TABLE mecanico."Invoice" DROP COLUMN IF EXISTS "mileageOut"`,
+  `CREATE TABLE IF NOT EXISTS mecanico."QuoteVehicle" (
+    "id" TEXT NOT NULL,
+    "quoteId" TEXT NOT NULL,
+    "vehicleId" TEXT NOT NULL,
+    "mileageIn" INTEGER,
+    "mileageOut" INTEGER,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT "QuoteVehicle_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "QuoteVehicle_quoteId_idx" ON mecanico."QuoteVehicle"("quoteId")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."QuoteVehicle"
+      ADD CONSTRAINT "QuoteVehicle_quoteId_fkey"
+      FOREIGN KEY ("quoteId") REFERENCES mecanico."Quote"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."QuoteVehicle"
+      ADD CONSTRAINT "QuoteVehicle_vehicleId_fkey"
+      FOREIGN KEY ("vehicleId") REFERENCES mecanico."Vehicle"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'Quote' AND column_name = 'vehicleId'
+    ) THEN
+      INSERT INTO mecanico."QuoteVehicle" ("id", "quoteId", "vehicleId", "mileageIn", "mileageOut", "sortOrder")
+      SELECT "id" || '_veh', "id", "vehicleId", "mileageIn", "mileageOut", 0
+      FROM mecanico."Quote"
+      ON CONFLICT ("id") DO NOTHING;
+    END IF;
+  END $$`,
+  `ALTER TABLE mecanico."QuoteLineItem" ADD COLUMN IF NOT EXISTS "quoteVehicleId" TEXT`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'QuoteLineItem' AND column_name = 'quoteId'
+    ) THEN
+      UPDATE mecanico."QuoteLineItem"
+      SET "quoteVehicleId" = "quoteId" || '_veh'
+      WHERE "quoteVehicleId" IS NULL;
+    END IF;
+  END $$`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'QuoteLineItem'
+        AND column_name = 'quoteVehicleId' AND is_nullable = 'YES'
+    ) THEN
+      ALTER TABLE mecanico."QuoteLineItem" ALTER COLUMN "quoteVehicleId" SET NOT NULL;
+    END IF;
+  END $$`,
+  `ALTER TABLE mecanico."QuoteLineItem" DROP COLUMN IF EXISTS "quoteId"`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."QuoteLineItem"
+      ADD CONSTRAINT "QuoteLineItem_quoteVehicleId_fkey"
+      FOREIGN KEY ("quoteVehicleId") REFERENCES mecanico."QuoteVehicle"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "vehicleId"`,
+  `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "mileageIn"`,
+  `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "mileageOut"`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
