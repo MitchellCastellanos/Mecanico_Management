@@ -4,8 +4,7 @@ import { shouldSuppressTaxesOnPdf, type InvoicePaymentMode } from "@/lib/invoice
 type InvoiceWithRelations = Prisma.InvoiceGetPayload<{
   include: {
     client: true;
-    vehicle: true;
-    lineItems: true;
+    vehicles: { include: { vehicle: true; lineItems: true } };
     shop: true;
   };
 }> & {
@@ -26,11 +25,14 @@ export function serializeInvoiceForPdf(invoice: InvoiceWithRelations) {
     taxAmount: invoice.taxAmount.toString(),
     total: invoice.total.toString(),
     suppressTaxes,
-    lineItems: invoice.lineItems.map((item) => ({
-      ...item,
-      quantity: item.quantity.toString(),
-      unitPrice: item.unitPrice.toString(),
-      lineTotal: item.lineTotal.toString(),
+    vehicles: invoice.vehicles.map((iv) => ({
+      ...iv,
+      lineItems: iv.lineItems.map((item) => ({
+        ...item,
+        quantity: item.quantity.toString(),
+        unitPrice: item.unitPrice.toString(),
+        lineTotal: item.lineTotal.toString(),
+      })),
     })),
   };
 }

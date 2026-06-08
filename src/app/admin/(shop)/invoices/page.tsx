@@ -106,12 +106,16 @@ export default async function InvoicesPage({ searchParams }: PageProps) {
                   </p>
                 </div>
 
-                {/* Vehicle */}
+                {/* Vehicle(s) */}
                 <div className="hidden sm:block">
-                  <p className="text-sm text-slate-700">
-                    {invoice.vehicle.year} {invoice.vehicle.make} {invoice.vehicle.model}
-                  </p>
-                  <p className="text-xs text-slate-400">{invoice.vehicle.licensePlate}</p>
+                  {invoice.vehicles.map((iv) => (
+                    <div key={iv.id} className="mb-1 last:mb-0">
+                      <p className="text-sm text-slate-700">
+                        {iv.vehicle.year} {iv.vehicle.make} {iv.vehicle.model}
+                      </p>
+                      <p className="text-xs text-slate-400">{iv.vehicle.licensePlate}</p>
+                    </div>
+                  ))}
                 </div>
 
                 {/* Date */}

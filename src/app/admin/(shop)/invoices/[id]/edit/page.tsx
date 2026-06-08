@@ -25,19 +25,21 @@ export default async function EditInvoicePage({ params }: PageProps) {
 
   const initialValues: Partial<InvoiceFormData> = {
     clientId: invoice.clientId,
-    vehicleId: invoice.vehicleId,
     taxRate: Number(invoice.taxRate),
     language: invoice.language as "ES" | "EN" | "FR",
     notes: invoice.notes ?? "",
-    mileageIn: invoice.mileageIn ?? undefined,
-    mileageOut: invoice.mileageOut ?? undefined,
     dueAt: invoice.dueAt ? invoice.dueAt.toISOString().split("T")[0] : "",
-    lineItems: invoice.lineItems.map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-      itemType: item.itemType as "LABOUR" | "PART" | "OTHER",
-      warrantyTerm: item.warrantyTerm ?? "",
+    vehicles: invoice.vehicles.map((iv) => ({
+      vehicleId: iv.vehicleId,
+      mileageIn: iv.mileageIn ?? undefined,
+      mileageOut: iv.mileageOut ?? undefined,
+      lineItems: iv.lineItems.map((item) => ({
+        description: item.description,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        itemType: item.itemType as "LABOUR" | "PART" | "OTHER",
+        warrantyTerm: item.warrantyTerm ?? "",
+      })),
     })),
   };
 

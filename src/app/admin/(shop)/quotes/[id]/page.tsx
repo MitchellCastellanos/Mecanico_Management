@@ -112,67 +112,83 @@ export default async function QuoteDetailPage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-            Cliente
-          </p>
-          <p className="font-semibold text-slate-900">{formatClientName(quote.client)}</p>
-          {quote.client.email && (
-            <p className="text-sm text-slate-600 mt-1">{quote.client.email}</p>
-          )}
-          {quote.client.phone && (
-            <p className="text-sm text-slate-600">{quote.client.phone}</p>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
-            Vehículo
-          </p>
-          <p className="font-semibold text-slate-900">
-            {quote.vehicle.year} {quote.vehicle.make} {quote.vehicle.model}
-          </p>
-          <p className="text-sm text-slate-600 mt-1">Placa: {quote.vehicle.licensePlate}</p>
-        </div>
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+          Cliente
+        </p>
+        <p className="font-semibold text-slate-900">{formatClientName(quote.client)}</p>
+        {quote.client.email && (
+          <p className="text-sm text-slate-600 mt-1">{quote.client.email}</p>
+        )}
+        {quote.client.phone && (
+          <p className="text-sm text-slate-600">{quote.client.phone}</p>
+        )}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">Servicios y repuestos</h2>
-        </div>
+      {quote.vehicles.map((qv, vIndex) => (
+        <div key={qv.id} className="space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+              {quote.vehicles.length > 1 ? `Vehículo ${vIndex + 1}` : "Vehículo"}
+            </p>
+            <p className="font-semibold text-slate-900">
+              {qv.vehicle.year} {qv.vehicle.make} {qv.vehicle.model}
+            </p>
+            <p className="text-sm text-slate-600 mt-1">Placa: {qv.vehicle.licensePlate}</p>
+            {(qv.mileageIn || qv.mileageOut) && (
+              <div className="flex gap-4 mt-2">
+                {qv.mileageIn && (
+                  <p className="text-xs text-slate-500">
+                    Entrada: {qv.mileageIn.toLocaleString()} {qv.vehicle.mileageUnit}
+                  </p>
+                )}
+                {qv.mileageOut && (
+                  <p className="text-xs text-slate-500">
+                    Salida: {qv.mileageOut.toLocaleString()} {qv.vehicle.mileageUnit}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
-        <div className="hidden sm:grid grid-cols-[1fr_120px_80px_110px_110px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase">
-          <span>Descripción</span>
-          <span>Tipo</span>
-          <span className="text-right">Cant.</span>
-          <span className="text-right">P. Unit.</span>
-          <span className="text-right">Total</span>
-        </div>
-
-        <div className="divide-y divide-slate-100">
-          {quote.lineItems.map((item) => (
-            <div
-              key={item.id}
-              className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_120px_80px_110px_110px] gap-3 px-5 py-3 items-center"
-            >
-              <p className="text-sm text-slate-900 font-medium">{item.description}</p>
-              <p className="hidden sm:block text-sm text-slate-500">
-                {ITEM_TYPE_LABEL[item.itemType] ?? item.itemType}
-              </p>
-              <p className="hidden sm:block text-sm text-slate-700 text-right">
-                {Number(item.quantity)}
-              </p>
-              <p className="hidden sm:block text-sm text-slate-700 text-right">
-                {formatCurrency(Number(item.unitPrice))}
-              </p>
-              <p className="text-sm font-semibold text-slate-900 text-right">
-                {formatCurrency(Number(item.lineTotal))}
-              </p>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-100">
+              <h2 className="font-semibold text-slate-900">Servicios y repuestos</h2>
             </div>
-          ))}
+
+            <div className="hidden sm:grid grid-cols-[1fr_120px_80px_110px_110px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100 text-xs font-medium text-slate-500 uppercase">
+              <span>Descripción</span>
+              <span>Tipo</span>
+              <span className="text-right">Cant.</span>
+              <span className="text-right">P. Unit.</span>
+              <span className="text-right">Total</span>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {qv.lineItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_120px_80px_110px_110px] gap-3 px-5 py-3 items-center"
+                >
+                  <p className="text-sm text-slate-900 font-medium">{item.description}</p>
+                  <p className="hidden sm:block text-sm text-slate-500">
+                    {ITEM_TYPE_LABEL[item.itemType] ?? item.itemType}
+                  </p>
+                  <p className="hidden sm:block text-sm text-slate-700 text-right">
+                    {Number(item.quantity)}
+                  </p>
+                  <p className="hidden sm:block text-sm text-slate-700 text-right">
+                    {formatCurrency(Number(item.unitPrice))}
+                  </p>
+                  <p className="text-sm font-semibold text-slate-900 text-right">
+                    {formatCurrency(Number(item.lineTotal))}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      ))}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {quote.notes && (

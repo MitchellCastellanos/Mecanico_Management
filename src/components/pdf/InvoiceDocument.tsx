@@ -34,8 +34,6 @@ interface InvoiceData {
   status: string;
   issuedAt: Date;
   dueAt?: Date | null;
-  mileageIn?: number | null;
-  mileageOut?: number | null;
   subtotal: string | number;
   taxRate: string | number;
   taxAmount: string | number;
@@ -45,7 +43,6 @@ interface InvoiceData {
   documentKind?: "invoice" | "quote";
   /** Factura pagada en efectivo: PDF sin desglose de impuestos. */
   suppressTaxes?: boolean;
-  lineItems: LineItem[];
   client: {
     firstName: string;
     lastName?: string | null;
@@ -53,15 +50,20 @@ interface InvoiceData {
     phone?: string | null;
     address?: string | null;
   };
-  vehicle: {
-    make: string;
-    model: string;
-    year: number;
-    licensePlate: string;
-    mileageUnit: string;
-    vin?: string | null;
-    color?: string | null;
-  };
+  vehicles: {
+    mileageIn?: number | null;
+    mileageOut?: number | null;
+    lineItems: LineItem[];
+    vehicle: {
+      make: string;
+      model: string;
+      year: number;
+      licensePlate: string;
+      mileageUnit: string;
+      vin?: string | null;
+      color?: string | null;
+    };
+  }[];
   shop: {
     name: string;
     address?: string | null;
@@ -221,6 +223,10 @@ const styles = StyleSheet.create({
   statusText: { fontSize: 7, fontFamily: "Helvetica-Bold" },
   body: {
     paddingTop: 14,
+    position: "relative",
+  },
+  vehicleGroup: {
+    marginBottom: 14,
   },
   cardsRow: {
     flexDirection: "row",
@@ -707,16 +713,12 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
   const tpsPct = new Decimal(TPS_RATE).times(factor).times(100).toFixed(2);
   const tvqPct = new Decimal(TVQ_RATE).times(factor).times(100).toFixed(2);
 
-  const mileageDelta =
-    invoice.mileageIn != null && invoice.mileageOut != null
-      ? invoice.mileageOut - invoice.mileageIn
-      : null;
-
-  const lastIndex = invoice.lineItems.length - 1;
-  const warrantyItems = invoice.lineItems.filter(
+  const allLineItems = invoice.vehicles.flatMap((v) => v.lineItems);
+  const warrantyItems = allLineItems.filter(
     (item) => item.itemType === "PART" && item.warrantyTerm?.trim()
   );
   const suppressTaxes = Boolean(invoice.suppressTaxes);
+  const showVehicleNumbers = invoice.vehicles.length > 1;
 
   return (
     <Document title={docTitle} author={invoice.shop.name}>
@@ -729,6 +731,12 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
         />
 
         <View style={styles.body}>
+          {showPaidWatermark && (
+            <View style={styles.paidWatermark}>
+              <Text style={styles.paidWatermarkText}>{t.paidWatermark}</Text>
+            </View>
+          )}
+
           <View style={styles.cardsRow} wrap={false}>
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -741,106 +749,117 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                 <DetailRow label={t.address} value={invoice.client.address} stacked />
               </View>
             </View>
+          </View>
 
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardHeaderText}>{t.vehicle}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                <Text style={styles.cardTitle}>
-                  {invoice.vehicle.year} {invoice.vehicle.make} {invoice.vehicle.model}
-                </Text>
-                <DetailRow label={t.plate} value={invoice.vehicle.licensePlate} />
-                <DetailRow label={t.vin} value={invoice.vehicle.vin} stacked />
-                <DetailRow label={t.color} value={invoice.vehicle.color} />
-              </View>
-            </View>
+          {invoice.vehicles.map((iv, vIndex) => {
+            const mileageDelta =
+              iv.mileageIn != null && iv.mileageOut != null
+                ? iv.mileageOut - iv.mileageIn
+                : null;
+            const lastIndex = iv.lineItems.length - 1;
+            const vehicleLabel = showVehicleNumbers
+              ? `${t.vehicle} ${vIndex + 1}`
+              : t.vehicle;
 
-            <View style={styles.card}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.cardHeaderText}>{t.serviceDetails}</Text>
-              </View>
-              <View style={styles.cardBody}>
-                {(invoice.mileageIn != null || invoice.mileageOut != null) ? (
-                  <View style={styles.mileageBox}>
-                    {invoice.mileageIn != null && (
-                      <View style={styles.mileagePill}>
-                        <Text style={styles.mileagePillLabel}>{t.mileageIn}</Text>
-                        <Text style={styles.mileagePillValue}>
-                          {invoice.mileageIn.toLocaleString()} {invoice.vehicle.mileageUnit}
-                        </Text>
-                      </View>
-                    )}
-                    {invoice.mileageOut != null && (
-                      <View style={styles.mileagePill}>
-                        <Text style={styles.mileagePillLabel}>{t.mileageOut}</Text>
-                        <Text style={styles.mileagePillValue}>
-                          {invoice.mileageOut.toLocaleString()} {invoice.vehicle.mileageUnit}
-                        </Text>
-                      </View>
-                    )}
-                    {mileageDelta != null && mileageDelta >= 0 && (
-                      <View style={styles.mileagePill}>
-                        <Text style={styles.mileagePillLabel}>{t.mileageTraveled}</Text>
-                        <Text style={styles.mileagePillValue}>
-                          {mileageDelta.toLocaleString()} {invoice.vehicle.mileageUnit}
-                        </Text>
-                      </View>
-                    )}
+            return (
+              <View key={vIndex} style={styles.vehicleGroup}>
+                <View style={styles.cardsRow} wrap={false}>
+                  <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardHeaderText}>{vehicleLabel}</Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      <Text style={styles.cardTitle}>
+                        {iv.vehicle.year} {iv.vehicle.make} {iv.vehicle.model}
+                      </Text>
+                      <DetailRow label={t.plate} value={iv.vehicle.licensePlate} />
+                      <DetailRow label={t.vin} value={iv.vehicle.vin} stacked />
+                      <DetailRow label={t.color} value={iv.vehicle.color} />
+                    </View>
                   </View>
-                ) : (
-                  <Text style={styles.detailValue}>—</Text>
-                )}
-              </View>
-            </View>
-          </View>
 
-          <View style={styles.lineItemsSection}>
-            {showPaidWatermark && (
-              <View style={styles.paidWatermark}>
-                <Text style={styles.paidWatermarkText}>{t.paidWatermark}</Text>
-              </View>
-            )}
-
-            <View wrap={false}>
-              <Text style={styles.sectionTitle}>{t.colDescription}</Text>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
-                <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
-                <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
-                <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
-                <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
-              </View>
-            </View>
-
-            {invoice.lineItems.map((item, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.tableRow,
-                  i % 2 === 1 ? styles.tableRowAlt : {},
-                  i === lastIndex ? styles.tableRowLast : {},
-                ]}
-                wrap={false}
-              >
-                <View style={styles.colDesc}>
-                  <Text style={styles.tableCellBold}>{item.description}</Text>
+                  <View style={styles.card}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardHeaderText}>{t.serviceDetails}</Text>
+                    </View>
+                    <View style={styles.cardBody}>
+                      {(iv.mileageIn != null || iv.mileageOut != null) ? (
+                        <View style={styles.mileageBox}>
+                          {iv.mileageIn != null && (
+                            <View style={styles.mileagePill}>
+                              <Text style={styles.mileagePillLabel}>{t.mileageIn}</Text>
+                              <Text style={styles.mileagePillValue}>
+                                {iv.mileageIn.toLocaleString()} {iv.vehicle.mileageUnit}
+                              </Text>
+                            </View>
+                          )}
+                          {iv.mileageOut != null && (
+                            <View style={styles.mileagePill}>
+                              <Text style={styles.mileagePillLabel}>{t.mileageOut}</Text>
+                              <Text style={styles.mileagePillValue}>
+                                {iv.mileageOut.toLocaleString()} {iv.vehicle.mileageUnit}
+                              </Text>
+                            </View>
+                          )}
+                          {mileageDelta != null && mileageDelta >= 0 && (
+                            <View style={styles.mileagePill}>
+                              <Text style={styles.mileagePillLabel}>{t.mileageTraveled}</Text>
+                              <Text style={styles.mileagePillValue}>
+                                {mileageDelta.toLocaleString()} {iv.vehicle.mileageUnit}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                      ) : (
+                        <Text style={styles.detailValue}>—</Text>
+                      )}
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.colType}>
-                  <Text style={styles.tableCell}>
-                    {t.itemTypes[item.itemType] ?? item.itemType}
-                  </Text>
+
+                <View style={styles.lineItemsSection}>
+                  <View wrap={false}>
+                    <Text style={styles.sectionTitle}>{t.colDescription}</Text>
+                    <View style={styles.tableHeader}>
+                      <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
+                      <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
+                    </View>
+                  </View>
+
+                  {iv.lineItems.map((item, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.tableRow,
+                        i % 2 === 1 ? styles.tableRowAlt : {},
+                        i === lastIndex ? styles.tableRowLast : {},
+                      ]}
+                      wrap={false}
+                    >
+                      <View style={styles.colDesc}>
+                        <Text style={styles.tableCellBold}>{item.description}</Text>
+                      </View>
+                      <View style={styles.colType}>
+                        <Text style={styles.tableCell}>
+                          {t.itemTypes[item.itemType] ?? item.itemType}
+                        </Text>
+                      </View>
+                      <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
+                      <Text style={[styles.tableCell, styles.colPrice]}>
+                        {fmtCurrency(item.unitPrice, currency)}
+                      </Text>
+                      <Text style={[styles.tableCellBold, styles.colTotal]}>
+                        {fmtCurrency(item.lineTotal, currency)}
+                      </Text>
+                    </View>
+                  ))}
                 </View>
-                <Text style={[styles.tableCell, styles.colQty]}>{fmtQty(item.quantity)}</Text>
-                <Text style={[styles.tableCell, styles.colPrice]}>
-                  {fmtCurrency(item.unitPrice, currency)}
-                </Text>
-                <Text style={[styles.tableCellBold, styles.colTotal]}>
-                  {fmtCurrency(item.lineTotal, currency)}
-                </Text>
               </View>
-            ))}
-          </View>
+            );
+          })}
 
           {warrantyItems.length > 0 && (
             <View style={styles.warrantyCard} wrap={false}>

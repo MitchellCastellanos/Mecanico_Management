@@ -19,8 +19,9 @@ export async function getVehicleById(vehicleId: string) {
     },
     include: {
       client: true,
-      invoices: {
-        orderBy: { createdAt: "desc" },
+      invoiceVehicles: {
+        include: { invoice: true },
+        orderBy: { invoice: { createdAt: "desc" } },
         take: 10,
       },
       reminders: {

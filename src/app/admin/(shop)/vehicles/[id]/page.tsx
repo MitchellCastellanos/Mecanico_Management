@@ -67,33 +67,33 @@ export default async function VehicleDetailPage({ params }: Props) {
           </Link>
         </div>
 
-        {vehicle.invoices.length === 0 ? (
+        {vehicle.invoiceVehicles.length === 0 ? (
           <div className="p-8 text-center">
             <Car className="w-8 h-8 text-slate-300 mx-auto mb-2" />
             <p className="text-sm text-slate-400">Sin historial de servicio</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {vehicle.invoices.map((invoice) => (
+            {vehicle.invoiceVehicles.map((iv) => (
               <Link
-                key={invoice.id}
-                href={`/invoices/${invoice.id}`}
+                key={iv.id}
+                href={`/invoices/${iv.invoice.id}`}
                 className="flex items-center justify-between px-5 py-3.5 hover:bg-slate-50 transition-colors"
               >
                 <div>
                   <p className="text-sm font-medium text-slate-900">
-                    {invoice.invoiceNumber}
+                    {iv.invoice.invoiceNumber}
                   </p>
                   <p className="text-xs text-slate-500">
-                    {formatDate(invoice.issuedAt)}
-                    {invoice.mileageIn ? ` · ${invoice.mileageIn.toLocaleString()} ${vehicle.mileageUnit}` : ""}
+                    {formatDate(iv.invoice.issuedAt)}
+                    {iv.mileageIn ? ` · ${iv.mileageIn.toLocaleString()} ${vehicle.mileageUnit}` : ""}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-medium text-slate-900">
-                    {formatCurrency(Number(invoice.total))}
+                    {formatCurrency(Number(iv.invoice.total))}
                   </p>
-                  <StatusBadge status={invoice.status} />
+                  <StatusBadge status={iv.invoice.status} />
                 </div>
               </Link>
             ))}

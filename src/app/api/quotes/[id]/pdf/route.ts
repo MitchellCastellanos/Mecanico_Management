@@ -20,8 +20,13 @@ export async function GET(
     where: { id, shopId },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: {
+          vehicle: true,
+          lineItems: { orderBy: { sortOrder: "asc" } },
+        },
+        orderBy: { sortOrder: "asc" },
+      },
       shop: true,
     },
   });
