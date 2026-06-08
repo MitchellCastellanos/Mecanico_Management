@@ -178,7 +178,10 @@ export default async function ClientDetailPage({ params }: Props) {
                         {invoice.invoiceNumber}
                       </p>
                       <p className="text-xs text-slate-500">
-                        {invoice.vehicle.make} {invoice.vehicle.model} · {formatDate(invoice.issuedAt)}
+                        {invoice.vehicles
+                          .map((iv) => `${iv.vehicle.make} ${iv.vehicle.model}`)
+                          .join(", ")}{" "}
+                        · {formatDate(invoice.issuedAt)}
                       </p>
                     </div>
                     <div className="text-right">

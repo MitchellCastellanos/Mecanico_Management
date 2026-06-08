@@ -1,17 +1,19 @@
 "use client";
 
-// InvoiceForm — constructor de facturas con líneas dinámicas.
+// InvoiceForm — constructor de facturas con vehículos y líneas dinámicas.
 //
 // Conceptos clave:
-// - useFieldArray(): de React Hook Form, maneja arrays dinámicos (líneas de servicio).
-//   Permite agregar/remover/reordenar filas sin re-renderizar todo el form.
+// - useFieldArray(): de React Hook Form, maneja arrays dinámicos (vehículos y,
+//   dentro de cada vehículo, sus líneas de servicio). Cada vehículo tiene su
+//   propio sub-formulario de líneas — por eso VehicleSection llama su propio
+//   useFieldArray (las reglas de hooks no permiten llamarlo dentro de un map).
 // - watch(): observa valores del form en tiempo real para calcular totales.
 // - Los totales se calculan en el cliente para feedback inmediato,
 //   pero se RE-CALCULAN en el servidor (Server Action) para seguridad.
 
-import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller, type Control, type UseFormRegister, type UseFormSetValue, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTransition, useState, useMemo } from "react";
+import { useTransition, useMemo } from "react";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
 import { formatClientName } from "@/lib/client-name";
 import {
@@ -26,11 +28,19 @@ import { LineItemDescriptionInput } from "@/components/invoices/LineItemDescript
 import Decimal from "decimal.js";
 
 // Tipos de los datos que necesita el form (vienen del servidor)
+interface VehicleOption {
+  id: string;
+  make: string;
+  model: string;
+  year: number;
+  licensePlate: string;
+}
+
 interface Client {
   id: string;
   firstName: string;
   lastName?: string | null;
-  vehicles: { id: string; make: string; model: string; year: number; licensePlate: string }[];
+  vehicles: VehicleOption[];
 }
 
 interface InvoiceFormProps {
@@ -48,6 +58,21 @@ const ITEM_TYPES = [
   { value: "PART", label: "Repuesto" },
   { value: "OTHER", label: "Otro" },
 ];
+
+const EMPTY_LINE_ITEM = {
+  description: "",
+  quantity: 1,
+  unitPrice: 0,
+  itemType: "LABOUR" as const,
+  warrantyTerm: "",
+};
+
+const EMPTY_VEHICLE_ENTRY = {
+  vehicleId: "",
+  mileageIn: undefined,
+  mileageOut: undefined,
+  lineItems: [{ ...EMPTY_LINE_ITEM }],
+};
 
 export function InvoiceForm({
   clients,
@@ -72,41 +97,39 @@ export function InvoiceForm({
     resolver: zodResolver(invoiceSchema),
     defaultValues: {
       clientId: "",
-      vehicleId: "",
       taxRate: TAX_RATE,
       language: "ES",
       notes: "",
-      mileageIn: undefined,
-      mileageOut: undefined,
       dueAt: "",
-      lineItems: [
-        { description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR", warrantyTerm: "" },
-      ],
+      vehicles: [{ ...EMPTY_VEHICLE_ENTRY, lineItems: [{ ...EMPTY_LINE_ITEM }] }],
       ...initialValues,
     },
   });
 
-  // useFieldArray maneja el array de líneas dinámicas
-  const { fields, append, remove } = useFieldArray({
+  // useFieldArray maneja el array de vehículos de la factura
+  const { fields: vehicleFields, append: appendVehicle, remove: removeVehicle } = useFieldArray({
     control,
-    name: "lineItems",
+    name: "vehicles",
   });
 
   // watch() lee valores en tiempo real para el cliente seleccionado
   const selectedClientId = watch("clientId");
-  const lineItems = useWatch({ control, name: "lineItems" });
+  const vehicleEntries = useWatch({ control, name: "vehicles" });
   const taxRate = watch("taxRate");
 
-  // Filtrar vehículos según el cliente seleccionado
+  // Vehículos disponibles del cliente seleccionado
   const selectedClient = clients.find((c) => c.id === selectedClientId);
-  const vehicles = selectedClient?.vehicles ?? [];
+  const clientVehicles = selectedClient?.vehicles ?? [];
 
-  // Calcular totales en tiempo real
+  // Calcular totales en tiempo real (suma de líneas de TODOS los vehículos)
   const { subtotal, tpsAmount, tvqAmount, taxAmount, total } = useMemo(() => {
-    const sub = (lineItems ?? []).reduce((sum, item) => {
-      const qty = Number(item?.quantity) || 0;
-      const price = Number(item?.unitPrice) || 0;
-      return sum.plus(new Decimal(qty).times(price));
+    const sub = (vehicleEntries ?? []).reduce((vSum, entry) => {
+      const lines = entry?.lineItems ?? [];
+      return lines.reduce((sum, item) => {
+        const qty = Number(item?.quantity) || 0;
+        const price = Number(item?.unitPrice) || 0;
+        return sum.plus(new Decimal(qty).times(price));
+      }, vSum);
     }, new Decimal(0));
     const rate = taxRate ?? TAX_RATE;
     const { tpsAmount: tps, tvqAmount: tvq, taxAmount: tax } = calculateTaxBreakdown(sub, rate);
@@ -117,7 +140,7 @@ export function InvoiceForm({
       taxAmount: tax,
       total: sub.plus(tax),
     };
-  }, [lineItems, taxRate]);
+  }, [vehicleEntries, taxRate]);
 
   const effectiveRate = taxRate ?? TAX_RATE;
   const taxFactor = new Decimal(effectiveRate).div(TPS_RATE + TVQ_RATE);
@@ -139,12 +162,10 @@ export function InvoiceForm({
   return (
     <form onSubmit={handleSubmit(onValid)} className="space-y-6">
 
-      {/* ── Cliente y Vehículo ── */}
+      {/* ── Cliente y datos generales ── */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
-        <h2 className="font-semibold text-slate-900">
-          {isQuote ? "Cliente, vehículo y validez" : "Cliente y vehículo"}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <h2 className="font-semibold text-slate-900">Cliente y vigencia</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Cliente */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -166,61 +187,6 @@ export function InvoiceForm({
             )}
           </div>
 
-          {/* Vehículo — solo aparece si hay un cliente seleccionado */}
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Vehículo *
-            </label>
-            <select
-              {...register("vehicleId")}
-              disabled={!selectedClientId || vehicles.length === 0}
-              className={selectClass(!!errors.vehicleId)}
-            >
-              <option value="">
-                {!selectedClientId
-                  ? "Selecciona un cliente primero"
-                  : vehicles.length === 0
-                  ? "Sin vehículos registrados"
-                  : "Seleccionar vehículo..."}
-              </option>
-              {vehicles.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.year} {v.make} {v.model} — {v.licensePlate}
-                </option>
-              ))}
-            </select>
-            {errors.vehicleId && (
-              <p className="text-red-600 text-xs mt-1">{errors.vehicleId.message}</p>
-            )}
-          </div>
-        </div>
-
-        {/* Km entrada / salida */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Km entrada (opcional)
-            </label>
-            <input
-              {...register("mileageIn", { setValueAs: emptyToNull })}
-              type="number"
-              min={0}
-              placeholder="75,000"
-              className={inputClass(false)}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Km salida (opcional)
-            </label>
-            <input
-              {...register("mileageOut", { setValueAs: emptyToNull })}
-              type="number"
-              min={0}
-              placeholder="75,050"
-              className={inputClass(false)}
-            />
-          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               {isQuote ? "Válida hasta" : "Fecha de vencimiento"}
@@ -246,173 +212,52 @@ export function InvoiceForm({
         </div>
       </div>
 
-      {/* ── Líneas de servicio ── */}
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900">Servicios y repuestos</h2>
-          {errors.lineItems?.root && (
-            <p className="text-red-600 text-xs mt-1">{errors.lineItems.root.message}</p>
-          )}
-        </div>
+      {/* ── Vehículos (uno o varios) ── */}
+      <div className="space-y-4">
+        {errors.vehicles?.root?.message && (
+          <p className="text-red-600 text-sm">{errors.vehicles.root.message}</p>
+        )}
+        {typeof errors.vehicles?.message === "string" && (
+          <p className="text-red-600 text-sm">{errors.vehicles.message}</p>
+        )}
 
-        {/* Header de la tabla */}
-        <div className="hidden sm:grid grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100">
-          <span className="text-xs font-medium text-slate-500 uppercase">Descripción</span>
-          <span className="text-xs font-medium text-slate-500 uppercase">Tipo</span>
-          <span className="text-xs font-medium text-slate-500 uppercase">Garantía</span>
-          <span className="text-xs font-medium text-slate-500 uppercase text-right">Cantidad</span>
-          <span className="text-xs font-medium text-slate-500 uppercase text-right">P. unitario</span>
-          <span className="text-xs font-medium text-slate-500 uppercase text-right">Total</span>
-          <span />
-        </div>
+        {vehicleFields.map((field, vehicleIndex) => {
+          // Vehículos ya elegidos en otros grupos — los ocultamos para evitar duplicados
+          const chosenElsewhere = new Set(
+            (vehicleEntries ?? [])
+              .map((e, i) => (i === vehicleIndex ? null : e?.vehicleId))
+              .filter((id): id is string => Boolean(id))
+          );
+          const currentVehicleId = vehicleEntries?.[vehicleIndex]?.vehicleId;
+          const availableVehicles = clientVehicles.filter(
+            (v) => v.id === currentVehicleId || !chosenElsewhere.has(v.id)
+          );
 
-        {/* Filas de líneas */}
-        <div className="divide-y divide-slate-100">
-          {fields.map((field, index) => {
-            const qty = Number(lineItems?.[index]?.quantity) || 0;
-            const price = Number(lineItems?.[index]?.unitPrice) || 0;
-            const lineTotal = new Decimal(qty).times(price);
+          return (
+            <VehicleSection
+              key={field.id}
+              vehicleIndex={vehicleIndex}
+              control={control}
+              register={register}
+              setValue={setValue}
+              errors={errors}
+              isQuote={isQuote}
+              selectedClientId={selectedClientId}
+              availableVehicles={availableVehicles}
+              canRemove={vehicleFields.length > 1}
+              onRemove={() => removeVehicle(vehicleIndex)}
+            />
+          );
+        })}
 
-            return (
-              <div
-                key={field.id}
-                className="grid grid-cols-[1fr_36px] sm:grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-3 items-start"
-              >
-                {/* Descripción */}
-                <div>
-                  <Controller
-                    control={control}
-                    name={`lineItems.${index}.description`}
-                    render={({ field }) => (
-                      <LineItemDescriptionInput
-                        value={field.value}
-                        onChange={field.onChange}
-                        onSelectSuggestion={(s) => {
-                          field.onChange(s.description);
-                          setValue(`lineItems.${index}.itemType`, s.itemType);
-                          setValue(`lineItems.${index}.unitPrice`, s.unitPrice);
-                        }}
-                        hasError={!!errors.lineItems?.[index]?.description}
-                        inputClass={inputClass(!!errors.lineItems?.[index]?.description)}
-                      />
-                    )}
-                  />
-                  {errors.lineItems?.[index]?.description && (
-                    <p className="text-red-600 text-xs mt-1">
-                      {errors.lineItems[index]?.description?.message}
-                    </p>
-                  )}
-                  <input
-                    {...register(`lineItems.${index}.warrantyTerm`)}
-                    type="text"
-                    placeholder="Garantía ej: 12 meses"
-                    className={`${inputClass(false)} text-xs mt-2 sm:hidden`}
-                  />
-                  {/* Mobile: Tipo, Cantidad, Precio en columna */}
-                  <div className="sm:hidden grid grid-cols-3 gap-2 mt-2">
-                    <select
-                      {...register(`lineItems.${index}.itemType`)}
-                      className={`${selectClass(false)} text-xs py-1.5`}
-                    >
-                      {ITEM_TYPES.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                      ))}
-                    </select>
-                    <input
-                      {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
-                      type="number"
-                      min={0}
-                      step="0.5"
-                      placeholder="1"
-                      className={`${inputClass(false)} text-xs py-1.5`}
-                    />
-                    <input
-                      {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="0.00"
-                      className={`${inputClass(false)} text-xs py-1.5`}
-                    />
-                  </div>
-                </div>
-
-                {/* Tipo (desktop) */}
-                <select
-                  {...register(`lineItems.${index}.itemType`)}
-                  className={`${selectClass(false)} hidden sm:block`}
-                >
-                  {ITEM_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-
-                {/* Garantía (desktop) */}
-                <input
-                  {...register(`lineItems.${index}.warrantyTerm`)}
-                  type="text"
-                  placeholder="12 meses"
-                  className={`${inputClass(false)} hidden sm:block text-xs`}
-                />
-
-                {/* Cantidad (desktop) */}
-                <input
-                  {...register(`lineItems.${index}.quantity`, { valueAsNumber: true })}
-                  type="number"
-                  min={0}
-                  step="0.5"
-                  placeholder="1"
-                  className={`${inputClass(false)} text-right hidden sm:block`}
-                />
-
-                {/* Precio unitario (desktop) */}
-                <div className="hidden sm:block relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
-                  <input
-                    {...register(`lineItems.${index}.unitPrice`, { valueAsNumber: true })}
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    placeholder="0.00"
-                    className={`${inputClass(false)} pl-6 text-right`}
-                  />
-                </div>
-
-                {/* Total de línea (solo lectura) */}
-                <div className="hidden sm:flex items-center justify-end">
-                  <span className="text-sm font-medium text-slate-900">
-                    ${lineTotal.toFixed(2)}
-                  </span>
-                </div>
-
-                {/* Botón eliminar */}
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  disabled={fields.length === 1}
-                  className="flex items-center justify-center w-8 h-8 mt-0.5 text-slate-400 hover:text-red-500 disabled:opacity-30 transition-colors rounded"
-                  title="Eliminar línea"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Botón agregar línea */}
-        <div className="px-5 py-3 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={() =>
-              append({ description: "", quantity: 1, unitPrice: 0, itemType: "LABOUR", warrantyTerm: "" })
-            }
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar línea
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => appendVehicle({ ...EMPTY_VEHICLE_ENTRY, lineItems: [{ ...EMPTY_LINE_ITEM }] })}
+          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Agregar otro vehículo
+        </button>
       </div>
 
       {/* ── Totales + Impuestos + Notas ── */}
@@ -502,6 +347,285 @@ export function InvoiceForm({
         </a>
       </div>
     </form>
+  );
+}
+
+// ── Sección de un vehículo: selección + kilometraje + sus líneas de servicio ──
+// Vive en su propio componente porque useFieldArray no puede llamarse dentro
+// de un map (reglas de hooks): cada vehículo necesita su propio array de líneas.
+function VehicleSection({
+  vehicleIndex,
+  control,
+  register,
+  setValue,
+  errors,
+  isQuote,
+  selectedClientId,
+  availableVehicles,
+  canRemove,
+  onRemove,
+}: {
+  vehicleIndex: number;
+  control: Control<InvoiceFormData>;
+  register: UseFormRegister<InvoiceFormData>;
+  setValue: UseFormSetValue<InvoiceFormData>;
+  errors: FieldErrors<InvoiceFormData>;
+  isQuote: boolean;
+  selectedClientId: string;
+  availableVehicles: VehicleOption[];
+  canRemove: boolean;
+  onRemove: () => void;
+}) {
+  const lineItemsName = `vehicles.${vehicleIndex}.lineItems` as const;
+  const { fields, append, remove } = useFieldArray({ control, name: lineItemsName });
+  const lineItems = useWatch({ control, name: lineItemsName });
+
+  const vehicleErrors = errors.vehicles?.[vehicleIndex];
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+      {/* Selección de vehículo + kilometraje */}
+      <div className="p-5 space-y-4 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="font-semibold text-slate-900">
+            Vehículo {vehicleIndex + 1}
+          </h2>
+          {canRemove && (
+            <button
+              type="button"
+              onClick={onRemove}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-red-500 transition-colors"
+              title="Quitar vehículo"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              Quitar
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Vehículo *
+            </label>
+            <select
+              {...register(`vehicles.${vehicleIndex}.vehicleId` as const)}
+              disabled={!selectedClientId || availableVehicles.length === 0}
+              className={selectClass(!!vehicleErrors?.vehicleId)}
+            >
+              <option value="">
+                {!selectedClientId
+                  ? "Selecciona un cliente primero"
+                  : availableVehicles.length === 0
+                  ? "Sin vehículos disponibles"
+                  : "Seleccionar vehículo..."}
+              </option>
+              {availableVehicles.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.year} {v.make} {v.model} — {v.licensePlate}
+                </option>
+              ))}
+            </select>
+            {vehicleErrors?.vehicleId && (
+              <p className="text-red-600 text-xs mt-1">{vehicleErrors.vehicleId.message}</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Km entrada (opcional)
+            </label>
+            <input
+              {...register(`vehicles.${vehicleIndex}.mileageIn` as const, { setValueAs: emptyToNull })}
+              type="number"
+              min={0}
+              placeholder="75,000"
+              className={inputClass(false)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Km salida (opcional)
+            </label>
+            <input
+              {...register(`vehicles.${vehicleIndex}.mileageOut` as const, { setValueAs: emptyToNull })}
+              type="number"
+              min={0}
+              placeholder="75,050"
+              className={inputClass(false)}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Líneas de servicio de este vehículo */}
+      <div className="px-5 py-4 border-b border-slate-100">
+        <h3 className="text-sm font-semibold text-slate-900">Servicios y repuestos</h3>
+        {vehicleErrors?.lineItems?.root && (
+          <p className="text-red-600 text-xs mt-1">{vehicleErrors.lineItems.root.message}</p>
+        )}
+        {typeof vehicleErrors?.lineItems?.message === "string" && (
+          <p className="text-red-600 text-xs mt-1">{vehicleErrors.lineItems.message}</p>
+        )}
+      </div>
+
+      {/* Header de la tabla */}
+      <div className="hidden sm:grid grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-2 bg-slate-50 border-b border-slate-100">
+        <span className="text-xs font-medium text-slate-500 uppercase">Descripción</span>
+        <span className="text-xs font-medium text-slate-500 uppercase">Tipo</span>
+        <span className="text-xs font-medium text-slate-500 uppercase">Garantía</span>
+        <span className="text-xs font-medium text-slate-500 uppercase text-right">Cantidad</span>
+        <span className="text-xs font-medium text-slate-500 uppercase text-right">P. unitario</span>
+        <span className="text-xs font-medium text-slate-500 uppercase text-right">Total</span>
+        <span />
+      </div>
+
+      {/* Filas de líneas */}
+      <div className="divide-y divide-slate-100">
+        {fields.map((field, index) => {
+          const qty = Number(lineItems?.[index]?.quantity) || 0;
+          const price = Number(lineItems?.[index]?.unitPrice) || 0;
+          const lineTotal = new Decimal(qty).times(price);
+          const itemErrors = vehicleErrors?.lineItems?.[index];
+
+          return (
+            <div
+              key={field.id}
+              className="grid grid-cols-[1fr_36px] sm:grid-cols-[1fr_120px_90px_100px_110px_80px_36px] gap-3 px-5 py-3 items-start"
+            >
+              {/* Descripción */}
+              <div>
+                <Controller
+                  control={control}
+                  name={`${lineItemsName}.${index}.description` as const}
+                  render={({ field }) => (
+                    <LineItemDescriptionInput
+                      value={field.value}
+                      onChange={field.onChange}
+                      onSelectSuggestion={(s) => {
+                        field.onChange(s.description);
+                        setValue(`${lineItemsName}.${index}.itemType` as const, s.itemType);
+                        setValue(`${lineItemsName}.${index}.unitPrice` as const, s.unitPrice);
+                      }}
+                      hasError={!!itemErrors?.description}
+                      inputClass={inputClass(!!itemErrors?.description)}
+                    />
+                  )}
+                />
+                {itemErrors?.description && (
+                  <p className="text-red-600 text-xs mt-1">
+                    {itemErrors.description?.message}
+                  </p>
+                )}
+                <input
+                  {...register(`${lineItemsName}.${index}.warrantyTerm` as const)}
+                  type="text"
+                  placeholder="Garantía ej: 12 meses"
+                  className={`${inputClass(false)} text-xs mt-2 sm:hidden`}
+                />
+                {/* Mobile: Tipo, Cantidad, Precio en columna */}
+                <div className="sm:hidden grid grid-cols-3 gap-2 mt-2">
+                  <select
+                    {...register(`${lineItemsName}.${index}.itemType` as const)}
+                    className={`${selectClass(false)} text-xs py-1.5`}
+                  >
+                    {ITEM_TYPES.map((t) => (
+                      <option key={t.value} value={t.value}>{t.label}</option>
+                    ))}
+                  </select>
+                  <input
+                    {...register(`${lineItemsName}.${index}.quantity` as const, { valueAsNumber: true })}
+                    type="number"
+                    min={0}
+                    step="0.5"
+                    placeholder="1"
+                    className={`${inputClass(false)} text-xs py-1.5`}
+                  />
+                  <input
+                    {...register(`${lineItemsName}.${index}.unitPrice` as const, { valueAsNumber: true })}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    className={`${inputClass(false)} text-xs py-1.5`}
+                  />
+                </div>
+              </div>
+
+              {/* Tipo (desktop) */}
+              <select
+                {...register(`${lineItemsName}.${index}.itemType` as const)}
+                className={`${selectClass(false)} hidden sm:block`}
+              >
+                {ITEM_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.label}</option>
+                ))}
+              </select>
+
+              {/* Garantía (desktop) */}
+              <input
+                {...register(`${lineItemsName}.${index}.warrantyTerm` as const)}
+                type="text"
+                placeholder="12 meses"
+                className={`${inputClass(false)} hidden sm:block text-xs`}
+              />
+
+              {/* Cantidad (desktop) */}
+              <input
+                {...register(`${lineItemsName}.${index}.quantity` as const, { valueAsNumber: true })}
+                type="number"
+                min={0}
+                step="0.5"
+                placeholder="1"
+                className={`${inputClass(false)} text-right hidden sm:block`}
+              />
+
+              {/* Precio unitario (desktop) */}
+              <div className="hidden sm:block relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                <input
+                  {...register(`${lineItemsName}.${index}.unitPrice` as const, { valueAsNumber: true })}
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0.00"
+                  className={`${inputClass(false)} pl-6 text-right`}
+                />
+              </div>
+
+              {/* Total de línea (solo lectura) */}
+              <div className="hidden sm:flex items-center justify-end">
+                <span className="text-sm font-medium text-slate-900">
+                  ${lineTotal.toFixed(2)}
+                </span>
+              </div>
+
+              {/* Botón eliminar */}
+              <button
+                type="button"
+                onClick={() => remove(index)}
+                disabled={fields.length === 1}
+                className="flex items-center justify-center w-8 h-8 mt-0.5 text-slate-400 hover:text-red-500 disabled:opacity-30 transition-colors rounded"
+                title="Eliminar línea"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Botón agregar línea */}
+      <div className="px-5 py-3 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={() => append({ ...EMPTY_LINE_ITEM })}
+          className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Agregar línea
+        </button>
+      </div>
+    </div>
   );
 }
 

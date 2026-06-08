@@ -87,7 +87,7 @@ export async function getInvoices(status?: string) {
     },
     include: {
       client: true,
-      vehicle: true,
+      vehicles: { include: { vehicle: true }, orderBy: { sortOrder: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -100,8 +100,10 @@ export async function getInvoiceById(id: string) {
     where: { id, shopId },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
       paymentEntries: { orderBy: { sortOrder: "asc" } },
       shop: true,
     },
@@ -121,13 +123,13 @@ export async function createInvoice(formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
-    parsed.data;
+  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
 
   // Calcular totales con Decimal para evitar errores de punto flotante.
   // Problema real: 0.1 + 0.2 = 0.30000000000000004 en JavaScript.
   // Decimal.js resuelve esto usando aritmética de precisión arbitraria.
-  const subtotal = lineItems.reduce((sum, item) => {
+  const allLineItems = vehicles.flatMap((v) => v.lineItems);
+  const subtotal = allLineItems.reduce((sum, item) => {
     return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
   }, new Decimal(0));
 
@@ -137,7 +139,6 @@ export async function createInvoice(formData: InvoiceFormData) {
   const invoiceData = {
     shopId,
     clientId,
-    vehicleId,
     status: "SENT" as const,
     subtotal: subtotal.toFixed(2),
     taxRate: roundTaxRate(taxRate),
@@ -145,18 +146,24 @@ export async function createInvoice(formData: InvoiceFormData) {
     total: total.toFixed(2),
     language,
     notes: notes || null,
-    mileageIn: mileageIn ?? null,
-    mileageOut: mileageOut ?? null,
     dueAt: dueAt ? new Date(dueAt) : null,
-    lineItems: {
-      create: lineItems.map((item, index) => ({
-        description: item.description,
-        quantity: item.quantity.toString(),
-        unitPrice: item.unitPrice.toString(),
-        lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
-        itemType: item.itemType,
-        warrantyTerm: item.warrantyTerm?.trim() || null,
-        sortOrder: index,
+    vehicles: {
+      create: vehicles.map((v, vIndex) => ({
+        vehicleId: v.vehicleId,
+        mileageIn: v.mileageIn ?? null,
+        mileageOut: v.mileageOut ?? null,
+        sortOrder: vIndex,
+        lineItems: {
+          create: v.lineItems.map((item, index) => ({
+            description: item.description,
+            quantity: item.quantity.toString(),
+            unitPrice: item.unitPrice.toString(),
+            lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+            itemType: item.itemType,
+            warrantyTerm: item.warrantyTerm?.trim() || null,
+            sortOrder: index,
+          })),
+        },
       })),
     },
   };
@@ -193,7 +200,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     };
   }
 
-  await syncSavedLineItems(shopId, lineItems);
+  await syncSavedLineItems(shopId, allLineItems);
 
   revalidatePath(ADMIN.invoices);
   redirect(`${ADMIN.invoices}/${invoice.id}`);
@@ -210,8 +217,10 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
     where: { id, shopId },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
       paymentEntries: { orderBy: { sortOrder: "asc" } },
       shop: true,
     },
@@ -240,7 +249,9 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const pdfSerialized = serializeInvoiceForPdf(invoice);
   const pdfBuffer = await generateInvoicePdf(pdfSerialized);
   const clientName = formatClientName(invoice.client);
-  const vehicleDescription = `${invoice.vehicle.year} ${invoice.vehicle.make} ${invoice.vehicle.model}`;
+  const vehicleDescription = invoice.vehicles
+    .map((iv) => `${iv.vehicle.year} ${iv.vehicle.make} ${iv.vehicle.model}`)
+    .join(", ");
 
   const attachmentResult = await parseEmailAttachments(formData);
   if ("error" in attachmentResult) {
@@ -320,8 +331,10 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     where: { id, shopId, status: { in: [...INVOICE_PENDING_STATUSES] } },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
       shop: true,
     },
   });
@@ -587,10 +600,10 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
-    parsed.data;
+  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
 
-  const subtotal = lineItems.reduce((sum, item) => {
+  const allLineItems = vehicles.flatMap((v) => v.lineItems);
+  const subtotal = allLineItems.reduce((sum, item) => {
     return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
   }, new Decimal(0));
 
@@ -598,39 +611,45 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
   const total = subtotal.plus(taxAmount);
 
   await db.$transaction(async (tx) => {
-    await tx.invoiceLineItem.deleteMany({ where: { invoiceId: id } });
+    // onDelete: Cascade en InvoiceVehicle → InvoiceLineItem se borran con él
+    await tx.invoiceVehicle.deleteMany({ where: { invoiceId: id } });
 
     await tx.invoice.update({
       where: { id },
       data: {
         clientId,
-        vehicleId,
         subtotal: subtotal.toFixed(2),
         taxRate: roundTaxRate(taxRate),
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         language,
         notes: notes || null,
-        mileageIn: mileageIn ?? null,
-        mileageOut: mileageOut ?? null,
         dueAt: dueAt ? new Date(dueAt) : null,
         pdfUrl: null,
-        lineItems: {
-          create: lineItems.map((item, index) => ({
-            description: item.description,
-            quantity: item.quantity.toString(),
-            unitPrice: item.unitPrice.toString(),
-            lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
-            itemType: item.itemType,
-            warrantyTerm: item.warrantyTerm?.trim() || null,
-            sortOrder: index,
+        vehicles: {
+          create: vehicles.map((v, vIndex) => ({
+            vehicleId: v.vehicleId,
+            mileageIn: v.mileageIn ?? null,
+            mileageOut: v.mileageOut ?? null,
+            sortOrder: vIndex,
+            lineItems: {
+              create: v.lineItems.map((item, index) => ({
+                description: item.description,
+                quantity: item.quantity.toString(),
+                unitPrice: item.unitPrice.toString(),
+                lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+                itemType: item.itemType,
+                warrantyTerm: item.warrantyTerm?.trim() || null,
+                sortOrder: index,
+              })),
+            },
           })),
         },
       },
     });
   });
 
-  await syncSavedLineItems(shopId, lineItems);
+  await syncSavedLineItems(shopId, allLineItems);
 
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);

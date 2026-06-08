@@ -40,17 +40,27 @@ export const lineItemSchema = z.object({
 
 export type LineItemData = z.infer<typeof lineItemSchema>;
 
-export const invoiceSchema = z.object({
-  clientId: z.string().min(1, "Selecciona un cliente"),
+// Un vehículo dentro de la factura/cotización: su propio kilometraje
+// y sus propias líneas de servicio agrupadas.
+export const invoiceVehicleSchema = z.object({
   vehicleId: z.string().min(1, "Selecciona un vehículo"),
+  mileageIn: z.number().int().min(0).optional().nullable(),
+  mileageOut: z.number().int().min(0).optional().nullable(),
   lineItems: z
     .array(lineItemSchema)
     .min(1, "Agrega al menos una línea de servicio"),
+});
+
+export type InvoiceVehicleData = z.infer<typeof invoiceVehicleSchema>;
+
+export const invoiceSchema = z.object({
+  clientId: z.string().min(1, "Selecciona un cliente"),
+  vehicles: z
+    .array(invoiceVehicleSchema)
+    .min(1, "Agrega al menos un vehículo"),
   taxRate: z.number().min(0).max(1), // 0.14975 = TPS+TVQ Quebec
   language: z.enum(["ES", "EN", "FR"]).default("ES"),
   notes: z.string().max(1000).optional().or(z.literal("")),
-  mileageIn: z.number().int().min(0).optional().nullable(),
-  mileageOut: z.number().int().min(0).optional().nullable(),
   dueAt: z.string().optional().or(z.literal("")), // ISO date string
 });
 

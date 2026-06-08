@@ -35,7 +35,7 @@ export async function getQuotes(status?: string) {
     },
     include: {
       client: true,
-      vehicle: true,
+      vehicles: { include: { vehicle: true }, orderBy: { sortOrder: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -48,8 +48,10 @@ export async function getQuoteById(id: string) {
     where: { id, shopId },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
       shop: true,
     },
   });
@@ -68,10 +70,10 @@ export async function createQuote(formData: QuoteFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
-    parsed.data;
+  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
 
-  const subtotal = lineItems.reduce((sum, item) => {
+  const allLineItems = vehicles.flatMap((v) => v.lineItems);
+  const subtotal = allLineItems.reduce((sum, item) => {
     return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
   }, new Decimal(0));
 
@@ -85,7 +87,6 @@ export async function createQuote(formData: QuoteFormData) {
       data: {
         shopId,
         clientId,
-        vehicleId,
         quoteNumber,
         status: "DRAFT",
         subtotal: subtotal.toFixed(2),
@@ -94,25 +95,31 @@ export async function createQuote(formData: QuoteFormData) {
         total: total.toFixed(2),
         language,
         notes: notes || null,
-        mileageIn: mileageIn ?? null,
-        mileageOut: mileageOut ?? null,
         validUntil: dueAt ? new Date(dueAt) : null,
-        lineItems: {
-          create: lineItems.map((item, index) => ({
-            description: item.description,
-            quantity: item.quantity.toString(),
-            unitPrice: item.unitPrice.toString(),
-            lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
-            itemType: item.itemType,
-            warrantyTerm: item.warrantyTerm?.trim() || null,
-            sortOrder: index,
+        vehicles: {
+          create: vehicles.map((v, vIndex) => ({
+            vehicleId: v.vehicleId,
+            mileageIn: v.mileageIn ?? null,
+            mileageOut: v.mileageOut ?? null,
+            sortOrder: vIndex,
+            lineItems: {
+              create: v.lineItems.map((item, index) => ({
+                description: item.description,
+                quantity: item.quantity.toString(),
+                unitPrice: item.unitPrice.toString(),
+                lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+                itemType: item.itemType,
+                warrantyTerm: item.warrantyTerm?.trim() || null,
+                sortOrder: index,
+              })),
+            },
           })),
         },
       },
     });
   });
 
-  await syncSavedLineItems(shopId, lineItems);
+  await syncSavedLineItems(shopId, allLineItems);
 
   revalidatePath(ADMIN.quotes);
   redirect(`${ADMIN.quotes}/${quote.id}`);
@@ -136,10 +143,10 @@ export async function updateQuote(id: string, formData: QuoteFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, lineItems, taxRate, language, notes, mileageIn, mileageOut, dueAt } =
-    parsed.data;
+  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
 
-  const subtotal = lineItems.reduce((sum, item) => {
+  const allLineItems = vehicles.flatMap((v) => v.lineItems);
+  const subtotal = allLineItems.reduce((sum, item) => {
     return sum.plus(new Decimal(item.quantity).times(item.unitPrice));
   }, new Decimal(0));
 
@@ -147,38 +154,44 @@ export async function updateQuote(id: string, formData: QuoteFormData) {
   const total = subtotal.plus(taxAmount);
 
   await db.$transaction(async (tx) => {
-    await tx.quoteLineItem.deleteMany({ where: { quoteId: id } });
+    // onDelete: Cascade en QuoteVehicle → QuoteLineItem se borran con él
+    await tx.quoteVehicle.deleteMany({ where: { quoteId: id } });
 
     await tx.quote.update({
       where: { id },
       data: {
         clientId,
-        vehicleId,
         subtotal: subtotal.toFixed(2),
         taxRate: roundTaxRate(taxRate),
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         language,
         notes: notes || null,
-        mileageIn: mileageIn ?? null,
-        mileageOut: mileageOut ?? null,
         validUntil: dueAt ? new Date(dueAt) : null,
-        lineItems: {
-          create: lineItems.map((item, index) => ({
-            description: item.description,
-            quantity: item.quantity.toString(),
-            unitPrice: item.unitPrice.toString(),
-            lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
-            itemType: item.itemType,
-            warrantyTerm: item.warrantyTerm?.trim() || null,
-            sortOrder: index,
+        vehicles: {
+          create: vehicles.map((v, vIndex) => ({
+            vehicleId: v.vehicleId,
+            mileageIn: v.mileageIn ?? null,
+            mileageOut: v.mileageOut ?? null,
+            sortOrder: vIndex,
+            lineItems: {
+              create: v.lineItems.map((item, index) => ({
+                description: item.description,
+                quantity: item.quantity.toString(),
+                unitPrice: item.unitPrice.toString(),
+                lineTotal: new Decimal(item.quantity).times(item.unitPrice).toFixed(2),
+                itemType: item.itemType,
+                warrantyTerm: item.warrantyTerm?.trim() || null,
+                sortOrder: index,
+              })),
+            },
           })),
         },
       },
     });
   });
 
-  await syncSavedLineItems(shopId, lineItems);
+  await syncSavedLineItems(shopId, allLineItems);
 
   revalidatePath(`/quotes/${id}`);
   revalidatePath(ADMIN.quotes);
@@ -212,8 +225,10 @@ export async function sendQuoteByEmail(id: string, formData?: FormData) {
     where: { id, shopId },
     include: {
       client: true,
-      vehicle: true,
-      lineItems: { orderBy: { sortOrder: "asc" } },
+      vehicles: {
+        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
       shop: true,
     },
   });
@@ -245,7 +260,9 @@ export async function sendQuoteByEmail(id: string, formData?: FormData) {
   const isResend = quote.emailSendCount > 0;
   const pdfBuffer = await generateQuotePdf(serializeQuoteForPdf(quote));
   const clientName = formatClientName(quote.client);
-  const vehicleDescription = `${quote.vehicle.year} ${quote.vehicle.make} ${quote.vehicle.model}`;
+  const vehicleDescription = quote.vehicles
+    .map((qv) => `${qv.vehicle.year} ${qv.vehicle.make} ${qv.vehicle.model}`)
+    .join(", ");
 
   try {
     await sendQuoteEmail({
@@ -323,7 +340,12 @@ export async function convertQuoteToInvoice(id: string) {
 
   const quote = await db.quote.findFirst({
     where: { id, shopId },
-    include: { lineItems: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      vehicles: {
+        include: { lineItems: { orderBy: { sortOrder: "asc" } } },
+        orderBy: { sortOrder: "asc" },
+      },
+    },
   });
 
   if (!quote) {
@@ -345,7 +367,6 @@ export async function convertQuoteToInvoice(id: string) {
       data: {
         shopId,
         clientId: quote.clientId,
-        vehicleId: quote.vehicleId,
         invoiceNumber,
         status: "DRAFT",
         subtotal: quote.subtotal,
@@ -354,18 +375,24 @@ export async function convertQuoteToInvoice(id: string) {
         total: quote.total,
         language: quote.language,
         notes: quote.notes,
-        mileageIn: quote.mileageIn,
-        mileageOut: quote.mileageOut,
         dueAt: quote.validUntil,
-        lineItems: {
-          create: quote.lineItems.map((item) => ({
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            lineTotal: item.lineTotal,
-            itemType: item.itemType,
-            warrantyTerm: item.warrantyTerm,
-            sortOrder: item.sortOrder,
+        vehicles: {
+          create: quote.vehicles.map((qv) => ({
+            vehicleId: qv.vehicleId,
+            mileageIn: qv.mileageIn,
+            mileageOut: qv.mileageOut,
+            sortOrder: qv.sortOrder,
+            lineItems: {
+              create: qv.lineItems.map((item) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                lineTotal: item.lineTotal,
+                itemType: item.itemType,
+                warrantyTerm: item.warrantyTerm,
+                sortOrder: item.sortOrder,
+              })),
+            },
           })),
         },
       },

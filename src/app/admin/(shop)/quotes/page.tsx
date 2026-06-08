@@ -121,10 +121,14 @@ export default async function QuotesPage({ searchParams }: PageProps) {
                   <p className="text-slate-500 text-sm">{formatClientName(quote.client)}</p>
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm text-slate-700">
-                    {quote.vehicle.year} {quote.vehicle.make} {quote.vehicle.model}
-                  </p>
-                  <p className="text-xs text-slate-400">{quote.vehicle.licensePlate}</p>
+                  {quote.vehicles.map((qv) => (
+                    <div key={qv.id} className="mb-1 last:mb-0">
+                      <p className="text-sm text-slate-700">
+                        {qv.vehicle.year} {qv.vehicle.make} {qv.vehicle.model}
+                      </p>
+                      <p className="text-xs text-slate-400">{qv.vehicle.licensePlate}</p>
+                    </div>
+                  ))}
                 </div>
                 <div className="hidden sm:block text-sm text-slate-600">
                   {formatDate(quote.issuedAt)}

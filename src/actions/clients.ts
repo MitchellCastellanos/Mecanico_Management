@@ -48,7 +48,7 @@ export async function getClientById(id: string) {
       invoices: {
         orderBy: { createdAt: "desc" },
         take: 5,
-        include: { vehicle: true },
+        include: { vehicles: { include: { vehicle: true }, orderBy: { sortOrder: "asc" } } },
       },
       _count: { select: { vehicles: true, invoices: true } },
     },

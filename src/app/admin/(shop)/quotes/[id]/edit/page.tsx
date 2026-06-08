@@ -24,19 +24,21 @@ export default async function EditQuotePage({ params }: PageProps) {
 
   const initialValues: Partial<QuoteFormData> = {
     clientId: quote.clientId,
-    vehicleId: quote.vehicleId,
     taxRate: Number(quote.taxRate),
     language: quote.language as "ES" | "EN" | "FR",
     notes: quote.notes ?? "",
-    mileageIn: quote.mileageIn ?? undefined,
-    mileageOut: quote.mileageOut ?? undefined,
     dueAt: quote.validUntil ? quote.validUntil.toISOString().split("T")[0] : "",
-    lineItems: quote.lineItems.map((item) => ({
-      description: item.description,
-      quantity: Number(item.quantity),
-      unitPrice: Number(item.unitPrice),
-      itemType: item.itemType as "LABOUR" | "PART" | "OTHER",
-      warrantyTerm: item.warrantyTerm ?? "",
+    vehicles: quote.vehicles.map((qv) => ({
+      vehicleId: qv.vehicleId,
+      mileageIn: qv.mileageIn ?? undefined,
+      mileageOut: qv.mileageOut ?? undefined,
+      lineItems: qv.lineItems.map((item) => ({
+        description: item.description,
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        itemType: item.itemType as "LABOUR" | "PART" | "OTHER",
+        warrantyTerm: item.warrantyTerm ?? "",
+      })),
     })),
   };
 
