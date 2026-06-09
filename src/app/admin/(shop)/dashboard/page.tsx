@@ -24,6 +24,7 @@ import {
   INVOICE_PENDING_STATUSES,
 } from "@/lib/invoice-status";
 import { getInvoiceRecordedRevenue } from "@/lib/invoice-payments";
+import { computeRevenueBreakdown } from "@/lib/revenue-analytics";
 
 // Nombres cortos de meses en español
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -69,7 +70,14 @@ export default async function DashboardPage() {
     // Ingresos este mes
     db.invoice.findMany({
       where: { shopId, status: "PAID", paidAt: { gte: startOfMonth } },
-      select: { total: true, recordedRevenue: true, status: true },
+      select: {
+        total: true,
+        recordedRevenue: true,
+        status: true,
+        revenueType: true,
+        paymentMode: true,
+        paymentEntries: { select: { method: true, amount: true } },
+      },
     }),
     db.invoice.findMany({
       where: {
@@ -168,6 +176,20 @@ export default async function DashboardPage() {
   const revenueChange =
     lastMonth === 0 ? null : ((thisMonth - lastMonth) / lastMonth) * 100;
 
+  const monthBreakdown = computeRevenueBreakdown(paidInvoicesThisMonth);
+  const breakdownCards = [
+    { label: "Ingreso total", value: monthBreakdown.totalRevenue },
+    { label: "Ingreso oficial", value: monthBreakdown.officialRevenue },
+    { label: "Solo interno", value: monthBreakdown.internalRevenue },
+    { label: "Pagos con tarjeta", value: monthBreakdown.cardPayments },
+    { label: "Pagos en efectivo", value: monthBreakdown.cashPayments },
+    { label: "Pagos mixtos", value: monthBreakdown.mixedPayments },
+    { label: "Efectivo oficial", value: monthBreakdown.officialCash },
+    { label: "Efectivo interno", value: monthBreakdown.internalCash },
+    { label: "Tarjeta oficial", value: monthBreakdown.officialCard },
+    { label: "Tarjeta interna", value: monthBreakdown.internalCard },
+  ];
+
   const metrics = [
     {
       label: "Clientes registrados",
@@ -243,6 +265,27 @@ export default async function DashboardPage() {
             </Link>
           );
         })}
+      </div>
+
+      {/* ── Desglose de ingresos (mes actual) ── */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <h2 className="font-semibold text-slate-900 mb-1">Ingresos del mes — desglose</h2>
+        <p className="text-xs text-slate-400 mb-4">
+          Método de pago y visibilidad contable son independientes. Solo interno no se exporta automáticamente a contabilidad.
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          {breakdownCards.map((card) => (
+            <div
+              key={card.label}
+              className="rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2.5"
+            >
+              <p className="text-[11px] text-slate-500 leading-tight">{card.label}</p>
+              <p className="text-sm font-semibold text-slate-900 mt-1">
+                {formatCurrency(card.value)}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* ── Charts ── */}
@@ -342,6 +385,7 @@ export default async function DashboardPage() {
               { href: "/invoices/new", label: "Nueva factura", icon: FileText, bg: "bg-violet-50", color: "text-violet-600" },
               { href: "/reminders/new", label: "Nuevo recordatorio", icon: Bell, bg: "bg-amber-50", color: "text-amber-600" },
               { href: "/accounting", label: "Subir documento", icon: Plus, bg: "bg-slate-100", color: "text-slate-600" },
+              { href: "/caja", label: "Caja / efectivo", icon: DollarSign, bg: "bg-emerald-50", color: "text-emerald-600" },
             ].map(({ href, label, icon: Icon, bg, color }) => (
               <Link
                 key={href}

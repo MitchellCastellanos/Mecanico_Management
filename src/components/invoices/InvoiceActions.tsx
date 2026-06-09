@@ -23,6 +23,7 @@ interface InvoiceActionsProps {
   emailSendCount?: number;
   subtotal?: number;
   total?: number;
+  revenueType?: "OFFICIAL" | "INTERNAL_ONLY";
   isPaid?: boolean;
 }
 
@@ -38,6 +39,7 @@ export function InvoiceActions({
   emailSendCount = 0,
   subtotal = 0,
   total = 0,
+  revenueType = "OFFICIAL",
   isPaid = false,
 }: InvoiceActionsProps) {
   const router = useRouter();
@@ -120,6 +122,7 @@ export function InvoiceActions({
           invoiceNumber={invoiceNumber}
           subtotal={subtotal}
           total={total}
+          revenueType={revenueType}
           disabled={isAnyPending}
         />
       )}

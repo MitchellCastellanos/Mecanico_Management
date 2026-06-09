@@ -23,6 +23,7 @@ import {
   TVQ_RATE,
 } from "@/lib/taxes";
 import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
+import { REVENUE_TYPE_OPTIONS } from "@/lib/revenue-analytics";
 import { Plus, Trash2 } from "lucide-react";
 import { LineItemDescriptionInput } from "@/components/invoices/LineItemDescriptionInput";
 import Decimal from "decimal.js";
@@ -99,6 +100,7 @@ export function InvoiceForm({
       clientId: "",
       taxRate: TAX_RATE,
       language: "ES",
+      revenueType: "OFFICIAL",
       notes: "",
       dueAt: "",
       vehicles: [{ ...EMPTY_VEHICLE_ENTRY, lineItems: [{ ...EMPTY_LINE_ITEM }] }],
@@ -116,6 +118,7 @@ export function InvoiceForm({
   const selectedClientId = watch("clientId");
   const vehicleEntries = useWatch({ control, name: "vehicles" });
   const taxRate = watch("taxRate");
+  const selectedRevenueType = watch("revenueType");
 
   // Vehículos disponibles del cliente seleccionado
   const selectedClient = clients.find((c) => c.id === selectedClientId);
@@ -210,6 +213,28 @@ export function InvoiceForm({
             </select>
           </div>
         </div>
+
+        {!isQuote && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Visibilidad contable
+            </label>
+            <select
+              {...register("revenueType")}
+              className={selectClass(!!errors.revenueType)}
+            >
+              {REVENUE_TYPE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-500 mt-1.5">
+              {REVENUE_TYPE_OPTIONS.find((o) => o.value === selectedRevenueType)?.helper ??
+                "El ingreso oficial se incluye en exportaciones para contabilidad. Solo interno se usa para seguimiento del dueño y no se exporta automáticamente."}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* ── Vehículos (uno o varios) ── */}

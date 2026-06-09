@@ -27,6 +27,7 @@ export default async function EditInvoicePage({ params }: PageProps) {
     clientId: invoice.clientId,
     taxRate: Number(invoice.taxRate),
     language: invoice.language as "ES" | "EN" | "FR",
+    revenueType: (invoice.revenueType ?? "OFFICIAL") as "OFFICIAL" | "INTERNAL_ONLY",
     notes: invoice.notes ?? "",
     dueAt: invoice.dueAt ? invoice.dueAt.toISOString().split("T")[0] : "",
     vehicles: invoice.vehicles.map((iv) => ({

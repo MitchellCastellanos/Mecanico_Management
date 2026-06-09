@@ -53,6 +53,8 @@ export const invoiceVehicleSchema = z.object({
 
 export type InvoiceVehicleData = z.infer<typeof invoiceVehicleSchema>;
 
+export const revenueTypeSchema = z.enum(["OFFICIAL", "INTERNAL_ONLY"]).default("OFFICIAL");
+
 export const invoiceSchema = z.object({
   clientId: z.string().min(1, "Selecciona un cliente"),
   vehicles: z
@@ -60,6 +62,7 @@ export const invoiceSchema = z.object({
     .min(1, "Agrega al menos un vehículo"),
   taxRate: z.number().min(0).max(1), // 0.14975 = TPS+TVQ Quebec
   language: z.enum(["ES", "EN", "FR"]).default("ES"),
+  revenueType: revenueTypeSchema,
   notes: z.string().max(1000).optional().or(z.literal("")),
   dueAt: z.string().optional().or(z.literal("")), // ISO date string
 });
@@ -130,3 +133,21 @@ export const DOC_CATEGORIES = [
 ] as const;
 
 export type DocCategory = (typeof DOC_CATEGORIES)[number]["value"];
+
+// ── Caja (cash drawer) ────────────────────────────────────────
+
+export const cashDrawerEntrySchema = z.object({
+  type: z.enum([
+    "OPENING_BALANCE",
+    "CASH_IN",
+    "CASH_OUT",
+    "ADJUSTMENT",
+    "CLOSING_BALANCE",
+  ]),
+  amount: z.number().refine((n) => n !== 0, "El monto no puede ser cero"),
+  description: z.string().max(500).optional().or(z.literal("")),
+  occurredAt: z.string().min(1, "La fecha es requerida"),
+  linkedInvoiceId: z.string().optional().or(z.literal("")),
+});
+
+export type CashDrawerEntryFormData = z.infer<typeof cashDrawerEntrySchema>;

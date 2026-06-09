@@ -12,6 +12,7 @@ import {
   Calendar,
   Bell,
   FolderOpen,
+  Banknote,
   Settings,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ const navItems = [
   { label: "Citas", href: ADMIN.appointments, icon: Calendar },
   { label: "Recordatorios", href: ADMIN.reminders, icon: Bell },
   { label: "Contabilidad", href: ADMIN.accounting, icon: FolderOpen },
+  { label: "Caja", href: ADMIN.caja, icon: Banknote },
   { label: "Configuración", href: ADMIN.settings, icon: Settings },
 ];
 

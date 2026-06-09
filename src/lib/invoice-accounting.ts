@@ -10,6 +10,10 @@ type ArchiveFile = {
   mimeType: string;
 };
 
+export type AccountantArchiveResult =
+  | { status: "archived" }
+  | { status: "skipped"; reason: string };
+
 /** Archiva factura pagada y adjuntos en Drive (carpeta contadora) y registra en DB. */
 export async function archivePaidInvoiceToAccountant(params: {
   shopId: string;
@@ -17,12 +21,21 @@ export async function archivePaidInvoiceToAccountant(params: {
   invoiceNumber: string;
   uploaderName: string;
   files: ArchiveFile[];
-}) {
-  const { shopId, invoiceId, invoiceNumber, uploaderName, files } = params;
-  if (files.length === 0) return;
+  revenueType?: "OFFICIAL" | "INTERNAL_ONLY" | string | null;
+}): Promise<AccountantArchiveResult> {
+  const { shopId, invoiceId, invoiceNumber, uploaderName, files, revenueType } = params;
+
+  if (revenueType === "INTERNAL_ONLY") {
+    return {
+      status: "skipped",
+      reason: "Exportación a contabilidad omitida: la factura está marcada como solo interna.",
+    };
+  }
+
+  if (files.length === 0) return { status: "archived" };
 
   const shop = await db.shop.findUnique({ where: { id: shopId } });
-  if (!shop) return;
+  if (!shop) return { status: "archived" };
 
   const uploadedForEmail: { fileName: string; category: string; driveUrl?: string }[] = [];
 
@@ -94,4 +107,6 @@ export async function archivePaidInvoiceToAccountant(params: {
   } catch (err) {
     console.error("Email contadora (factura pagada):", err);
   }
+
+  return { status: "archived" };
 }

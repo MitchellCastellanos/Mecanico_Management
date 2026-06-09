@@ -20,6 +20,7 @@ interface InvoiceMarkPaidDialogProps {
   invoiceNumber: string;
   subtotal: number;
   total: number;
+  revenueType?: "OFFICIAL" | "INTERNAL_ONLY";
   disabled?: boolean;
 }
 
@@ -62,8 +63,10 @@ export function InvoiceMarkPaidDialog({
   invoiceNumber,
   subtotal,
   total,
+  revenueType = "OFFICIAL",
   disabled,
 }: InvoiceMarkPaidDialogProps) {
+  const isInternalOnly = revenueType === "INTERNAL_ONLY";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<InvoicePaymentMode>("CARD");
@@ -220,6 +223,9 @@ export function InvoiceMarkPaidDialog({
         return;
       }
       toast.success("Factura marcada como pagada");
+      if (result.accountantExport?.status === "skipped") {
+        toast.info(result.accountantExport.reason, { duration: 6000 });
+      }
       setOpen(false);
       setEntries([]);
       setExtraFiles([]);
@@ -261,6 +267,12 @@ export function InvoiceMarkPaidDialog({
             </div>
 
             <div className="p-5 space-y-4">
+              {isInternalOnly && (
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                  Esta factura está marcada como solo interno. Se registrará el pago y el PDF, pero
+                  no se exportará automáticamente a contabilidad.
+                </p>
+              )}
               <p className="text-xs text-slate-500">
                 Al confirmar se genera un solo PDF: factura, documentos extra y comprobantes al final.
               </p>

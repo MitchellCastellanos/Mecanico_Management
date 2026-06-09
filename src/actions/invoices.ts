@@ -43,6 +43,8 @@ import {
   type PaymentEntryInput,
 } from "@/lib/invoice-payments";
 import { archivePaidInvoiceToAccountant } from "@/lib/invoice-accounting";
+import { ensureCashInFromInvoice } from "@/actions/cash-drawer";
+import { getInvoiceRevenueType } from "@/lib/revenue-analytics";
 import { auth } from "@/lib/auth";
 import Decimal from "decimal.js";
 import { z } from "zod";
@@ -105,6 +107,11 @@ export async function getInvoiceById(id: string) {
         orderBy: { sortOrder: "asc" },
       },
       paymentEntries: { orderBy: { sortOrder: "asc" } },
+      cashDrawerEntries: {
+        where: { type: "CASH_IN" },
+        orderBy: { createdAt: "desc" },
+        take: 1,
+      },
       shop: true,
     },
   });
@@ -123,7 +130,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, taxRate, language, revenueType, notes, dueAt } = parsed.data;
 
   // Calcular totales con Decimal para evitar errores de punto flotante.
   // Problema real: 0.1 + 0.2 = 0.30000000000000004 en JavaScript.
@@ -145,6 +152,7 @@ export async function createInvoice(formData: InvoiceFormData) {
     taxAmount: taxAmount.toFixed(2),
     total: total.toFixed(2),
     language,
+    revenueType,
     notes: notes || null,
     dueAt: dueAt ? new Date(dueAt) : null,
     vehicles: {
@@ -475,11 +483,14 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     console.error("Guardar paquete PDF factura:", err);
   }
 
-  await archivePaidInvoiceToAccountant({
+  const revenueType = getInvoiceRevenueType(invoice);
+
+  const archiveResult = await archivePaidInvoiceToAccountant({
     shopId,
     invoiceId: id,
     invoiceNumber: invoice.invoiceNumber,
     uploaderName,
+    revenueType,
     files: [
       {
         fileName: packageFileName,
@@ -489,15 +500,37 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     ],
   });
 
+  const cashAmount = validEntries
+    .filter((e) => e.method === "CASH")
+    .reduce((s, e) => s + e.amount, 0);
+
+  if (cashAmount > 0) {
+    await ensureCashInFromInvoice({
+      shopId,
+      invoiceId: id,
+      invoiceNumber: invoice.invoiceNumber,
+      cashAmount,
+      createdById: session?.user?.id,
+    });
+  }
+
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);
   revalidatePath(ADMIN.dashboard);
   revalidatePath(ADMIN.accounting);
-  return { success: true };
+  revalidatePath(ADMIN.caja);
+
+  return {
+    success: true,
+    accountantExport: archiveResult,
+  };
 }
 
 export async function revertInvoiceToPending(id: string) {
   const shopId = await getShopId();
+  await db.cashDrawerEntry.deleteMany({
+    where: { shopId, linkedInvoiceId: id, type: "CASH_IN" },
+  });
   await db.invoicePaymentEntry.deleteMany({
     where: { invoice: { id, shopId } },
   });
@@ -514,6 +547,7 @@ export async function revertInvoiceToPending(id: string) {
   if (result.count === 0) return { error: "La factura no está en estado Pagada" };
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.caja);
   return { success: true };
 }
 
@@ -541,6 +575,9 @@ export async function cancelInvoice(id: string) {
     return { error: "No se puede anular esta factura" };
   }
 
+  await db.cashDrawerEntry.deleteMany({
+    where: { shopId, linkedInvoiceId: id, type: "CASH_IN" },
+  });
   await db.invoicePaymentEntry.deleteMany({
     where: { invoice: { id, shopId } },
   });
@@ -548,6 +585,7 @@ export async function cancelInvoice(id: string) {
   revalidatePath(`/invoices/${id}`);
   revalidatePath(ADMIN.invoices);
   revalidatePath(ADMIN.dashboard);
+  revalidatePath(ADMIN.caja);
   return { success: true };
 }
 
@@ -600,7 +638,7 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, taxRate, language, revenueType, notes, dueAt } = parsed.data;
 
   const allLineItems = vehicles.flatMap((v) => v.lineItems);
   const subtotal = allLineItems.reduce((sum, item) => {
@@ -623,6 +661,7 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         language,
+        revenueType,
         notes: notes || null,
         dueAt: dueAt ? new Date(dueAt) : null,
         pdfUrl: null,

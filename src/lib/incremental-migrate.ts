@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260608-invoice-multi-vehicle-v1";
+export const SCHEMA_VERSION = "20260609-revenue-type-cash-drawer-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -260,6 +260,36 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "vehicleId"`,
   `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "mileageIn"`,
   `ALTER TABLE mecanico."Quote" DROP COLUMN IF EXISTS "mileageOut"`,
+  // ── RevenueType + Caja ────────────────────────────────────────
+  `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "revenueType" mecanico."RevenueType" NOT NULL DEFAULT 'OFFICIAL'`,
+  `UPDATE mecanico."Invoice" SET "revenueType" = 'OFFICIAL' WHERE "revenueType" IS NULL`,
+  `CREATE TABLE IF NOT EXISTS mecanico."CashDrawerEntry" (
+    "id" TEXT NOT NULL,
+    "shopId" TEXT NOT NULL,
+    "type" mecanico."CashDrawerEntryType" NOT NULL,
+    "amount" DECIMAL(10,2) NOT NULL,
+    "description" TEXT,
+    "occurredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "linkedInvoiceId" TEXT,
+    "paymentMethod" mecanico."InvoicePaymentEntryMethod",
+    "createdById" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "CashDrawerEntry_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "CashDrawerEntry_shopId_occurredAt_idx" ON mecanico."CashDrawerEntry"("shopId", "occurredAt")`,
+  `CREATE INDEX IF NOT EXISTS "CashDrawerEntry_linkedInvoiceId_idx" ON mecanico."CashDrawerEntry"("linkedInvoiceId")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."CashDrawerEntry"
+      ADD CONSTRAINT "CashDrawerEntry_shopId_fkey"
+      FOREIGN KEY ("shopId") REFERENCES mecanico."Shop"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."CashDrawerEntry"
+      ADD CONSTRAINT "CashDrawerEntry_linkedInvoiceId_fkey"
+      FOREIGN KEY ("linkedInvoiceId") REFERENCES mecanico."Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
@@ -317,6 +347,32 @@ export async function ensureInvoicePaymentEnums() {
   }
 }
 
+export async function ensureRevenueTypeEnum() {
+  try {
+    await db.$executeRawUnsafe(
+      `CREATE TYPE mecanico."RevenueType" AS ENUM ('OFFICIAL', 'INTERNAL_ONLY')`
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("already exists") && !msg.includes("duplicate")) {
+      throw err;
+    }
+  }
+}
+
+export async function ensureCashDrawerEntryTypeEnum() {
+  try {
+    await db.$executeRawUnsafe(
+      `CREATE TYPE mecanico."CashDrawerEntryType" AS ENUM ('OPENING_BALANCE', 'CASH_IN', 'CASH_OUT', 'ADJUSTMENT', 'CLOSING_BALANCE')`
+    );
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (!msg.includes("already exists") && !msg.includes("duplicate")) {
+      throw err;
+    }
+  }
+}
+
 export async function ensureInvoiceLanguageEnum() {
   try {
     await db.$executeRawUnsafe(
@@ -333,6 +389,8 @@ export async function ensureInvoiceLanguageEnum() {
 export async function runIncrementalMigrate() {
   await ensureInvoiceLanguageEnum();
   await ensureInvoicePaymentEnums();
+  await ensureRevenueTypeEnum();
+  await ensureCashDrawerEntryTypeEnum();
   await ensureQuoteStatusEnum();
   await ensureAppointmentStatusEnum();
   await ensureAppointmentSourceEnum();

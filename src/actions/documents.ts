@@ -11,6 +11,11 @@ import { uploadToDrive, driveFileUrl } from "@/lib/drive";
 import { sendAccountantEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
 import { DOC_CATEGORIES, type DocCategory } from "@/lib/validations";
+import {
+  classifyAccountingDocSource,
+  parseInvoiceIdFromNotes,
+} from "@/lib/accounting-documents";
+import { getInvoiceRevenueType } from "@/lib/revenue-analytics";
 
 async function getSession() {
   return requireShopSession();
@@ -29,6 +34,93 @@ export async function getDocuments(category?: DocCategory) {
     },
     orderBy: { uploadedAt: "desc" },
   });
+}
+
+export type EnrichedAccountingDocument = {
+  id: string;
+  fileName: string;
+  category: string;
+  driveFileId: string | null;
+  uploadedAt: Date;
+  notes: string | null;
+  source: "auto_paid_invoice" | "manual";
+  linkedInvoiceId: string | null;
+  linkedInvoiceNumber: string | null;
+  revenueType: "OFFICIAL" | "INTERNAL_ONLY" | null;
+};
+
+export type SkippedInternalInvoice = {
+  id: string;
+  invoiceNumber: string;
+  paidAt: Date | null;
+  total: number;
+  recordedRevenue: number | null;
+};
+
+export async function getAccountingPageData() {
+  const session = await getSession();
+  const shopId = session.user.shopId!;
+
+  const [rawDocs, skippedInvoices] = await Promise.all([
+    db.accountingDocument.findMany({
+      where: { shopId },
+      orderBy: { uploadedAt: "desc" },
+    }),
+    db.invoice.findMany({
+      where: { shopId, status: "PAID", revenueType: "INTERNAL_ONLY" },
+      select: {
+        id: true,
+        invoiceNumber: true,
+        paidAt: true,
+        total: true,
+        recordedRevenue: true,
+      },
+      orderBy: { paidAt: "desc" },
+    }),
+  ]);
+
+  const invoiceIds = rawDocs
+    .map((d) => parseInvoiceIdFromNotes(d.notes))
+    .filter((id): id is string => Boolean(id));
+
+  const linkedInvoices =
+    invoiceIds.length > 0
+      ? await db.invoice.findMany({
+          where: { shopId, id: { in: invoiceIds } },
+          select: { id: true, invoiceNumber: true, revenueType: true },
+        })
+      : [];
+
+  const invoiceById = new Map(linkedInvoices.map((inv) => [inv.id, inv]));
+
+  const documents: EnrichedAccountingDocument[] = rawDocs.map((doc) => {
+    const linkedInvoiceId = parseInvoiceIdFromNotes(doc.notes);
+    const linked = linkedInvoiceId ? invoiceById.get(linkedInvoiceId) : undefined;
+    return {
+      id: doc.id,
+      fileName: doc.fileName,
+      category: doc.category,
+      driveFileId: doc.driveFileId,
+      uploadedAt: doc.uploadedAt,
+      notes: doc.notes,
+      source: classifyAccountingDocSource(doc.notes),
+      linkedInvoiceId: linkedInvoiceId ?? null,
+      linkedInvoiceNumber: linked?.invoiceNumber ?? null,
+      revenueType: linked ? getInvoiceRevenueType(linked) : null,
+    };
+  });
+
+  return {
+    documents,
+    skippedInternalInvoices: skippedInvoices.map((inv) => ({
+      id: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      paidAt: inv.paidAt,
+      total: Number(inv.total),
+      recordedRevenue:
+        inv.recordedRevenue != null ? Number(inv.recordedRevenue) : null,
+    })),
+  };
 }
 
 // ── UPLOAD ──────────────────────────────────────────────────

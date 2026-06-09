@@ -49,6 +49,7 @@ model Shop {
   reminders     ServiceReminder[]
   documents     AccountingDocument[]
   savedLineItems SavedLineItem[]
+  cashDrawerEntries CashDrawerEntry[]
 }
 
 // ─────────────────────────────────────────
@@ -211,13 +212,22 @@ model Invoice {
   paymentMode   InvoicePaymentMode?
   recordedRevenue Decimal?      @db.Decimal(10, 2) // ingresos reales (efectivo sin impuestos, tarjeta con impuestos)
   paymentExtraPaths Json        @default("[]") // PDFs/fotos extra (alineación, etc.) — van en paquete PDF
+  revenueType   RevenueType     @default(OFFICIAL) // visibilidad contable / reportes oficiales
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   vehicles        InvoiceVehicle[]
   paymentEntries  InvoicePaymentEntry[]
+  cashDrawerEntries CashDrawerEntry[]
 
   @@unique([shopId, invoiceNumber])
+}
+
+enum RevenueType {
+  @@schema("mecanico")
+
+  OFFICIAL
+  INTERNAL_ONLY
 }
 
 // Vehículo incluido en una factura — una factura puede cubrir varios vehículos
@@ -517,4 +527,37 @@ enum DocCategory {
   TAX_DOCUMENTS
   BANK_STATEMENTS
   OTHER
+}
+
+// ─────────────────────────────────────────
+// CASH DRAWER (CAJA) — seguimiento interno de efectivo
+// ─────────────────────────────────────────
+model CashDrawerEntry {
+  @@schema("mecanico")
+
+  id              String              @id @default(cuid())
+  shopId          String
+  shop            Shop                @relation(fields: [shopId], references: [id])
+  type            CashDrawerEntryType
+  amount          Decimal             @db.Decimal(10, 2)
+  description     String?             @db.Text
+  occurredAt      DateTime            @default(now())
+  linkedInvoiceId String?
+  linkedInvoice   Invoice?            @relation(fields: [linkedInvoiceId], references: [id], onDelete: SetNull)
+  paymentMethod   InvoicePaymentEntryMethod?
+  createdById     String?
+  createdAt       DateTime            @default(now())
+
+  @@index([shopId, occurredAt])
+  @@index([linkedInvoiceId])
+}
+
+enum CashDrawerEntryType {
+  @@schema("mecanico")
+
+  OPENING_BALANCE
+  CASH_IN
+  CASH_OUT
+  ADJUSTMENT
+  CLOSING_BALANCE
 }

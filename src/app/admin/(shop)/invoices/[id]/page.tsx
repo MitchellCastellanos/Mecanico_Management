@@ -13,6 +13,12 @@ import {
 } from "@/components/invoices/InvoicePaymentReceipts";
 import { INVOICE_STATUS_BADGE, INVOICE_STATUS_LABEL, isInvoicePending } from "@/lib/invoice-status";
 import { labelPaymentEntries } from "@/lib/invoice-payments";
+import {
+  getInvoiceRevenueType,
+  isAccountantExportEligible,
+  revenueTypeLabel,
+} from "@/lib/revenue-analytics";
+import { cashDrawerEntryTypeLabel } from "@/lib/cash-drawer";
 import { publicUrlForStoragePath } from "@/lib/storage";
 import Decimal from "decimal.js";
 
@@ -41,6 +47,18 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
     INVOICE_LANGUAGES.find((l) => l.value === invoice.language)?.label ?? invoice.language;
 
   const paymentLabels = labelPaymentEntries(invoice.paymentEntries);
+  const revenueType = getInvoiceRevenueType(invoice);
+  const accountantExportIncluded = isAccountantExportEligible(invoice);
+  const linkedCashEntry = invoice.cashDrawerEntries[0] ?? null;
+
+  const paymentModeLabel =
+    invoice.paymentMode === "CARD"
+      ? "Tarjeta"
+      : invoice.paymentMode === "CASH"
+        ? "Efectivo"
+        : invoice.paymentMode === "MIXED"
+          ? "Tarjeta + efectivo"
+          : null;
 
   const paymentReceipts: PaymentReceiptView[] = invoice.paymentEntries
     .map((entry, i) => ({ entry, i }))
@@ -124,9 +142,65 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             emailSendCount={invoice.emailSendCount}
             subtotal={Number(invoice.subtotal)}
             total={Number(invoice.total)}
+            revenueType={revenueType}
             isPaid={invoice.status === "PAID"}
           />
         </div>
+      </div>
+
+      {/* Accounting visibility + payment info */}
+      <div className="bg-white rounded-xl border border-slate-200 p-5">
+        <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">
+          Registro y contabilidad
+        </p>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div>
+            <dt className="text-slate-500">Visibilidad contable</dt>
+            <dd className="font-medium text-slate-900 mt-0.5">
+              {revenueTypeLabel(revenueType)}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-slate-500">Exportación a contabilidad</dt>
+            <dd className="mt-0.5">
+              {accountantExportIncluded ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700">
+                  Incluida al marcar como pagada
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800">
+                  No exportada automáticamente (solo interno)
+                </span>
+              )}
+            </dd>
+          </div>
+          {paymentModeLabel && (
+            <div>
+              <dt className="text-slate-500">Método de pago</dt>
+              <dd className="font-medium text-slate-900 mt-0.5">{paymentModeLabel}</dd>
+            </div>
+          )}
+          {linkedCashEntry && (
+            <div>
+              <dt className="text-slate-500">Movimiento en caja</dt>
+              <dd className="mt-0.5">
+                <Link
+                  href={ADMIN.caja}
+                  className="text-blue-600 hover:underline font-medium"
+                >
+                  {cashDrawerEntryTypeLabel(linkedCashEntry.type)} ·{" "}
+                  {formatCurrency(Number(linkedCashEntry.amount))}
+                </Link>
+              </dd>
+            </div>
+          )}
+        </dl>
+        {invoice.status === "PAID" && !accountantExportIncluded && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-4">
+            Exportación a contabilidad omitida: la factura está marcada como solo interna.
+            Sigue visible en el panel del dueño y en el seguimiento de caja.
+          </p>
+        )}
       </div>
 
       {/* Client info */}

@@ -1,10 +1,10 @@
-import { getDocuments } from "@/actions/documents";
+import { getAccountingPageData } from "@/actions/documents";
 import { DOC_CATEGORIES } from "@/lib/validations";
 import { AccountingClient } from "@/components/accounting/AccountingClient";
 
 // Server Component: fetches documents y los pasa al Client
 export default async function AccountingPage() {
-  const allDocs = await getDocuments();
+  const { documents, skippedInternalInvoices } = await getAccountingPageData();
 
   return (
     <div className="space-y-6">
@@ -16,7 +16,8 @@ export default async function AccountingPage() {
       </div>
 
       <AccountingClient
-        initialDocs={allDocs}
+        initialDocs={documents}
+        skippedInternalInvoices={skippedInternalInvoices}
         categories={DOC_CATEGORIES}
       />
     </div>

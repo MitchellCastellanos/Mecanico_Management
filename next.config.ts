@@ -34,6 +34,7 @@ const nextConfig: NextConfig = {
       "/appointments",
       "/reminders",
       "/accounting",
+      "/caja",
       "/settings",
       "/vehicles",
     ].map((path) => ({
