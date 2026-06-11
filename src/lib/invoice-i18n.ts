@@ -39,6 +39,7 @@ type Strings = {
   tvq: (pct: string) => string;
   taxesTotal: string;
   grandTotal: string;
+  etransfer: string;
   notes: string;
   thankYou: string;
   warrantyDisclosureTitle: string;
@@ -99,6 +100,7 @@ const ES: Strings = {
   tvq: (pct) => `TVQ (${pct}%)`,
   taxesTotal: "Total impuestos",
   grandTotal: "TOTAL A PAGAR",
+  etransfer: "Correo para transferencias electrónicas (Interac)",
   notes: "Notas y condiciones",
   thankYou: "Gracias por confiar en nosotros.",
   warrantyDisclosureTitle: "Garantía de piezas",
@@ -170,6 +172,7 @@ const EN: Strings = {
   tvq: (pct) => `QST (${pct}%)`,
   taxesTotal: "Total tax",
   grandTotal: "AMOUNT DUE",
+  etransfer: "Email for e-transfers (Interac)",
   notes: "Notes & terms",
   thankYou: "Thank you for your business.",
   warrantyDisclosureTitle: "Parts warranty",
@@ -241,6 +244,7 @@ const FR: Strings = {
   tvq: (pct) => `TVQ (${pct}%)`,
   taxesTotal: "Total taxes",
   grandTotal: "TOTAL À PAYER",
+  etransfer: "Courriel pour virements Interac",
   notes: "Notes et conditions",
   thankYou: "Merci de votre confiance.",
   warrantyDisclosureTitle: "Garantie des pièces",

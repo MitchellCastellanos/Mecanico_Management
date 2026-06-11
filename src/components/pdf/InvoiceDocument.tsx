@@ -88,6 +88,11 @@ const SLATE_50 = "#f8fafc";
 const EMERALD = "#059669";
 const WHITE = "#ffffff";
 
+// Único correo que el cliente debe usar para pagar por transferencia
+// electrónica (Interac). Se muestra destacado para evitar que se confunda
+// con otros correos de la factura.
+const ETRANSFER_EMAIL = "dancar4771@hotmail.com";
+
 const LOGO_WIDTH = 150;
 const LOGO_HEIGHT = 128;
 const PAGE_PAD = 40;
@@ -429,12 +434,39 @@ const styles = StyleSheet.create({
     marginBottom: 3,
     paddingLeft: 8,
   },
-  totalsCard: {
+  totalsColumn: {
     width: 230,
+    flexShrink: 0,
+  },
+  totalsCard: {
+    width: "100%",
     borderWidth: 1,
     borderColor: SLATE_200,
     borderRadius: 8,
-    flexShrink: 0,
+  },
+  etransferBox: {
+    marginTop: 10,
+    backgroundColor: BLUE_LIGHT,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderLeftWidth: 3,
+    borderLeftColor: BLUE,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  etransferLabel: {
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: BLUE,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  etransferEmail: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    color: NAVY,
   },
   totalsHeader: {
     backgroundColor: SLATE_50,
@@ -627,7 +659,6 @@ function InvoiceHeader({
           <View style={styles.shopInfo}>
             <Text style={styles.shopName}>{invoice.shop.name}</Text>
             <ContactLine label={t.phone} value={invoice.shop.phone} />
-            <ContactLine label={t.email} value={invoice.shop.email} />
             <ContactLine label={t.address} value={invoice.shop.address} />
             {(() => {
               if (!invoice.shop.taxId) return null;
@@ -688,7 +719,6 @@ function InvoiceFooter({
       <Text style={styles.footerMeta}>
         {invoice.shop.name}
         {invoice.shop.phone ? ` · ${invoice.shop.phone}` : ""}
-        {invoice.shop.email ? ` · ${invoice.shop.email}` : ""}
       </Text>
     </View>
   );
@@ -752,10 +782,6 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
           </View>
 
           {invoice.vehicles.map((iv, vIndex) => {
-            const mileageDelta =
-              iv.mileageIn != null && iv.mileageOut != null
-                ? iv.mileageOut - iv.mileageIn
-                : null;
             const lastIndex = iv.lineItems.length - 1;
             const vehicleLabel = showVehicleNumbers
               ? `${t.vehicle} ${vIndex + 1}`
@@ -773,46 +799,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                         {iv.vehicle.year} {iv.vehicle.make} {iv.vehicle.model}
                       </Text>
                       <DetailRow label={t.plate} value={iv.vehicle.licensePlate} />
-                      <DetailRow label={t.vin} value={iv.vehicle.vin} stacked />
                       <DetailRow label={t.color} value={iv.vehicle.color} />
-                    </View>
-                  </View>
-
-                  <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardHeaderText}>{t.serviceDetails}</Text>
-                    </View>
-                    <View style={styles.cardBody}>
-                      {(iv.mileageIn != null || iv.mileageOut != null) ? (
-                        <View style={styles.mileageBox}>
-                          {iv.mileageIn != null && (
-                            <View style={styles.mileagePill}>
-                              <Text style={styles.mileagePillLabel}>{t.mileageIn}</Text>
-                              <Text style={styles.mileagePillValue}>
-                                {iv.mileageIn.toLocaleString()} {iv.vehicle.mileageUnit}
-                              </Text>
-                            </View>
-                          )}
-                          {iv.mileageOut != null && (
-                            <View style={styles.mileagePill}>
-                              <Text style={styles.mileagePillLabel}>{t.mileageOut}</Text>
-                              <Text style={styles.mileagePillValue}>
-                                {iv.mileageOut.toLocaleString()} {iv.vehicle.mileageUnit}
-                              </Text>
-                            </View>
-                          )}
-                          {mileageDelta != null && mileageDelta >= 0 && (
-                            <View style={styles.mileagePill}>
-                              <Text style={styles.mileagePillLabel}>{t.mileageTraveled}</Text>
-                              <Text style={styles.mileagePillValue}>
-                                {mileageDelta.toLocaleString()} {iv.vehicle.mileageUnit}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      ) : (
-                        <Text style={styles.detailValue}>—</Text>
-                      )}
                     </View>
                   </View>
                 </View>
@@ -887,6 +874,7 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                 <View style={{ flex: 1 }} />
               )}
 
+              <View style={styles.totalsColumn}>
               <View style={styles.totalsCard}>
                 <View style={styles.totalsHeader}>
                   <Text style={styles.totalsHeaderText}>{currency}</Text>
@@ -933,6 +921,12 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                     )}
                   </Text>
                 </View>
+              </View>
+
+              <View style={styles.etransferBox}>
+                <Text style={styles.etransferLabel}>{t.etransfer}</Text>
+                <Text style={styles.etransferEmail}>{ETRANSFER_EMAIL}</Text>
+              </View>
               </View>
             </View>
           </View>
