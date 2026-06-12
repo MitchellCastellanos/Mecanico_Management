@@ -93,8 +93,8 @@ const WHITE = "#ffffff";
 // con otros correos de la factura.
 const ETRANSFER_EMAIL = "dancar4771@hotmail.com";
 
-const LOGO_WIDTH = 150;
-const LOGO_HEIGHT = 128;
+const LOGO_WIDTH = 110;
+const LOGO_HEIGHT = 88;
 const PAGE_PAD = 40;
 const FOOTER_H = 52;
 
@@ -109,8 +109,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: PAGE_PAD,
   },
   header: {
-    paddingTop: 10,
-    paddingBottom: 14,
+    paddingTop: 8,
+    paddingBottom: 10,
     marginBottom: 4,
     borderBottomWidth: 2,
     borderBottomColor: SLATE_200,
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderColor: SLATE_200,
     borderRadius: 8,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     width: 188,
     flexShrink: 0,
     justifyContent: "space-between",
@@ -211,15 +211,15 @@ const styles = StyleSheet.create({
     textAlign: "right",
   },
   metaBottom: {
-    marginTop: 10,
+    marginTop: 8,
   },
   metaDivider: {
     height: 1,
     backgroundColor: SLATE_200,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   statusBadge: {
-    marginTop: 8,
+    marginTop: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
@@ -227,17 +227,17 @@ const styles = StyleSheet.create({
   },
   statusText: { fontSize: 7, fontFamily: "Helvetica-Bold" },
   body: {
-    paddingTop: 14,
+    paddingTop: 10,
     position: "relative",
   },
   vehicleGroup: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   cardsRow: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 14,
-    alignItems: "flex-start",
+    marginBottom: 10,
+    alignItems: "stretch",
   },
   card: {
     flex: 1,
@@ -262,14 +262,14 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     paddingHorizontal: 10,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: 7,
+    paddingBottom: 8,
   },
   cardTitle: {
     fontSize: 10,
     fontFamily: "Helvetica-Bold",
     color: SLATE_900,
-    marginBottom: 6,
+    marginBottom: 5,
     lineHeight: 1.35,
   },
   detailRow: {
@@ -313,17 +313,8 @@ const styles = StyleSheet.create({
   },
   mileagePillLabel: { fontSize: 6.5, color: BLUE, fontFamily: "Helvetica-Bold" },
   mileagePillValue: { fontSize: 7.5, color: NAVY, marginTop: 1 },
-  sectionTitle: {
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    color: SLATE_600,
-    textTransform: "uppercase",
-    letterSpacing: 0.8,
-    marginBottom: 6,
-  },
   lineItemsSection: {
     position: "relative",
-    marginBottom: 14,
   },
   paidWatermark: {
     position: "absolute",
@@ -344,7 +335,7 @@ const styles = StyleSheet.create({
   tableHeader: {
     flexDirection: "row",
     backgroundColor: NAVY,
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 10,
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
@@ -356,7 +347,7 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: "row",
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
     borderBottomColor: SLATE_100,
@@ -390,12 +381,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   notesCard: {
-    flex: 1,
     borderWidth: 1,
     borderColor: SLATE_200,
     borderRadius: 8,
     padding: 10,
-    minWidth: 0,
   },
   notesLabel: {
     fontSize: 7.5,
@@ -406,9 +395,8 @@ const styles = StyleSheet.create({
   },
   notesText: { fontSize: 8.5, color: SLATE_600, lineHeight: 1.5 },
   warrantyCard: {
-    marginTop: 10,
     marginBottom: 10,
-    padding: 12,
+    padding: 10,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "#e2e8f0",
@@ -426,7 +414,7 @@ const styles = StyleSheet.create({
     fontSize: 7.5,
     color: SLATE_600,
     lineHeight: 1.45,
-    marginBottom: 8,
+    marginBottom: 5,
   },
   warrantyItem: {
     fontSize: 8,
@@ -445,7 +433,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   etransferBox: {
-    marginTop: 10,
+    marginTop: 8,
     backgroundColor: BLUE_LIGHT,
     borderWidth: 1,
     borderColor: "#bfdbfe",
@@ -473,7 +461,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: SLATE_200,
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 5,
   },
   totalsHeaderText: {
     fontSize: 7.5,
@@ -481,11 +469,11 @@ const styles = StyleSheet.create({
     color: SLATE_600,
     textTransform: "uppercase",
   },
-  totalsBody: { paddingHorizontal: 12, paddingVertical: 6 },
+  totalsBody: { paddingHorizontal: 12, paddingVertical: 5 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 3,
+    paddingVertical: 2,
     gap: 8,
   },
   totalLabel: { fontSize: 8.5, color: SLATE_600, flex: 1 },
@@ -500,7 +488,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     backgroundColor: NAVY,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     gap: 8,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -630,6 +618,31 @@ function DetailRow({
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{value}</Text>
+    </View>
+  );
+}
+
+function VehicleCard({
+  iv,
+  label,
+  t,
+}: {
+  iv: InvoiceData["vehicles"][number];
+  label: string;
+  t: ReturnType<typeof getInvoiceStrings>;
+}) {
+  return (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardHeaderText}>{label}</Text>
+      </View>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardTitle}>
+          {iv.vehicle.year} {iv.vehicle.make} {iv.vehicle.model}
+        </Text>
+        <DetailRow label={t.plate} value={iv.vehicle.licensePlate} />
+        <DetailRow label={t.color} value={iv.vehicle.color} />
+      </View>
     </View>
   );
 }
@@ -767,6 +780,9 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
             </View>
           )}
 
+          {/* Con un solo vehículo (el caso común) cliente y vehículo van lado
+              a lado: ahorra una fila completa de alto y ayuda a que los
+              totales quepan en la primera página. */}
           <View style={styles.cardsRow} wrap={false}>
             <View style={styles.card}>
               <View style={styles.cardHeader}>
@@ -779,41 +795,33 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                 <DetailRow label={t.address} value={invoice.client.address} stacked />
               </View>
             </View>
+            {invoice.vehicles.length === 1 && (
+              <VehicleCard iv={invoice.vehicles[0]} label={t.vehicle} t={t} />
+            )}
           </View>
 
           {invoice.vehicles.map((iv, vIndex) => {
             const lastIndex = iv.lineItems.length - 1;
-            const vehicleLabel = showVehicleNumbers
-              ? `${t.vehicle} ${vIndex + 1}`
-              : t.vehicle;
 
             return (
               <View key={vIndex} style={styles.vehicleGroup}>
-                <View style={styles.cardsRow} wrap={false}>
-                  <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                      <Text style={styles.cardHeaderText}>{vehicleLabel}</Text>
-                    </View>
-                    <View style={styles.cardBody}>
-                      <Text style={styles.cardTitle}>
-                        {iv.vehicle.year} {iv.vehicle.make} {iv.vehicle.model}
-                      </Text>
-                      <DetailRow label={t.plate} value={iv.vehicle.licensePlate} />
-                      <DetailRow label={t.color} value={iv.vehicle.color} />
-                    </View>
+                {showVehicleNumbers && (
+                  <View style={styles.cardsRow} wrap={false}>
+                    <VehicleCard
+                      iv={iv}
+                      label={`${t.vehicle} ${vIndex + 1}`}
+                      t={t}
+                    />
                   </View>
-                </View>
+                )}
 
                 <View style={styles.lineItemsSection}>
-                  <View wrap={false}>
-                    <Text style={styles.sectionTitle}>{t.colDescription}</Text>
-                    <View style={styles.tableHeader}>
-                      <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
-                      <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
-                      <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
-                      <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
-                      <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
-                    </View>
+                  <View style={styles.tableHeader} wrap={false}>
+                    <Text style={[styles.tableHeaderCell, styles.colDesc]}>{t.colDescription}</Text>
+                    <Text style={[styles.tableHeaderCell, styles.colType]}>{t.colType}</Text>
+                    <Text style={[styles.tableHeaderCell, styles.colQty]}>{t.colQty}</Text>
+                    <Text style={[styles.tableHeaderCell, styles.colPrice]}>{t.colUnitPrice}</Text>
+                    <Text style={[styles.tableHeaderCell, styles.colTotal]}>{t.colTotal}</Text>
                   </View>
 
                   {iv.lineItems.map((item, i) => (
@@ -862,17 +870,30 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
 
           {/* Mantiene notas + totales juntos (wrap=false); si de verdad no
               caben, bajan enteros a la página siguiente. Sin minPresenceAhead
-              para no reservar espacio extra que fuerce un salto innecesario. */}
+              para no reservar espacio extra que fuerce un salto innecesario.
+              El recuadro Interac va a la izquierda (bajo las notas) para que
+              la columna de totales sea lo más baja posible y el bloque quepa
+              en la primera página con más frecuencia. */}
           <View wrap={false}>
             <View style={styles.bottomRow}>
-              {invoice.notes ? (
-                <View style={styles.notesCard}>
-                  <Text style={styles.notesLabel}>{t.notes}</Text>
-                  <Text style={styles.notesText}>{invoice.notes}</Text>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                {invoice.notes ? (
+                  <View style={styles.notesCard}>
+                    <Text style={styles.notesLabel}>{t.notes}</Text>
+                    <Text style={styles.notesText}>{invoice.notes}</Text>
+                  </View>
+                ) : null}
+
+                <View
+                  style={[
+                    styles.etransferBox,
+                    invoice.notes ? {} : { marginTop: 0 },
+                  ]}
+                >
+                  <Text style={styles.etransferLabel}>{t.etransfer}</Text>
+                  <Text style={styles.etransferEmail}>{ETRANSFER_EMAIL}</Text>
                 </View>
-              ) : (
-                <View style={{ flex: 1 }} />
-              )}
+              </View>
 
               <View style={styles.totalsColumn}>
               <View style={styles.totalsCard}>
@@ -921,11 +942,6 @@ export function InvoiceDocument({ invoice }: { invoice: InvoiceData }) {
                     )}
                   </Text>
                 </View>
-              </View>
-
-              <View style={styles.etransferBox}>
-                <Text style={styles.etransferLabel}>{t.etransfer}</Text>
-                <Text style={styles.etransferEmail}>{ETRANSFER_EMAIL}</Text>
               </View>
               </View>
             </View>
