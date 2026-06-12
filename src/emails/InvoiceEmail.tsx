@@ -13,6 +13,7 @@ import {
 import React from "react";
 import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
 import { getDefaultEmailLogoUrl } from "@/lib/app-url";
+import { BRAND } from "@/config/brand";
 
 export interface InvoiceEmailProps {
   clientName: string;
@@ -88,6 +89,12 @@ export function InvoiceEmail({
 
               <Text style={styles.cardLabel}>{t.total}</Text>
               <Text style={styles.totalValue}>{totalFormatted}</Text>
+            </Section>
+
+            <Section style={styles.etransferBox}>
+              <Text style={styles.etransferText}>
+                {t.etransferNotice(BRAND.etransferEmail)}
+              </Text>
             </Section>
 
             <Text style={styles.bodyText}>{t.contactPrompt}</Text>
@@ -192,6 +199,20 @@ const styles = {
   cardDivider: {
     borderColor: "#e2e8f0",
     margin: "16px 0",
+  },
+  etransferBox: {
+    backgroundColor: "#fffbeb",
+    border: "1px solid #fcd34d",
+    borderRadius: "8px",
+    padding: "14px 20px",
+    margin: "0 0 24px 0",
+  },
+  etransferText: {
+    fontSize: "13px",
+    fontWeight: "600",
+    color: "#92400e",
+    lineHeight: "1.6",
+    margin: "0",
   },
   signature: {
     borderTop: "1px solid #e2e8f0",

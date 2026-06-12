@@ -12,8 +12,8 @@ export function EmailRoutingPreview({ shop }: EmailRoutingPreviewProps) {
       <div>
         <h2 className="font-semibold text-slate-900">Correos automáticos</h2>
         <p className="text-sm text-slate-500 mt-1">
-          Cada tipo de email sale de un buzón distinto. Configura los alias en IONOS
-          (billing@, info@, etc.) y Resend enviará en tu nombre.
+          Todos los correos al cliente salen de info@ — el mismo que aparece en la
+          factura. Configura el buzón en IONOS y Resend enviará en tu nombre.
         </p>
       </div>
 

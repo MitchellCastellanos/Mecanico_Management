@@ -39,8 +39,7 @@ Más info: [`docs/MIGRATIONS.md`](./MIGRATIONS.md) · Citas web: [`docs/BOOKING.
 
 - [x] Dominio: `garagecarlosainc.ca`
 - [ ] Buzones creados:
-  - `billing@garagecarlosainc.ca` — facturas y cotizaciones
-  - `info@garagecarlosainc.ca` — recordatorios, citas y web
+  - `info@garagecarlosainc.ca` — facturas, cotizaciones, recordatorios, citas y web (único remitente al cliente)
   - (Opcional) `providers@`, `newsletter@`
 - [ ] En **Configuración → Datos del taller**, confirmar buzones (el deploy los rellena si estaban vacíos)
 - [ ] Probar envío/recibo desde webmail IONOS
@@ -57,9 +56,9 @@ Más info: [`docs/MIGRATIONS.md`](./MIGRATIONS.md) · Citas web: [`docs/BOOKING.
 | `NEXT_PUBLIC_APP_URL` | `https://garagecarlosainc.ca` |
 | `NEXTAUTH_URL` | `https://garagecarlosainc.ca` |
 | `AUTH_TRUST_HOST` | `true` |
-| `EMAIL_FROM_INVOICES` | `"Garage Carlos A" <billing@garagecarlosainc.ca>` |
+| `EMAIL_FROM_INVOICES` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
 | `EMAIL_FROM_REMINDERS` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
-| `EMAIL_FROM_ACCOUNTING` | `"Garage Carlos A" <billing@garagecarlosainc.ca>` |
+| `EMAIL_FROM_ACCOUNTING` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
 | `EMAIL_FROM` | `"Garage Carlos A" <info@garagecarlosainc.ca>` |
 | `RESEND_API_KEY` | `re_...` |
 | `CRON_SECRET` | string largo |
