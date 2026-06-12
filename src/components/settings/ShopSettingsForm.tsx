@@ -203,7 +203,7 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  billing@ — Facturas y contabilidad
+                  billing@ — Sin uso
                 </label>
                 <input
                   name="billingEmail"
@@ -212,10 +212,13 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   placeholder={`billing@${BRAND.domain}`}
                   className={inputClass}
                 />
+                <p className="text-xs text-slate-400 mt-1">
+                  Las facturas y contabilidad ahora salen de info@
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                  info@ — Recordatorios y web
+                  info@ — Facturas, cotizaciones, recordatorios y web
                 </label>
                 <input
                   name="infoEmail"

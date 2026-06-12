@@ -57,6 +57,7 @@ type Strings = {
     body: string;
     resendBody: string;
     attachmentNote: string;
+    etransferNotice: (email: string) => string;
     invoiceNumber: string;
     total: string;
     vehicle: string;
@@ -129,6 +130,8 @@ const ES: Strings = {
     body: "Adjuntamos la factura por los servicios realizados en tu vehículo. Si tienes alguna pregunta, contáctanos directamente.",
     resendBody: "Te reenviamos la factura adjunta por si no la recibiste o necesitas una copia.",
     attachmentNote: "La factura en PDF va adjunta a este correo.",
+    etransferNotice: (email) =>
+      `Para pagos por transferencia Interac, envíalos a ${email}.`,
     invoiceNumber: "Número de factura",
     total: "Total",
     vehicle: "Vehículo",
@@ -201,6 +204,8 @@ const EN: Strings = {
     body: "Please find attached the invoice for services performed on your vehicle. If you have any questions, contact us directly.",
     resendBody: "We are resending the attached invoice in case you did not receive it or need another copy.",
     attachmentNote: "The PDF invoice is attached to this email.",
+    etransferNotice: (email) =>
+      `For Interac e-transfer payments, please send them to ${email}.`,
     invoiceNumber: "Invoice number",
     total: "Total",
     vehicle: "Vehicle",
@@ -273,6 +278,8 @@ const FR: Strings = {
     body: "Veuillez trouver ci-joint la facture pour les services effectués sur votre véhicule. Pour toute question, contactez-nous directement.",
     resendBody: "Nous vous renvoyons la facture ci-jointe au cas où vous ne l'auriez pas reçue ou auriez besoin d'une copie.",
     attachmentNote: "La facture PDF est jointe à ce courriel.",
+    etransferNotice: (email) =>
+      `Pour les paiements par virement Interac, envoyez-les à ${email}.`,
     invoiceNumber: "Numéro de facture",
     total: "Total",
     vehicle: "Véhicule",

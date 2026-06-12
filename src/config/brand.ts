@@ -13,18 +13,21 @@ export const BRAND = {
   timezone: "America/Montreal",
   emails: {
     contact: "info@garagecarlosainc.ca",
-    billing: "billing@garagecarlosainc.ca",
+    // Todo el correo al cliente sale de info@ — un solo buzón en todos los idiomas
+    billing: "info@garagecarlosainc.ca",
     info: "info@garagecarlosainc.ca",
     providers: "providers@garagecarlosainc.ca",
     newsletter: "newsletter@garagecarlosainc.ca",
   },
   mailFrom: {
-    invoices: "Garage Carlos A <billing@garagecarlosainc.ca>",
+    invoices: "Garage Carlos A <info@garagecarlosainc.ca>",
     reminders: "Garage Carlos A <info@garagecarlosainc.ca>",
-    accounting: "Garage Carlos A <billing@garagecarlosainc.ca>",
+    accounting: "Garage Carlos A <info@garagecarlosainc.ca>",
     web: "Garage Carlos A <info@garagecarlosainc.ca>",
     fallback: "Garage Carlos A <info@garagecarlosainc.ca>",
   },
+  /** Único correo para recibir pagos por transferencia Interac */
+  etransferEmail: "dancar4771@hotmail.com",
   /** Hosts legacy que redirigen al dominio propio */
   legacyHosts: ["mecanico-management.vercel.app"],
 } as const;

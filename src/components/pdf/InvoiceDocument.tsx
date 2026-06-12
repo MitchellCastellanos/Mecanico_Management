@@ -13,6 +13,7 @@ import { formatClientName } from "@/lib/client-name";
 import { calculateTaxBreakdown, TPS_RATE, TVQ_RATE } from "@/lib/taxes";
 import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
 import { invoiceStatusLabelForPdf } from "@/lib/invoice-status";
+import { BRAND } from "@/config/brand";
 import Decimal from "decimal.js";
 
 // Por defecto @react-pdf parte palabras a media sílaba cuando no caben en la
@@ -91,7 +92,7 @@ const WHITE = "#ffffff";
 // Único correo que el cliente debe usar para pagar por transferencia
 // electrónica (Interac). Se muestra destacado para evitar que se confunda
 // con otros correos de la factura.
-const ETRANSFER_EMAIL = "dancar4771@hotmail.com";
+const ETRANSFER_EMAIL = BRAND.etransferEmail;
 
 const LOGO_WIDTH = 110;
 const LOGO_HEIGHT = 88;
