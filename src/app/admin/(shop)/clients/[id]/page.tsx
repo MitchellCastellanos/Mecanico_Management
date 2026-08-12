@@ -14,8 +14,10 @@ import {
   Phone,
   Mail,
   MapPin,
+  Globe,
   FileText,
 } from "lucide-react";
+import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { DeleteButton } from "@/components/clients/DeleteButton";
 
 interface Props {
@@ -82,6 +84,13 @@ export default async function ClientDetailPage({ params }: Props) {
                   <p className="text-sm text-slate-700">{client.address}</p>
                 </ContactRow>
               )}
+              <ContactRow icon={<Globe className="w-4 h-4 text-slate-400" />}>
+                <p className="text-sm text-slate-700">
+                  {INVOICE_LANGUAGES.find((l) => l.value === client.language)?.label ??
+                    client.language}{" "}
+                  <span className="text-slate-400">— SMS y email</span>
+                </p>
+              </ContactRow>
               {!client.email && !client.phone && !client.address && (
                 <p className="text-sm text-slate-400">Sin información de contacto</p>
               )}

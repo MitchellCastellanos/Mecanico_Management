@@ -24,6 +24,8 @@ export interface AppointmentNotifyClient {
   lastName?: string | null;
   email: string | null;
   phone: string | null;
+  /** Idioma preferido — determina el idioma del SMS y del email. Por defecto español. */
+  language?: string | null;
 }
 
 interface NotifyAppointmentEventParams {
@@ -68,6 +70,7 @@ export async function notifyAppointmentEvent(
         shopName: params.shop.name,
         title: params.title,
         startsAtFormatted,
+        language: params.client.language,
         manageUrl,
       });
       smsSent = true;
@@ -88,6 +91,7 @@ export async function notifyAppointmentEvent(
         title: params.title,
         startsAtFormatted,
         shopPhone: params.shop.phone,
+        language: params.client.language,
         manageUrl,
       });
       emailSent = true;

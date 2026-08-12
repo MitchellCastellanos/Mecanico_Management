@@ -38,6 +38,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
 }
 
 export type AppointmentSmsType = "confirmation" | "reminder" | "cancellation";
+export type SmsLanguage = "ES" | "EN" | "FR";
 
 export interface AppointmentSmsData {
   type: AppointmentSmsType;
@@ -45,22 +46,52 @@ export interface AppointmentSmsData {
   shopName: string;
   title: string;
   startsAtFormatted: string;
+  /** Idioma preferido del cliente — por defecto español. */
+  language?: SmsLanguage | string | null;
   /** Link para editar/cancelar la cita — se omite en cancelación. */
   manageUrl?: string | null;
 }
 
-const SMS_COPY: Record<AppointmentSmsType, (data: AppointmentSmsData) => string> = {
-  confirmation: (data) =>
-    `${data.shopName}: cita confirmada — ${data.title}, ${data.startsAtFormatted}.` +
-    (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
-  reminder: (data) =>
-    `${data.shopName}: recordatorio de tu cita — ${data.title}, ${data.startsAtFormatted}.` +
-    (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
-  cancellation: (data) =>
-    `${data.shopName}: tu cita "${data.title}" del ${data.startsAtFormatted} fue cancelada.`,
+type SmsCopyFn = (data: AppointmentSmsData) => string;
+
+const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
+  ES: {
+    confirmation: (data) =>
+      `${data.shopName}: cita confirmada — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
+    reminder: (data) =>
+      `${data.shopName}: recordatorio de tu cita — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
+    cancellation: (data) =>
+      `${data.shopName}: tu cita "${data.title}" del ${data.startsAtFormatted} fue cancelada.`,
+  },
+  EN: {
+    confirmation: (data) =>
+      `${data.shopName}: appointment confirmed — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Edit or cancel: ${data.manageUrl}` : ""),
+    reminder: (data) =>
+      `${data.shopName}: reminder of your appointment — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Edit or cancel: ${data.manageUrl}` : ""),
+    cancellation: (data) =>
+      `${data.shopName}: your appointment "${data.title}" on ${data.startsAtFormatted} was cancelled.`,
+  },
+  FR: {
+    confirmation: (data) =>
+      `${data.shopName} : rendez-vous confirmé — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Modifier ou annuler : ${data.manageUrl}` : ""),
+    reminder: (data) =>
+      `${data.shopName} : rappel de votre rendez-vous — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Modifier ou annuler : ${data.manageUrl}` : ""),
+    cancellation: (data) =>
+      `${data.shopName} : votre rendez-vous « ${data.title} » du ${data.startsAtFormatted} a été annulé.`,
+  },
 };
 
+function resolveSmsLanguage(language?: string | null): SmsLanguage {
+  return language === "EN" || language === "FR" ? language : "ES";
+}
+
 export async function sendAppointmentSms(data: AppointmentSmsData): Promise<void> {
-  const body = SMS_COPY[data.type](data);
+  const body = SMS_COPY[resolveSmsLanguage(data.language)][data.type](data);
   await sendSms(data.to, body);
 }

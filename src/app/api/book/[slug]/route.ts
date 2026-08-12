@@ -71,6 +71,7 @@ export async function POST(
         lastName: data.lastName || null,
         phone: data.phone,
         email,
+        language: data.language,
         notes: "Cliente creado desde reserva web",
       },
     });
@@ -81,6 +82,7 @@ export async function POST(
         firstName: data.firstName,
         lastName: data.lastName || null,
         email: email ?? client.email,
+        language: data.language,
       },
     });
   }

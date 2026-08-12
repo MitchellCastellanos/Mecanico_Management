@@ -13,6 +13,7 @@ import {
 import React from "react";
 
 export type AppointmentEmailType = "confirmation" | "reminder" | "cancellation";
+export type AppointmentEmailLanguage = "ES" | "EN" | "FR";
 
 export interface AppointmentEmailProps {
   type: AppointmentEmailType;
@@ -22,30 +23,109 @@ export interface AppointmentEmailProps {
   startsAtFormatted: string;
   shopPhone?: string | null;
   shopEmail?: string | null;
+  /** Idioma preferido del cliente — por defecto español. */
+  language?: AppointmentEmailLanguage | string | null;
   /** Link público para que el cliente edite o cancele esta cita (sin login). */
   manageUrl?: string | null;
 }
 
-const COPY: Record<
-  AppointmentEmailType,
-  { preview: (title: string, shop: string) => string; heading: string; body: string }
-> = {
-  confirmation: {
-    preview: (title, shop) => `Cita confirmada: ${title} — ${shop}`,
-    heading: "Cita confirmada",
-    body: "Tu cita ha sido registrada. Te esperamos en la fecha y hora indicadas.",
+type TypeCopy = { preview: (title: string, shop: string) => string; heading: string; body: string };
+
+interface LanguageStrings {
+  htmlLang: string;
+  copy: Record<AppointmentEmailType, TypeCopy>;
+  greeting: (name: string) => string;
+  serviceLabel: string;
+  dateTimeLabel: string;
+  manageButton: string;
+  contactPrompt: string;
+  footer: (shop: string) => string;
+}
+
+const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
+  ES: {
+    htmlLang: "es",
+    copy: {
+      confirmation: {
+        preview: (title, shop) => `Cita confirmada: ${title} — ${shop}`,
+        heading: "Cita confirmada",
+        body: "Tu cita ha sido registrada. Te esperamos en la fecha y hora indicadas.",
+      },
+      reminder: {
+        preview: (title, shop) => `Recordatorio de cita: ${title} — ${shop}`,
+        heading: "Recordatorio de cita",
+        body: "Te recordamos que tienes una cita próxima en nuestro taller.",
+      },
+      cancellation: {
+        preview: (title, shop) => `Cita cancelada: ${title} — ${shop}`,
+        heading: "Cita cancelada",
+        body: "Tu cita ha sido cancelada. Si deseas reprogramar, contáctanos.",
+      },
+    },
+    greeting: (name) => `Hola, ${name}`,
+    serviceLabel: "SERVICIO",
+    dateTimeLabel: "FECHA Y HORA",
+    manageButton: "Editar o cancelar mi cita",
+    contactPrompt: "Para cambios o consultas, contáctanos:",
+    footer: (shop) => `Este correo fue enviado por ${shop}.`,
   },
-  reminder: {
-    preview: (title, shop) => `Recordatorio de cita: ${title} — ${shop}`,
-    heading: "Recordatorio de cita",
-    body: "Te recordamos que tienes una cita próxima en nuestro taller.",
+  EN: {
+    htmlLang: "en",
+    copy: {
+      confirmation: {
+        preview: (title, shop) => `Appointment confirmed: ${title} — ${shop}`,
+        heading: "Appointment confirmed",
+        body: "Your appointment has been booked. We'll see you at the date and time below.",
+      },
+      reminder: {
+        preview: (title, shop) => `Appointment reminder: ${title} — ${shop}`,
+        heading: "Appointment reminder",
+        body: "This is a reminder that you have an upcoming appointment at our shop.",
+      },
+      cancellation: {
+        preview: (title, shop) => `Appointment cancelled: ${title} — ${shop}`,
+        heading: "Appointment cancelled",
+        body: "Your appointment has been cancelled. Contact us if you'd like to reschedule.",
+      },
+    },
+    greeting: (name) => `Hello, ${name}`,
+    serviceLabel: "SERVICE",
+    dateTimeLabel: "DATE AND TIME",
+    manageButton: "Edit or cancel my appointment",
+    contactPrompt: "For changes or questions, contact us:",
+    footer: (shop) => `This email was sent by ${shop}.`,
   },
-  cancellation: {
-    preview: (title, shop) => `Cita cancelada: ${title} — ${shop}`,
-    heading: "Cita cancelada",
-    body: "Tu cita ha sido cancelada. Si deseas reprogramar, contáctanos.",
+  FR: {
+    htmlLang: "fr",
+    copy: {
+      confirmation: {
+        preview: (title, shop) => `Rendez-vous confirmé : ${title} — ${shop}`,
+        heading: "Rendez-vous confirmé",
+        body: "Votre rendez-vous a été enregistré. Nous vous attendons à la date et l'heure indiquées.",
+      },
+      reminder: {
+        preview: (title, shop) => `Rappel de rendez-vous : ${title} — ${shop}`,
+        heading: "Rappel de rendez-vous",
+        body: "Nous vous rappelons que vous avez un rendez-vous prochainement dans notre atelier.",
+      },
+      cancellation: {
+        preview: (title, shop) => `Rendez-vous annulé : ${title} — ${shop}`,
+        heading: "Rendez-vous annulé",
+        body: "Votre rendez-vous a été annulé. Contactez-nous si vous souhaitez le reprogrammer.",
+      },
+    },
+    greeting: (name) => `Bonjour, ${name}`,
+    serviceLabel: "SERVICE",
+    dateTimeLabel: "DATE ET HEURE",
+    manageButton: "Modifier ou annuler mon rendez-vous",
+    contactPrompt: "Pour tout changement ou question, contactez-nous :",
+    footer: (shop) => `Ce courriel a été envoyé par ${shop}.`,
   },
 };
+
+function resolveLanguage(language?: string | null): AppointmentEmailLanguage {
+  return language === "EN" || language === "FR" ? language : "ES";
+}
 
 export function AppointmentEmail({
   type,
@@ -55,13 +135,15 @@ export function AppointmentEmail({
   startsAtFormatted,
   shopPhone,
   shopEmail,
+  language,
   manageUrl,
 }: AppointmentEmailProps) {
-  const copy = COPY[type];
+  const t = STRINGS[resolveLanguage(language)];
+  const copy = t.copy[type];
   const showManageButton = type !== "cancellation" && Boolean(manageUrl);
 
   return (
-    <Html lang="es">
+    <Html lang={t.htmlLang}>
       <Head />
       <Preview>{copy.preview(title, shopName)}</Preview>
       <Body style={styles.body}>
@@ -72,38 +154,34 @@ export function AppointmentEmail({
           </Section>
 
           <Section style={styles.content}>
-            <Text style={styles.greeting}>Hola, {clientName}</Text>
+            <Text style={styles.greeting}>{t.greeting(clientName)}</Text>
             <Text style={styles.bodyText}>{copy.body}</Text>
 
             <Section style={styles.card}>
-              <Text style={styles.cardLabel}>SERVICIO</Text>
+              <Text style={styles.cardLabel}>{t.serviceLabel}</Text>
               <Text style={styles.cardValue}>{title}</Text>
 
               <Hr style={styles.cardDivider} />
 
-              <Text style={styles.cardLabel}>FECHA Y HORA</Text>
+              <Text style={styles.cardLabel}>{t.dateTimeLabel}</Text>
               <Text style={styles.cardValue}>{startsAtFormatted}</Text>
             </Section>
 
             {showManageButton && (
               <Section style={styles.manageSection}>
                 <Button style={styles.manageButton} href={manageUrl!}>
-                  Editar o cancelar mi cita
+                  {t.manageButton}
                 </Button>
               </Section>
             )}
 
-            <Text style={styles.bodyText}>
-              Para cambios o consultas, contáctanos:
-            </Text>
+            <Text style={styles.bodyText}>{t.contactPrompt}</Text>
             {shopPhone && <Text style={styles.contactDetail}>{shopPhone}</Text>}
             {shopEmail && <Text style={styles.contactDetail}>{shopEmail}</Text>}
           </Section>
 
           <Section style={styles.footer}>
-            <Text style={styles.footerText}>
-              Este correo fue enviado por {shopName}.
-            </Text>
+            <Text style={styles.footerText}>{t.footer(shopName)}</Text>
           </Section>
         </Container>
       </Body>

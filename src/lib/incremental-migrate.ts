@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260812-phone-primary-sms-v1";
+export const SCHEMA_VERSION = "20260812-client-language-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -295,6 +295,8 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `CREATE UNIQUE INDEX IF NOT EXISTS "Appointment_manageToken_key" ON mecanico."Appointment"("manageToken")`,
   // ── Teléfono como canal principal: notificaciones de citas por SMS ────
   `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "appointmentSmsEnabled" BOOLEAN NOT NULL DEFAULT true`,
+  // ── Idioma preferido del cliente — SMS y emails de citas ────
+  `ALTER TABLE mecanico."Client" ADD COLUMN IF NOT EXISTS "language" mecanico."InvoiceLanguage" NOT NULL DEFAULT 'ES'`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {

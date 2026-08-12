@@ -15,6 +15,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { clientSchema, type ClientFormData } from "@/lib/validations";
+import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 
 interface ClientFormProps {
   defaultValues?: Partial<ClientFormData>;
@@ -42,6 +43,7 @@ export function ClientForm({
       lastName: "",
       phone: "",
       email: "",
+      language: "ES",
       address: "",
       notes: "",
     },
@@ -102,6 +104,17 @@ export function ClientForm({
           />
         </Field>
       </div>
+
+      {/* Idioma preferido — determina el idioma de SMS y emails de citas */}
+      <Field label="Idioma preferido" error={errors.language?.message}>
+        <select {...register("language")} className={inputClass(!!errors.language)}>
+          {INVOICE_LANGUAGES.map((lang) => (
+            <option key={lang.value} value={lang.value}>
+              {lang.label}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       {/* Dirección */}
       <Field label="Dirección" error={errors.address?.message}>

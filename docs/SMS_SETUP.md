@@ -17,6 +17,18 @@ El link apunta a `/book/{slug}/manage/{token}` — la misma página de auto-gest
 los emails. Cada cita tiene su propio `manageToken`; si una cita antigua no tiene uno, se genera
 la primera vez que se le envía una notificación.
 
+## Idioma
+
+Cada `Client` tiene un campo `language` (ES / EN / FR — mismo enum que usan facturas y
+cotizaciones). El SMS y el email de la cita se generan en ese idioma:
+
+- **Español** por defecto para clientes creados desde el panel admin.
+- El cliente elige su idioma en el formulario de reserva pública (`/book/{slug}`).
+- Se puede cambiar en cualquier momento desde **Clientes → Editar**.
+
+Las plantillas viven en `src/lib/sms.ts` (SMS) y `src/emails/AppointmentEmail.tsx` (email) —
+ambas cubren `confirmation`, `reminder` y `cancellation` en los tres idiomas.
+
 ## 1. Crear cuenta Twilio
 
 1. [twilio.com](https://www.twilio.com) → crear cuenta

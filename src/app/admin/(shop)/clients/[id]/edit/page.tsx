@@ -18,6 +18,7 @@ export default async function EditClientPage({ params }: Props) {
     lastName: client.lastName ?? "",
     email: client.email ?? "",
     phone: client.phone ?? "",
+    language: client.language,
     address: client.address ?? "",
     notes: client.notes ?? "",
   };

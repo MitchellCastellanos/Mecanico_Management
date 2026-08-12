@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 
 interface ShopInfo {
   name: string;
@@ -84,6 +85,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       lastName: formData.get("lastName"),
       email: formData.get("email"),
       phone: formData.get("phone"),
+      language: formData.get("language"),
       make: formData.get("make"),
       model: formData.get("model"),
       year: formData.get("year"),
@@ -174,6 +176,18 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
             Email (opcional)
           </label>
           <input name="email" type="email" className={inputClass} />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Idioma / Language / Langue
+          </label>
+          <select name="language" defaultValue="ES" className={inputClass}>
+            {INVOICE_LANGUAGES.map((lang) => (
+              <option key={lang.value} value={lang.value}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 

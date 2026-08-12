@@ -8,6 +8,7 @@ export const clientSchema = z.object({
   lastName: z.string().max(100).optional().or(z.literal("")),
   phone: z.string().min(7, "Teléfono requerido").max(30),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
+  language: z.enum(["ES", "EN", "FR"]),
   address: z.string().max(255).optional().or(z.literal("")),
   notes: z.string().max(1000).optional().or(z.literal("")),
 });
@@ -96,6 +97,7 @@ export const publicBookingSchema = z.object({
   lastName: z.string().max(100).optional().or(z.literal("")),
   phone: z.string().min(7, "Teléfono requerido").max(30),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
+  language: z.enum(["ES", "EN", "FR"]).default("ES"),
   make: z.string().min(1, "Marca requerida").max(50),
   model: z.string().min(1, "Modelo requerido").max(50),
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),

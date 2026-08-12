@@ -68,7 +68,7 @@ export async function createClient(formData: ClientFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { firstName, lastName, email, phone, address, notes } = parsed.data;
+  const { firstName, lastName, email, phone, language, address, notes } = parsed.data;
 
   const client = await db.client.create({
     data: {
@@ -77,6 +77,7 @@ export async function createClient(formData: ClientFormData) {
       lastName: lastName || null,
       email: email || null,
       phone: phone || null,
+      language,
       address: address || null,
       notes: notes || null,
     },
@@ -98,7 +99,7 @@ export async function updateClient(id: string, formData: ClientFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { firstName, lastName, email, phone, address, notes } = parsed.data;
+  const { firstName, lastName, email, phone, language, address, notes } = parsed.data;
 
   // Verificar que el cliente pertenece a este shop antes de actualizar
   await db.client.updateMany({
@@ -108,6 +109,7 @@ export async function updateClient(id: string, formData: ClientFormData) {
       lastName: lastName || null,
       email: email || null,
       phone: phone || null,
+      language,
       address: address || null,
       notes: notes || null,
     },

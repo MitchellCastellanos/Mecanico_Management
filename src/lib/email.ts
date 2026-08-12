@@ -226,17 +226,33 @@ interface AppointmentEmailSendData {
   title: string;
   startsAtFormatted: string;
   shopPhone?: string | null;
+  /** Idioma preferido del cliente — por defecto español. */
+  language?: string | null;
   manageUrl?: string | null;
 }
 
+const APPOINTMENT_SUBJECTS: Record<string, Record<AppointmentEmailType, (title: string, shop: string) => string>> = {
+  ES: {
+    confirmation: (title, shop) => `Cita confirmada: ${title} — ${shop}`,
+    reminder: (title, shop) => `Recordatorio de cita: ${title} — ${shop}`,
+    cancellation: (title, shop) => `Cita cancelada: ${title} — ${shop}`,
+  },
+  EN: {
+    confirmation: (title, shop) => `Appointment confirmed: ${title} — ${shop}`,
+    reminder: (title, shop) => `Appointment reminder: ${title} — ${shop}`,
+    cancellation: (title, shop) => `Appointment cancelled: ${title} — ${shop}`,
+  },
+  FR: {
+    confirmation: (title, shop) => `Rendez-vous confirmé : ${title} — ${shop}`,
+    reminder: (title, shop) => `Rappel de rendez-vous : ${title} — ${shop}`,
+    cancellation: (title, shop) => `Rendez-vous annulé : ${title} — ${shop}`,
+  },
+};
+
 export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
   const route = resolveEmailRoute(data.shop, "APPOINTMENT");
-
-  const subjects: Record<AppointmentEmailType, string> = {
-    confirmation: `Cita confirmada: ${data.title} — ${data.shop.name}`,
-    reminder: `Recordatorio de cita: ${data.title} — ${data.shop.name}`,
-    cancellation: `Cita cancelada: ${data.title} — ${data.shop.name}`,
-  };
+  const lang = data.language === "EN" || data.language === "FR" ? data.language : "ES";
+  const subject = APPOINTMENT_SUBJECTS[lang][data.type](data.title, data.shop.name);
 
   const element = React.createElement(AppointmentEmail, {
     type: data.type,
@@ -246,6 +262,7 @@ export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
     startsAtFormatted: data.startsAtFormatted,
     shopPhone: data.shopPhone,
     shopEmail: route.replyTo,
+    language: data.language,
     manageUrl: data.manageUrl,
   });
 
@@ -253,7 +270,7 @@ export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
     shop: data.shop,
     channel: "APPOINTMENT",
     to: data.to,
-    subject: subjects[data.type],
+    subject,
     react: element,
   });
 }
