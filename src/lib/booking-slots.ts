@@ -79,7 +79,9 @@ export async function getAvailableSlots(
     }[];
   },
   dateStr: string,
-  mechanicId?: string
+  mechanicId?: string,
+  /** Ignora esta cita al calcular disponibilidad (edición: su propio horario no cuenta como ocupado). */
+  excludeAppointmentId?: string
 ): Promise<AvailableSlot[]> {
   const dayOfWeek = getShopDayOfWeek(dateStr, shop.timezone);
   const hours =
@@ -107,6 +109,7 @@ export async function getAvailableSlots(
       shopId: shop.id,
       status: { notIn: ["CANCELLED", "NO_SHOW"] },
       startsAt: { gte: dayStart, lte: dayEnd },
+      ...(excludeAppointmentId ? { id: { not: excludeAppointmentId } } : {}),
     },
     select: { mechanicId: true, startsAt: true, endsAt: true },
   });
@@ -147,14 +150,15 @@ export async function getAvailableSlots(
 
 export async function getBookableDates(
   shop: Parameters<typeof getAvailableSlots>[0],
-  days = 14
+  days = 14,
+  excludeAppointmentId?: string
 ): Promise<string[]> {
   const dates: string[] = [];
   const now = new Date();
   for (let i = 0; i < days; i++) {
     const d = new Date(now.getTime() + i * 86_400_000);
     const dateStr = formatShopDate(d, shop.timezone);
-    const slots = await getAvailableSlots(shop, dateStr);
+    const slots = await getAvailableSlots(shop, dateStr, undefined, excludeAppointmentId);
     if (slots.length > 0) dates.push(dateStr);
   }
   return dates;
@@ -164,9 +168,10 @@ export async function findAvailableMechanic(
   shop: Parameters<typeof getAvailableSlots>[0],
   dateStr: string,
   time: string,
-  preferredMechanicId?: string
+  preferredMechanicId?: string,
+  excludeAppointmentId?: string
 ): Promise<{ id: string; name: string } | null> {
-  const slots = await getAvailableSlots(shop, dateStr, preferredMechanicId);
+  const slots = await getAvailableSlots(shop, dateStr, preferredMechanicId, excludeAppointmentId);
   const match = slots.find((s) => s.time === time);
   if (match) return { id: match.mechanicId, name: match.mechanicName };
   return null;

@@ -6,6 +6,8 @@ import { sendAppointmentEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
+import { generateAppointmentManageToken } from "@/lib/appointment-token";
+import { getAppUrl } from "@/lib/app-url";
 
 function formatAppointmentDateTime(date: Date, timeZone: string): string {
   return new Intl.DateTimeFormat("fr-CA", {
@@ -109,6 +111,8 @@ export async function POST(
     });
   }
 
+  const manageToken = generateAppointmentManageToken();
+
   const appointment = await db.appointment.create({
     data: {
       shopId: shop.id,
@@ -122,9 +126,12 @@ export async function POST(
       notes: data.notes || null,
       status: "CONFIRMED",
       source: "PUBLIC_WEB",
+      manageToken,
     },
     include: { client: true, shop: true },
   });
+
+  const manageUrl = shop.slug ? `${getAppUrl()}/book/${shop.slug}/manage/${manageToken}` : null;
 
   if (shop.appointmentEmailsEnabled && client.email) {
     try {
@@ -136,6 +143,7 @@ export async function POST(
         title: appointment.title,
         startsAtFormatted: formatAppointmentDateTime(startsAt, shop.timezone),
         shopPhone: shop.phone,
+        manageUrl,
       });
       await db.appointment.update({
         where: { id: appointment.id },
@@ -151,5 +159,6 @@ export async function POST(
     appointmentId: appointment.id,
     mechanicName: mechanic.name,
     startsAt: startsAt.toISOString(),
+    manageUrl,
   });
 }

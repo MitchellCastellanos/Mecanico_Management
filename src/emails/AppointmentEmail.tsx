@@ -1,5 +1,6 @@
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -21,6 +22,8 @@ export interface AppointmentEmailProps {
   startsAtFormatted: string;
   shopPhone?: string | null;
   shopEmail?: string | null;
+  /** Link público para que el cliente edite o cancele esta cita (sin login). */
+  manageUrl?: string | null;
 }
 
 const COPY: Record<
@@ -52,8 +55,10 @@ export function AppointmentEmail({
   startsAtFormatted,
   shopPhone,
   shopEmail,
+  manageUrl,
 }: AppointmentEmailProps) {
   const copy = COPY[type];
+  const showManageButton = type !== "cancellation" && Boolean(manageUrl);
 
   return (
     <Html lang="es">
@@ -79,6 +84,14 @@ export function AppointmentEmail({
               <Text style={styles.cardLabel}>FECHA Y HORA</Text>
               <Text style={styles.cardValue}>{startsAtFormatted}</Text>
             </Section>
+
+            {showManageButton && (
+              <Section style={styles.manageSection}>
+                <Button style={styles.manageButton} href={manageUrl!}>
+                  Editar o cancelar mi cita
+                </Button>
+              </Section>
+            )}
 
             <Text style={styles.bodyText}>
               Para cambios o consultas, contáctanos:
@@ -165,6 +178,19 @@ const styles = {
   cardDivider: {
     borderColor: "#ccfbf1",
     margin: "16px 0",
+  },
+  manageSection: {
+    textAlign: "center" as const,
+    margin: "0 0 24px 0",
+  },
+  manageButton: {
+    backgroundColor: "#0f766e",
+    borderRadius: "8px",
+    color: "#ffffff",
+    fontSize: "14px",
+    fontWeight: "600",
+    textDecoration: "none",
+    padding: "12px 24px",
   },
   contactDetail: {
     fontSize: "14px",

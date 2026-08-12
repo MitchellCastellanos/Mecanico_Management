@@ -434,6 +434,7 @@ model Appointment {
   reminderSentAt       DateTime?
   cancellationSentAt   DateTime?
   source               AppointmentSource @default(INTERNAL)
+  manageToken          String?           @unique
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 }

@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260609-revenue-type-cash-drawer-v1";
+export const SCHEMA_VERSION = "20260812-appointment-manage-token-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -290,6 +290,9 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
       FOREIGN KEY ("linkedInvoiceId") REFERENCES mecanico."Invoice"("id") ON DELETE SET NULL ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
+  // ── Cliente puede editar su propia cita vía link con token ────
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "manageToken" TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "Appointment_manageToken_key" ON mecanico."Appointment"("manageToken")`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {

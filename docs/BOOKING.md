@@ -12,6 +12,7 @@ Guía para configurar mecánicos, horarios de apertura y la página pública de 
 | Página pública | `/book/{slug}` (sin login) |
 | API slots | `GET /api/book/{slug}/slots` |
 | API reservar | `POST /api/book/{slug}` |
+| Editar/cancelar cita (cliente) | `/book/{slug}/manage/{token}` (sin login) |
 
 ## 1. Migración tras deploy
 
@@ -80,7 +81,19 @@ Cuando el taller tenga dominio propio (`NEXT_PUBLIC_APP_URL=https://garagecarlos
 
 Las citas web aparecen en `/appointments` con badge **Web**.
 
-## 5. API (integración avanzada)
+## 5. El cliente edita o cancela su propia cita
+
+Cada cita recibe un `manageToken` único al crearse. El link `/book/{slug}/manage/{token}`:
+
+- Se muestra en pantalla justo después de reservar (por si el cliente no puso email)
+- Se incluye como botón **"Editar o cancelar mi cita"** en los emails de confirmación y recordatorio
+- Permite cambiar servicio, fecha/hora, mecánico y notas, o cancelar la cita — sin login
+- Deja de funcionar si la cita ya pasó, fue cancelada o completada (se muestra un resumen de solo lectura)
+- Cada cambio revalida `/appointments` en el panel y reenvía el email de confirmación con los nuevos datos
+
+Citas creadas antes de esta funcionalidad no tienen `manageToken` hasta que se les envíe una confirmación o recordatorio (se genera de forma perezosa en ese momento).
+
+## 6. API (integración avanzada)
 
 ### Listar fechas y mecánicos
 
@@ -121,13 +134,38 @@ Content-Type: application/json
 }
 ```
 
-Respuesta exitosa: `{ ok: true, appointmentId, mechanicName, startsAt }`
+Respuesta exitosa: `{ ok: true, appointmentId, mechanicName, startsAt, manageUrl }`
 
 Errores comunes:
 - `404` — slug inexistente o reservas desactivadas
 - `409` — horario ya ocupado (elegir otro slot)
 
-## 6. Lógica de disponibilidad
+### Editar reserva (cliente)
+
+```http
+PATCH /api/book/{slug}/manage/{token}
+Content-Type: application/json
+
+{
+  "title": "Cambio de aceite",
+  "date": "2026-06-05",
+  "time": "11:00",
+  "mechanicId": "",
+  "notes": ""
+}
+```
+
+Respuesta exitosa: `{ ok: true, startsAt }`. Errores: `404` (token inválido), `409` (cita no editable u horario ocupado).
+
+### Cancelar reserva (cliente)
+
+```http
+DELETE /api/book/{slug}/manage/{token}
+```
+
+Respuesta exitosa: `{ ok: true }`.
+
+## 7. Lógica de disponibilidad
 
 Un slot está disponible si:
 
@@ -136,7 +174,7 @@ Un slot está disponible si:
 - Respeta anticipación mínima y ventana máxima de reserva
 - Al menos un mecánico **bookable** no tiene otra cita solapada
 
-## 7. Checklist antes de entregar al cliente
+## 8. Checklist antes de entregar al cliente
 
 - [ ] Migración ejecutada en producción
 - [ ] Al menos un mecánico creado y marcado como bookable

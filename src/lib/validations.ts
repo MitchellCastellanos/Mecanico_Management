@@ -109,6 +109,17 @@ export const publicBookingSchema = z.object({
 
 export type PublicBookingFormData = z.infer<typeof publicBookingSchema>;
 
+// ── Edición pública de una cita ya agendada (link con token) ─
+export const publicAppointmentEditSchema = z.object({
+  title: z.string().min(1, "Describe el servicio").max(200),
+  date: z.string().min(1),
+  time: z.string().regex(/^\d{2}:\d{2}$/),
+  mechanicId: z.string().optional().or(z.literal("")),
+  notes: z.string().max(1000).optional().or(z.literal("")),
+});
+
+export type PublicAppointmentEditData = z.infer<typeof publicAppointmentEditSchema>;
+
 // ── Recordatorio de servicio ──────────────────────────────────
 
 export const reminderSchema = z.object({

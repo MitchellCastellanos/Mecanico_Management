@@ -10,6 +10,8 @@ import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
 import { formatClientName } from "@/lib/client-name";
 import { sendAppointmentEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { generateAppointmentManageToken } from "@/lib/appointment-token";
+import { getAppUrl } from "@/lib/app-url";
 import { BRAND } from "@/config/brand";
 import {
   type AppointmentView,
@@ -25,6 +27,20 @@ import {
   parseShopDateTime,
   shiftMonth,
 } from "@/lib/shop-timezone";
+
+/** Link público para que el cliente edite/cancele su cita (null si el taller no tiene slug). */
+function buildManageUrl(shop: { slug: string | null }, manageToken: string | null): string | null {
+  if (!shop.slug || !manageToken) return null;
+  return `${getAppUrl()}/book/${shop.slug}/manage/${manageToken}`;
+}
+
+/** Genera y persiste el token de gestión si la cita todavía no tiene uno (citas creadas antes de esta feature). */
+async function ensureManageToken(appointmentId: string, manageToken: string | null): Promise<string> {
+  if (manageToken) return manageToken;
+  const token = generateAppointmentManageToken();
+  await db.appointment.update({ where: { id: appointmentId }, data: { manageToken: token } });
+  return token;
+}
 
 async function getShopTimezone(shopId: string): Promise<string> {
   const shop = await db.shop.findUnique({
@@ -203,6 +219,7 @@ export async function createAppointment(formData: AppointmentFormData) {
       durationMinutes,
       notes: notes || null,
       status: "SCHEDULED",
+      manageToken: generateAppointmentManageToken(),
     },
   });
 
@@ -310,6 +327,8 @@ export async function sendAppointmentConfirmation(id: string) {
     return { error: "El cliente no tiene email configurado" };
   }
 
+  const manageToken = await ensureManageToken(appointment.id, appointment.manageToken);
+
   try {
     await sendAppointmentEmail({
       shop: shopToEmailConfig(appointment.shop),
@@ -319,6 +338,7 @@ export async function sendAppointmentConfirmation(id: string) {
       title: appointment.title,
       startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
       shopPhone: appointment.shop.phone,
+      manageUrl: buildManageUrl(appointment.shop, manageToken),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
@@ -390,6 +410,8 @@ export async function sendAppointmentReminder(id: string) {
     return { error: "El cliente no tiene email configurado" };
   }
 
+  const manageToken = await ensureManageToken(appointment.id, appointment.manageToken);
+
   await sendAppointmentEmail({
     shop: shopToEmailConfig(appointment.shop),
     to: clientEmail,
@@ -398,6 +420,7 @@ export async function sendAppointmentReminder(id: string) {
     title: appointment.title,
     startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
     shopPhone: appointment.shop.phone,
+    manageUrl: buildManageUrl(appointment.shop, manageToken),
   });
 
   await db.appointment.update({

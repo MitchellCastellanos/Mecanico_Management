@@ -226,6 +226,7 @@ interface AppointmentEmailSendData {
   title: string;
   startsAtFormatted: string;
   shopPhone?: string | null;
+  manageUrl?: string | null;
 }
 
 export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
@@ -245,6 +246,7 @@ export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
     startsAtFormatted: data.startsAtFormatted,
     shopPhone: data.shopPhone,
     shopEmail: route.replyTo,
+    manageUrl: data.manageUrl,
   });
 
   await sendTransactionalEmail({

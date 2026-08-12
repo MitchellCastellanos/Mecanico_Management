@@ -28,6 +28,7 @@ interface PublicBookingFormProps {
 
 export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   const [step, setStep] = useState<"form" | "done">("form");
+  const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
   const [mechanics, setMechanics] = useState<MechanicOption[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
@@ -112,6 +113,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         return;
       }
 
+      setManageUrl(data.manageUrl ?? null);
       setStep("done");
     });
   }
@@ -134,6 +136,19 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
             </>
           )}
         </p>
+        {manageUrl && (
+          <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-left">
+            <p className="text-slate-700 mb-1">
+              Guarda este link para editar o cancelar tu cita más tarde:
+            </p>
+            <a
+              href={manageUrl}
+              className="text-teal-700 font-medium break-all underline underline-offset-2"
+            >
+              {manageUrl}
+            </a>
+          </div>
+        )}
       </div>
     );
   }
