@@ -7,13 +7,14 @@ import {
   cancelAppointment,
   sendAppointmentConfirmation,
 } from "@/actions/appointments";
+import { ADMIN } from "@/lib/routes";
 import { formatClientName } from "@/lib/client-name";
 import {
   formatShopDate,
   formatShopDayHeader,
   formatShopTimeLabel,
 } from "@/lib/shop-timezone";
-import { Calendar, Clock, Loader2, Mail, User, Ban } from "lucide-react";
+import { Calendar, Clock, Loader2, Mail, User, Ban, Pencil } from "lucide-react";
 
 interface Appointment {
   id: string;
@@ -77,6 +78,7 @@ function AppointmentRow({
     (appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED") &&
     (Boolean(appointment.client.phone?.trim()) || Boolean(appointment.client.email?.trim()));
   const canCancel = appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED";
+  const canEdit = canCancel;
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors">
@@ -141,6 +143,16 @@ function AppointmentRow({
             )}
             Confirmar
           </button>
+        )}
+
+        {canEdit && (
+          <a
+            href={`${ADMIN.appointments}/${appointment.id}/edit`}
+            className="flex items-center gap-1 px-2.5 py-1.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg text-xs font-medium"
+          >
+            <Pencil className="w-3 h-3" />
+            Editar
+          </a>
         )}
 
         {canCancel && (

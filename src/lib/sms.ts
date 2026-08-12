@@ -37,7 +37,7 @@ export async function sendSms(to: string, body: string): Promise<void> {
   await client.messages.create({ to: e164, from, body });
 }
 
-export type AppointmentSmsType = "confirmation" | "reminder" | "cancellation";
+export type AppointmentSmsType = "confirmation" | "reminder" | "cancellation" | "update";
 export type SmsLanguage = "ES" | "EN" | "FR";
 
 export interface AppointmentSmsData {
@@ -64,6 +64,9 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
     cancellation: (data) =>
       `${data.shopName}: tu cita "${data.title}" del ${data.startsAtFormatted} fue cancelada.`,
+    update: (data) =>
+      `${data.shopName}: tu cita fue modificada — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Editar o cancelar: ${data.manageUrl}` : ""),
   },
   EN: {
     confirmation: (data) =>
@@ -74,6 +77,9 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       (data.manageUrl ? ` Edit or cancel: ${data.manageUrl}` : ""),
     cancellation: (data) =>
       `${data.shopName}: your appointment "${data.title}" on ${data.startsAtFormatted} was cancelled.`,
+    update: (data) =>
+      `${data.shopName}: your appointment was updated — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Edit or cancel: ${data.manageUrl}` : ""),
   },
   FR: {
     confirmation: (data) =>
@@ -84,6 +90,9 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       (data.manageUrl ? ` Modifier ou annuler : ${data.manageUrl}` : ""),
     cancellation: (data) =>
       `${data.shopName} : votre rendez-vous « ${data.title} » du ${data.startsAtFormatted} a été annulé.`,
+    update: (data) =>
+      `${data.shopName} : votre rendez-vous a été modifié — ${data.title}, ${data.startsAtFormatted}.` +
+      (data.manageUrl ? ` Modifier ou annuler : ${data.manageUrl}` : ""),
   },
 };
 

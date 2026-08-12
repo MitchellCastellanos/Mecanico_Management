@@ -247,7 +247,7 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
     }
   }
 
-  await db.appointment.update({
+  const updated = await db.appointment.update({
     where: { id },
     data: {
       clientId,
@@ -259,7 +259,26 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
       durationMinutes,
       notes: notes || null,
     },
+    include: { client: true, shop: true },
   });
+
+  // Avisamos al cliente del cambio — no bloquea el guardado si falla.
+  if (updated.client.phone || updated.client.email) {
+    try {
+      const manageToken = await ensureAppointmentManageToken(updated.id, updated.manageToken);
+      await notifyAppointmentEvent({
+        type: "update",
+        shop: updated.shop,
+        client: updated.client,
+        appointmentId: updated.id,
+        title: updated.title,
+        startsAt: updated.startsAt,
+        manageToken,
+      });
+    } catch (err) {
+      console.error(`Error notificando modificación de cita ${id}:`, err);
+    }
+  }
 
   revalidatePath(ADMIN.appointments);
   redirect(`${ADMIN.appointments}?view=day&date=${date}`);

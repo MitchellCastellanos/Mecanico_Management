@@ -87,7 +87,7 @@ export async function PATCH(
   });
 
   await notifyAppointmentEvent({
-    type: "confirmation",
+    type: "update",
     shop,
     client: appointment.client,
     appointmentId: appointment.id,

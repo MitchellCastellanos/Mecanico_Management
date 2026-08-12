@@ -236,16 +236,19 @@ const APPOINTMENT_SUBJECTS: Record<string, Record<AppointmentEmailType, (title: 
     confirmation: (title, shop) => `Cita confirmada: ${title} — ${shop}`,
     reminder: (title, shop) => `Recordatorio de cita: ${title} — ${shop}`,
     cancellation: (title, shop) => `Cita cancelada: ${title} — ${shop}`,
+    update: (title, shop) => `Cita modificada: ${title} — ${shop}`,
   },
   EN: {
     confirmation: (title, shop) => `Appointment confirmed: ${title} — ${shop}`,
     reminder: (title, shop) => `Appointment reminder: ${title} — ${shop}`,
     cancellation: (title, shop) => `Appointment cancelled: ${title} — ${shop}`,
+    update: (title, shop) => `Appointment updated: ${title} — ${shop}`,
   },
   FR: {
     confirmation: (title, shop) => `Rendez-vous confirmé : ${title} — ${shop}`,
     reminder: (title, shop) => `Rappel de rendez-vous : ${title} — ${shop}`,
     cancellation: (title, shop) => `Rendez-vous annulé : ${title} — ${shop}`,
+    update: (title, shop) => `Rendez-vous modifié : ${title} — ${shop}`,
   },
 };
 

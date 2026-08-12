@@ -10,7 +10,8 @@ independiente — si uno falla, el otro igual se envía.
 |--------|------|----------------------------------|
 | Reserva creada (web pública o botón "Confirmar" en `/appointments`) | `confirmation` | Sí |
 | Cron de recordatorios (`appointmentReminderHours` antes de la cita) | `reminder` | Sí |
-| Cliente cambia su cita desde `/book/{slug}/manage/{token}` | `confirmation` | Sí |
+| El taller edita la cita desde `/appointments/{id}/edit` | `update` | Sí |
+| El cliente edita su cita desde `/book/{slug}/manage/{token}` | `update` | Sí |
 | Cita cancelada (admin o el propio cliente) | `cancellation` | No |
 
 El link apunta a `/book/{slug}/manage/{token}` — la misma página de auto-gestión que ya usan

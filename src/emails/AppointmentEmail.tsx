@@ -12,7 +12,7 @@ import {
 } from "@react-email/components";
 import React from "react";
 
-export type AppointmentEmailType = "confirmation" | "reminder" | "cancellation";
+export type AppointmentEmailType = "confirmation" | "reminder" | "cancellation" | "update";
 export type AppointmentEmailLanguage = "ES" | "EN" | "FR";
 
 export interface AppointmentEmailProps {
@@ -61,6 +61,11 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
         heading: "Cita cancelada",
         body: "Tu cita ha sido cancelada. Si deseas reprogramar, contáctanos.",
       },
+      update: {
+        preview: (title, shop) => `Cita modificada: ${title} — ${shop}`,
+        heading: "Cita modificada",
+        body: "Hicimos cambios en tu cita. Revisa los detalles actualizados a continuación.",
+      },
     },
     greeting: (name) => `Hola, ${name}`,
     serviceLabel: "SERVICIO",
@@ -87,6 +92,11 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
         heading: "Appointment cancelled",
         body: "Your appointment has been cancelled. Contact us if you'd like to reschedule.",
       },
+      update: {
+        preview: (title, shop) => `Appointment updated: ${title} — ${shop}`,
+        heading: "Appointment updated",
+        body: "We made changes to your appointment. Please review the updated details below.",
+      },
     },
     greeting: (name) => `Hello, ${name}`,
     serviceLabel: "SERVICE",
@@ -112,6 +122,11 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
         preview: (title, shop) => `Rendez-vous annulé : ${title} — ${shop}`,
         heading: "Rendez-vous annulé",
         body: "Votre rendez-vous a été annulé. Contactez-nous si vous souhaitez le reprogrammer.",
+      },
+      update: {
+        preview: (title, shop) => `Rendez-vous modifié : ${title} — ${shop}`,
+        heading: "Rendez-vous modifié",
+        body: "Nous avons apporté des changements à votre rendez-vous. Veuillez consulter les détails mis à jour ci-dessous.",
       },
     },
     greeting: (name) => `Bonjour, ${name}`,
