@@ -23,7 +23,7 @@ interface Appointment {
   durationMinutes: number;
   status: string;
   source?: string;
-  client: { firstName: string; lastName?: string | null; email?: string | null };
+  client: { firstName: string; lastName?: string | null; email?: string | null; phone?: string | null };
   vehicle?: { year: number; make: string; model: string; licensePlate: string } | null;
   mechanic?: { name: string } | null;
 }
@@ -75,7 +75,7 @@ function AppointmentRow({
 
   const canConfirm =
     (appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED") &&
-    Boolean(appointment.client.email?.trim());
+    (Boolean(appointment.client.phone?.trim()) || Boolean(appointment.client.email?.trim()));
   const canCancel = appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED";
 
   return (
@@ -127,7 +127,8 @@ function AppointmentRow({
                   toast.error(result.error);
                   return;
                 }
-                toast.success(`Confirmación enviada a ${result.sentTo}`);
+                const via = result.sentVia?.length ? ` por ${result.sentVia.join(" y ")}` : "";
+                toast.success(`Confirmación enviada${via}`);
                 router.refresh();
               })
             }

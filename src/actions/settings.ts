@@ -46,6 +46,7 @@ const shopSchema = z.object({
   newsletterEmail: z.string().email("Email inválido").optional().or(z.literal("")),
   taxId: z.string().max(100).optional().or(z.literal("")),
   appointmentReminderHours: z.coerce.number().int().min(1).max(168),
+  appointmentSmsEnabled: z.coerce.boolean(),
   appointmentEmailsEnabled: z.coerce.boolean(),
 });
 
@@ -63,6 +64,7 @@ export async function updateShopSettings(formData: FormData) {
     newsletterEmail: formData.get("newsletterEmail") as string,
     taxId: formData.get("taxId") as string,
     appointmentReminderHours: formData.get("appointmentReminderHours") as string,
+    appointmentSmsEnabled: formData.get("appointmentSmsEnabled") === "on",
     appointmentEmailsEnabled: formData.get("appointmentEmailsEnabled") === "on",
   };
 
@@ -82,6 +84,7 @@ export async function updateShopSettings(formData: FormData) {
     newsletterEmail,
     taxId,
     appointmentReminderHours,
+    appointmentSmsEnabled,
     appointmentEmailsEnabled,
   } = parsed.data;
 
@@ -98,6 +101,7 @@ export async function updateShopSettings(formData: FormData) {
       newsletterEmail: newsletterEmail || null,
       taxId: taxId || null,
       appointmentReminderHours,
+      appointmentSmsEnabled,
       appointmentEmailsEnabled,
     },
   });

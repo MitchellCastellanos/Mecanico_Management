@@ -6,8 +6,8 @@ import { z } from "zod";
 export const clientSchema = z.object({
   firstName: z.string().min(1, "El nombre es requerido").max(100),
   lastName: z.string().max(100).optional().or(z.literal("")),
+  phone: z.string().min(7, "Teléfono requerido").max(30),
   email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().max(30).optional().or(z.literal("")),
   address: z.string().max(255).optional().or(z.literal("")),
   notes: z.string().max(1000).optional().or(z.literal("")),
 });
@@ -94,8 +94,8 @@ export type AppointmentFormData = z.infer<typeof appointmentSchema>;
 export const publicBookingSchema = z.object({
   firstName: z.string().min(1, "El nombre es requerido").max(100),
   lastName: z.string().max(100).optional().or(z.literal("")),
-  email: z.string().email("Email inválido"),
   phone: z.string().min(7, "Teléfono requerido").max(30),
+  email: z.string().email("Email inválido").optional().or(z.literal("")),
   make: z.string().min(1, "Marca requerida").max(50),
   model: z.string().min(1, "Modelo requerido").max(50),
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),

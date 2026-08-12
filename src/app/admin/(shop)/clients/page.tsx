@@ -81,8 +81,8 @@ export default async function ClientsPage({ searchParams }: Props) {
                   </td>
                   <td className="px-5 py-4 hidden sm:table-cell">
                     <div className="text-sm text-slate-500 space-y-0.5">
-                      {client.email && <p>{client.email}</p>}
                       {client.phone && <p>{client.phone}</p>}
+                      {client.email && <p>{client.email}</p>}
                       {!client.email && !client.phone && (
                         <p className="text-slate-300">—</p>
                       )}

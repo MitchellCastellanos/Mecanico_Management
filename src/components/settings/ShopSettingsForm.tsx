@@ -21,6 +21,7 @@ interface Shop {
   taxId: string | null;
   logoUrl: string | null;
   appointmentReminderHours: number;
+  appointmentSmsEnabled: boolean;
   appointmentEmailsEnabled: boolean;
 }
 
@@ -270,7 +271,9 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
             <p className="text-xs text-slate-400 mt-1">Aparece en el pie de página de las facturas PDF</p>
           </div>
           <div className="sm:col-span-2 border-t border-slate-100 pt-4 mt-2">
-            <h3 className="text-sm font-semibold text-slate-800 mb-3">Citas — recordatorios por email</h3>
+            <h3 className="text-sm font-semibold text-slate-800 mb-3">
+              Citas — notificaciones (SMS y email)
+            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -288,19 +291,37 @@ export function ShopSettingsForm({ shop }: ShopSettingsFormProps) {
                   El cron envía recordatorio cuando falten estas horas (por defecto 24 h)
                 </p>
               </div>
-              <div className="flex items-center gap-3 pt-6">
-                <input
-                  id="appointmentEmailsEnabled"
-                  name="appointmentEmailsEnabled"
-                  type="checkbox"
-                  defaultChecked={shop.appointmentEmailsEnabled}
-                  className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                />
-                <label htmlFor="appointmentEmailsEnabled" className="text-sm text-slate-700">
-                  Enviar recordatorios de citas por email
-                </label>
+              <div className="flex flex-col gap-2 pt-6">
+                <div className="flex items-center gap-3">
+                  <input
+                    id="appointmentSmsEnabled"
+                    name="appointmentSmsEnabled"
+                    type="checkbox"
+                    defaultChecked={shop.appointmentSmsEnabled}
+                    className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="appointmentSmsEnabled" className="text-sm text-slate-700">
+                    Enviar notificaciones de citas por SMS (canal principal)
+                  </label>
+                </div>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="appointmentEmailsEnabled"
+                    name="appointmentEmailsEnabled"
+                    type="checkbox"
+                    defaultChecked={shop.appointmentEmailsEnabled}
+                    className="w-4 h-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label htmlFor="appointmentEmailsEnabled" className="text-sm text-slate-700">
+                    Enviar también por email (secundario)
+                  </label>
+                </div>
               </div>
             </div>
+            <p className="text-xs text-slate-400 mt-3">
+              El SMS requiere una cuenta de Twilio configurada por el equipo técnico
+              (TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM_NUMBER).
+            </p>
           </div>
         </div>
 

@@ -106,6 +106,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       if (!res.ok) {
         const msg =
           data.error?.time?.[0] ??
+          data.error?.phone?.[0] ??
           data.error?.email?.[0] ??
           (typeof data.error === "string" ? data.error : "No se pudo reservar");
         setError(msg);
@@ -124,7 +125,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         <CheckCircle2 className="w-16 h-16 text-teal-600 mx-auto" />
         <h2 className="text-2xl font-bold text-slate-900">¡Cita confirmada!</h2>
         <p className="text-slate-600">
-          Recibirás un correo de confirmación si proporcionaste email.
+          Recibirás un SMS de confirmación a tu teléfono.
           {shop.phone && (
             <>
               {" "}
@@ -165,12 +166,14 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           <input name="lastName" className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Email *</label>
-          <input name="email" type="email" required className={inputClass} />
-        </div>
-        <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono *</label>
           <input name="phone" type="tel" required className={inputClass} />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            Email (opcional)
+          </label>
+          <input name="email" type="email" className={inputClass} />
         </div>
       </div>
 

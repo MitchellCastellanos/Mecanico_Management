@@ -40,8 +40,8 @@ export function ClientForm({
     defaultValues: defaultValues ?? {
       firstName: "",
       lastName: "",
-      email: "",
       phone: "",
+      email: "",
       address: "",
       notes: "",
     },
@@ -83,22 +83,22 @@ export function ClientForm({
         </Field>
       </div>
 
-      {/* Email y Teléfono */}
+      {/* Teléfono y Email */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field label="Teléfono *" error={errors.phone?.message}>
+          <input
+            {...register("phone")}
+            type="tel"
+            placeholder="514-555-0100"
+            className={inputClass(!!errors.phone)}
+          />
+        </Field>
         <Field label="Email (opcional)" error={errors.email?.message}>
           <input
             {...register("email")}
             type="email"
             placeholder="carlos@email.com"
             className={inputClass(!!errors.email)}
-          />
-        </Field>
-        <Field label="Teléfono" error={errors.phone?.message}>
-          <input
-            {...register("phone")}
-            type="tel"
-            placeholder="514-555-0100"
-            className={inputClass(!!errors.phone)}
           />
         </Field>
       </div>

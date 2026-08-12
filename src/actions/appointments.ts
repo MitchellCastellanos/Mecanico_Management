@@ -7,18 +7,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
-import { formatClientName } from "@/lib/client-name";
-import { sendAppointmentEmail } from "@/lib/email";
-import { shopToEmailConfig } from "@/lib/email-config";
-import { generateAppointmentManageToken } from "@/lib/appointment-token";
-import { getAppUrl } from "@/lib/app-url";
+import { generateAppointmentManageToken, ensureAppointmentManageToken } from "@/lib/appointment-token";
+import { notifyAppointmentEvent, type NotifyAppointmentEventResult } from "@/lib/appointment-notify";
 import { BRAND } from "@/config/brand";
 import {
   type AppointmentView,
   addShopDays,
   currentShopDate,
   formatShopDate,
-  formatShopDateTime,
   formatShopTime,
   getDayRangeShop,
   getMonthRange,
@@ -28,18 +24,12 @@ import {
   shiftMonth,
 } from "@/lib/shop-timezone";
 
-/** Link público para que el cliente edite/cancele su cita (null si el taller no tiene slug). */
-function buildManageUrl(shop: { slug: string | null }, manageToken: string | null): string | null {
-  if (!shop.slug || !manageToken) return null;
-  return `${getAppUrl()}/book/${shop.slug}/manage/${manageToken}`;
-}
-
-/** Genera y persiste el token de gestión si la cita todavía no tiene uno (citas creadas antes de esta feature). */
-async function ensureManageToken(appointmentId: string, manageToken: string | null): Promise<string> {
-  if (manageToken) return manageToken;
-  const token = generateAppointmentManageToken();
-  await db.appointment.update({ where: { id: appointmentId }, data: { manageToken: token } });
-  return token;
+/** Traduce el resultado de notifyAppointmentEvent a etiquetas legibles para la UI admin. */
+function describeChannels(result: NotifyAppointmentEventResult): string[] {
+  const channels: string[] = [];
+  if (result.smsSent) channels.push("SMS");
+  if (result.emailSent) channels.push("email");
+  return channels;
 }
 
 async function getShopTimezone(shopId: string): Promise<string> {
@@ -296,7 +286,7 @@ export async function cancelAppointment(id: string) {
     data: { status: "CANCELLED" },
   });
 
-  if (appointment.client.email) {
+  if (appointment.client.phone || appointment.client.email) {
     try {
       await sendAppointmentCancellation(id);
     } catch (err) {
@@ -308,7 +298,7 @@ export async function cancelAppointment(id: string) {
   return { success: true };
 }
 
-// ── Email ───────────────────────────────────────────────────
+// ── Notificaciones (SMS principal, email secundario) ──────────
 
 export async function sendAppointmentConfirmation(id: string) {
   const shopId = await getShopId();
@@ -322,27 +312,24 @@ export async function sendAppointmentConfirmation(id: string) {
     return { error: "Cita no encontrada" };
   }
 
-  const clientEmail = appointment.client.email?.trim();
-  if (!clientEmail) {
-    return { error: "El cliente no tiene email configurado" };
+  if (!appointment.client.phone?.trim() && !appointment.client.email?.trim()) {
+    return { error: "El cliente no tiene teléfono ni email configurado" };
   }
 
-  const manageToken = await ensureManageToken(appointment.id, appointment.manageToken);
+  const manageToken = await ensureAppointmentManageToken(appointment.id, appointment.manageToken);
 
-  try {
-    await sendAppointmentEmail({
-      shop: shopToEmailConfig(appointment.shop),
-      to: clientEmail,
-      type: "confirmation",
-      clientName: formatClientName(appointment.client),
-      title: appointment.title,
-      startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
-      shopPhone: appointment.shop.phone,
-      manageUrl: buildManageUrl(appointment.shop, manageToken),
-    });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido";
-    return { error: message };
+  const result = await notifyAppointmentEvent({
+    type: "confirmation",
+    shop: appointment.shop,
+    client: appointment.client,
+    appointmentId: appointment.id,
+    title: appointment.title,
+    startsAt: appointment.startsAt,
+    manageToken,
+  });
+
+  if (!result.anySent) {
+    return { error: "No se pudo enviar la confirmación (revisa la configuración de SMS/email)" };
   }
 
   await db.appointment.update({
@@ -354,7 +341,7 @@ export async function sendAppointmentConfirmation(id: string) {
   });
 
   revalidatePath(ADMIN.appointments);
-  return { success: true, sentTo: clientEmail };
+  return { success: true, sentVia: describeChannels(result) };
 }
 
 export async function sendAppointmentCancellation(id: string) {
@@ -369,20 +356,23 @@ export async function sendAppointmentCancellation(id: string) {
     return { error: "Cita no encontrada" };
   }
 
-  const clientEmail = appointment.client.email?.trim();
-  if (!clientEmail) {
-    return { error: "El cliente no tiene email configurado" };
+  if (!appointment.client.phone?.trim() && !appointment.client.email?.trim()) {
+    return { error: "El cliente no tiene teléfono ni email configurado" };
   }
 
-  await sendAppointmentEmail({
-    shop: shopToEmailConfig(appointment.shop),
-    to: clientEmail,
+  const result = await notifyAppointmentEvent({
     type: "cancellation",
-    clientName: formatClientName(appointment.client),
+    shop: appointment.shop,
+    client: appointment.client,
+    appointmentId: appointment.id,
     title: appointment.title,
-    startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
-    shopPhone: appointment.shop.phone,
+    startsAt: appointment.startsAt,
+    manageToken: appointment.manageToken,
   });
+
+  if (!result.anySent) {
+    return { error: "No se pudo enviar el aviso de cancelación" };
+  }
 
   await db.appointment.update({
     where: { id },
@@ -390,7 +380,7 @@ export async function sendAppointmentCancellation(id: string) {
   });
 
   revalidatePath(ADMIN.appointments);
-  return { success: true, sentTo: clientEmail };
+  return { success: true, sentVia: describeChannels(result) };
 }
 
 export async function sendAppointmentReminder(id: string) {
@@ -405,30 +395,32 @@ export async function sendAppointmentReminder(id: string) {
     return { error: "Cita no encontrada" };
   }
 
-  const clientEmail = appointment.client.email?.trim();
-  if (!clientEmail) {
-    return { error: "El cliente no tiene email configurado" };
+  if (!appointment.client.phone?.trim() && !appointment.client.email?.trim()) {
+    return { error: "El cliente no tiene teléfono ni email configurado" };
   }
 
-  const manageToken = await ensureManageToken(appointment.id, appointment.manageToken);
+  const manageToken = await ensureAppointmentManageToken(appointment.id, appointment.manageToken);
 
-  await sendAppointmentEmail({
-    shop: shopToEmailConfig(appointment.shop),
-    to: clientEmail,
+  const result = await notifyAppointmentEvent({
     type: "reminder",
-    clientName: formatClientName(appointment.client),
+    shop: appointment.shop,
+    client: appointment.client,
+    appointmentId: appointment.id,
     title: appointment.title,
-    startsAtFormatted: formatShopDateTime(appointment.startsAt, appointment.shop.timezone),
-    shopPhone: appointment.shop.phone,
-    manageUrl: buildManageUrl(appointment.shop, manageToken),
+    startsAt: appointment.startsAt,
+    manageToken,
   });
+
+  if (!result.anySent) {
+    return { error: "No se pudo enviar el recordatorio" };
+  }
 
   await db.appointment.update({
     where: { id },
     data: { reminderSentAt: new Date() },
   });
 
-  return { success: true, sentTo: clientEmail };
+  return { success: true, sentVia: describeChannels(result) };
 }
 
 /** Para formulario de edición: fecha y hora en zona del taller */

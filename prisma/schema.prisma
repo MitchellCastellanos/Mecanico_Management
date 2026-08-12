@@ -32,6 +32,7 @@ model Shop {
   currency  String   @default("CAD")
   appointmentReminderHours  Int     @default(24)
   appointmentEmailsEnabled  Boolean @default(true)
+  appointmentSmsEnabled     Boolean @default(true)
   slug                      String? @unique // URL pública: /book/mi-taller
   bookingEnabled            Boolean @default(false)
   timezone                  String  @default("America/Montreal")

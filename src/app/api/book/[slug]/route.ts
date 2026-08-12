@@ -1,24 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { findAvailableMechanic, getShopBySlug } from "@/lib/booking-slots";
-import { formatClientName } from "@/lib/client-name";
-import { sendAppointmentEmail } from "@/lib/email";
-import { shopToEmailConfig } from "@/lib/email-config";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
 import { generateAppointmentManageToken } from "@/lib/appointment-token";
-import { getAppUrl } from "@/lib/app-url";
+import { buildAppointmentManageUrl, notifyAppointmentEvent } from "@/lib/appointment-notify";
 
-function formatAppointmentDateTime(date: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("fr-CA", {
-    timeZone,
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(date);
+/** Solo dígitos — para emparejar el mismo teléfono aunque venga con distinto formato. */
+function phoneDigits(phone: string): string {
+  return phone.replace(/\D/g, "");
 }
 
 export async function POST(
@@ -65,10 +55,13 @@ export async function POST(
   const startsAt = parseShopDateTime(data.date, data.time, shop.timezone);
   const endsAt = new Date(startsAt.getTime() + shop.bookingSlotMinutes * 60_000);
 
-  const email = data.email.trim().toLowerCase();
-  let client = await db.client.findFirst({
-    where: { shopId: shop.id, email },
+  const email = data.email?.trim().toLowerCase() || null;
+  const digits = phoneDigits(data.phone);
+
+  const candidates = await db.client.findMany({
+    where: { shopId: shop.id, phone: { not: null } },
   });
+  let client = candidates.find((c) => c.phone && phoneDigits(c.phone) === digits) ?? null;
 
   if (!client) {
     client = await db.client.create({
@@ -76,18 +69,18 @@ export async function POST(
         shopId: shop.id,
         firstName: data.firstName,
         lastName: data.lastName || null,
-        email,
         phone: data.phone,
+        email,
         notes: "Cliente creado desde reserva web",
       },
     });
   } else {
-    await db.client.update({
+    client = await db.client.update({
       where: { id: client.id },
       data: {
         firstName: data.firstName,
         lastName: data.lastName || null,
-        phone: data.phone,
+        email: email ?? client.email,
       },
     });
   }
@@ -131,27 +124,23 @@ export async function POST(
     include: { client: true, shop: true },
   });
 
-  const manageUrl = shop.slug ? `${getAppUrl()}/book/${shop.slug}/manage/${manageToken}` : null;
+  const manageUrl = buildAppointmentManageUrl(shop, manageToken);
 
-  if (shop.appointmentEmailsEnabled && client.email) {
-    try {
-      await sendAppointmentEmail({
-        shop: shopToEmailConfig(shop),
-        to: client.email,
-        type: "confirmation",
-        clientName: formatClientName(client),
-        title: appointment.title,
-        startsAtFormatted: formatAppointmentDateTime(startsAt, shop.timezone),
-        shopPhone: shop.phone,
-        manageUrl,
-      });
-      await db.appointment.update({
-        where: { id: appointment.id },
-        data: { confirmationSentAt: new Date() },
-      });
-    } catch (err) {
-      console.error("[public-booking] confirmation email failed:", err);
-    }
+  const notified = await notifyAppointmentEvent({
+    type: "confirmation",
+    shop,
+    client,
+    appointmentId: appointment.id,
+    title: appointment.title,
+    startsAt,
+    manageToken,
+  });
+
+  if (notified.anySent) {
+    await db.appointment.update({
+      where: { id: appointment.id },
+      data: { confirmationSentAt: new Date() },
+    });
   }
 
   return NextResponse.json({

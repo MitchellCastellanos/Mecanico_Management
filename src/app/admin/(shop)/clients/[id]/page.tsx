@@ -63,17 +63,17 @@ export default async function ClientDetailPage({ params }: Props) {
           <div className="bg-white rounded-xl border border-slate-200 p-5">
             <h2 className="font-semibold text-slate-900 mb-4">Información</h2>
             <div className="space-y-3">
-              {client.email && (
-                <ContactRow icon={<Mail className="w-4 h-4 text-slate-400" />}>
-                  <a href={`mailto:${client.email}`} className="text-blue-600 hover:underline text-sm">
-                    {client.email}
-                  </a>
-                </ContactRow>
-              )}
               {client.phone && (
                 <ContactRow icon={<Phone className="w-4 h-4 text-slate-400" />}>
                   <a href={`tel:${client.phone}`} className="text-sm text-slate-700">
                     {client.phone}
+                  </a>
+                </ContactRow>
+              )}
+              {client.email && (
+                <ContactRow icon={<Mail className="w-4 h-4 text-slate-400" />}>
+                  <a href={`mailto:${client.email}`} className="text-blue-600 hover:underline text-sm">
+                    {client.email}
                   </a>
                 </ContactRow>
               )}

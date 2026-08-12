@@ -73,11 +73,12 @@ Cuando el taller tenga dominio propio (`NEXT_PUBLIC_APP_URL=https://garagecarlos
 ## 4. Qué hace la reserva pública
 
 1. El cliente elige fecha/hora entre slots disponibles
-2. Completa datos personales, vehículo y servicio
-3. La app crea o actualiza **Cliente** y **Vehículo**
+2. Completa datos personales (teléfono obligatorio, email opcional), vehículo y servicio
+3. La app crea o actualiza **Cliente** (deduplicado por teléfono) y **Vehículo**
 4. Asigna un mecánico libre (o el elegido si hay varios)
 5. Crea la cita con estado **Confirmada** y origen **Web**
-6. Envía email de confirmación si `appointmentEmailsEnabled` está activo y el cliente tiene email
+6. Envía confirmación por **SMS** (canal principal) y por email si el cliente dejó uno —
+   ver `docs/SMS_SETUP.md`
 
 Las citas web aparecen en `/appointments` con badge **Web**.
 

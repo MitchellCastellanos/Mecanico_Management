@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sendReminderEmail, sendAppointmentEmail } from "@/lib/email";
+import { sendReminderEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
-import { formatClientName } from "@/lib/client-name";
-import { formatShopDateTime } from "@/lib/shop-timezone";
+import { notifyAppointmentEvent } from "@/lib/appointment-notify";
+import { ensureAppointmentManageToken } from "@/lib/appointment-token";
 
 // Cron Job — corre diariamente a las 8am (configurado en vercel.json)
 // Envía recordatorios de servicio con vencimiento en ≤7 días
@@ -77,7 +77,7 @@ export async function GET(request: Request) {
   }
 
   const shopsWithAppointments = await db.shop.findMany({
-    where: { appointmentEmailsEnabled: true },
+    where: { OR: [{ appointmentEmailsEnabled: true }, { appointmentSmsEnabled: true }] },
     select: { id: true, appointmentReminderHours: true },
   });
 
@@ -100,27 +100,31 @@ export async function GET(request: Request) {
     });
 
     for (const appointment of dueAppointments) {
-      const clientEmail = appointment.client.email?.trim();
-      if (!clientEmail) {
+      if (!appointment.client.phone?.trim() && !appointment.client.email?.trim()) {
         results.appointmentReminders.skipped++;
         continue;
       }
 
       try {
-        const startsAtFormatted = formatShopDateTime(
-          appointment.startsAt,
-          appointment.shop.timezone
+        const manageToken = await ensureAppointmentManageToken(
+          appointment.id,
+          appointment.manageToken
         );
 
-        await sendAppointmentEmail({
-          shop: shopToEmailConfig(appointment.shop),
-          to: clientEmail,
+        const notified = await notifyAppointmentEvent({
           type: "reminder",
-          clientName: formatClientName(appointment.client),
+          shop: appointment.shop,
+          client: appointment.client,
+          appointmentId: appointment.id,
           title: appointment.title,
-          startsAtFormatted,
-          shopPhone: appointment.shop.phone,
+          startsAt: appointment.startsAt,
+          manageToken,
         });
+
+        if (!notified.anySent) {
+          results.appointmentReminders.errors++;
+          continue;
+        }
 
         await db.appointment.update({
           where: { id: appointment.id },
