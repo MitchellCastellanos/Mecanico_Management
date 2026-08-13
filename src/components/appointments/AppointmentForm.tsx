@@ -7,11 +7,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
 import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
 import { formatClientName } from "@/lib/client-name";
+import { parseShopDateTime, formatShopDateTime } from "@/lib/shop-timezone";
+import { buildAppointmentSmsBody } from "@/lib/sms-templates";
 
 interface Client {
   id: string;
   firstName: string;
   lastName?: string | null;
+  phone?: string | null;
+  language?: string | null;
   vehicles: { id: string; make: string; model: string; year: number; licensePlate: string }[];
 }
 
@@ -26,6 +30,17 @@ interface AppointmentFormProps {
   onSubmit: (data: AppointmentFormData) => Promise<{ error?: Record<string, string[]> } | void>;
   initialValues?: Partial<AppointmentFormData>;
   mode?: "create" | "edit";
+  /** Solo en modo "edit": datos del taller y token para armar la vista previa del SMS de aviso. */
+  shop?: { name: string; slug?: string | null; timezone: string };
+  smsEnabled?: boolean;
+  manageToken?: string | null;
+}
+
+/** Alerta en español con el SMS exacto y el número antes de enviarlo — el usuario debe confirmar. */
+function confirmSmsSend(phone: string, body: string): boolean {
+  return confirm(
+    `Al guardar se enviará un SMS al cliente.\n\nNúmero: ${phone}\n\nMensaje:\n"${body}"\n\n¿Guardar y enviar?`
+  );
 }
 
 export function AppointmentForm({
@@ -34,6 +49,9 @@ export function AppointmentForm({
   onSubmit,
   initialValues,
   mode = "create",
+  shop,
+  smsEnabled = true,
+  manageToken,
 }: AppointmentFormProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -64,6 +82,28 @@ export function AppointmentForm({
   const vehicles = selectedClient?.vehicles ?? [];
 
   async function onValid(data: AppointmentFormData) {
+    if (mode === "edit" && shop && smsEnabled) {
+      const phone = selectedClient?.phone?.trim();
+      if (phone) {
+        const startsAt = parseShopDateTime(data.date, data.time, shop.timezone);
+        const manageUrl =
+          shop.slug && manageToken
+            ? `${window.location.origin}/book/${shop.slug}/manage/${manageToken}`
+            : null;
+
+        const body = buildAppointmentSmsBody({
+          type: "update",
+          shopName: shop.name,
+          title: data.title,
+          startsAtFormatted: formatShopDateTime(startsAt, shop.timezone),
+          language: selectedClient?.language,
+          manageUrl,
+        });
+
+        if (!confirmSmsSend(phone, body)) return;
+      }
+    }
+
     startTransition(async () => {
       const result = await onSubmit(data);
       if (result?.error) {

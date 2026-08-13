@@ -2,6 +2,7 @@ import { ADMIN } from "@/lib/routes";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { getAppointments } from "@/actions/appointments";
+import { getShopSettings } from "@/actions/settings";
 import { AppointmentList } from "@/components/appointments/AppointmentList";
 import { AppointmentMonthCalendar } from "@/components/appointments/AppointmentMonthCalendar";
 import { AppointmentViewControls } from "@/components/appointments/AppointmentViewControls";
@@ -25,11 +26,10 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
     : "month") as AppointmentView;
   const date = params.date ?? params.week;
 
-  const { appointments, anchor, timeZone, view: resolvedView } = await getAppointments({
-    view,
-    date,
-    week: params.week,
-  });
+  const [{ appointments, anchor, timeZone, view: resolvedView }, shop] = await Promise.all([
+    getAppointments({ view, date, week: params.week }),
+    getShopSettings(),
+  ]);
 
   const month =
     resolvedView === "month"
@@ -69,6 +69,9 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
           appointments={appointments}
           timeZone={timeZone}
           emptyLabel={`No hay citas ${VIEW_LABELS[resolvedView]}`}
+          shopName={shop?.name ?? ""}
+          shopSlug={shop?.slug}
+          smsEnabled={shop?.appointmentSmsEnabled}
         />
       )}
     </div>

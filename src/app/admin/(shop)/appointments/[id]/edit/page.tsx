@@ -54,6 +54,13 @@ export default async function EditAppointmentPage({ params }: Props) {
         clients={clients}
         mechanics={mechanics}
         initialValues={initialValues}
+        shop={{
+          name: appointment.shop.name,
+          slug: appointment.shop.slug,
+          timezone: appointment.shop.timezone,
+        }}
+        smsEnabled={appointment.shop.appointmentSmsEnabled}
+        manageToken={appointment.manageToken}
         onSubmit={async (data: AppointmentFormData) => {
           "use server";
           return updateAppointment(id, data);

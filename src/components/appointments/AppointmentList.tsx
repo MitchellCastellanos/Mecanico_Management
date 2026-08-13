@@ -11,9 +11,11 @@ import { ADMIN } from "@/lib/routes";
 import { formatClientName } from "@/lib/client-name";
 import {
   formatShopDate,
+  formatShopDateTime,
   formatShopDayHeader,
   formatShopTimeLabel,
 } from "@/lib/shop-timezone";
+import { buildAppointmentSmsBody } from "@/lib/sms-templates";
 import { Calendar, Clock, Loader2, Mail, User, Ban, Pencil } from "lucide-react";
 
 interface Appointment {
@@ -24,7 +26,14 @@ interface Appointment {
   durationMinutes: number;
   status: string;
   source?: string;
-  client: { firstName: string; lastName?: string | null; email?: string | null; phone?: string | null };
+  manageToken?: string | null;
+  client: {
+    firstName: string;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    language?: string | null;
+  };
   vehicle?: { year: number; make: string; model: string; licensePlate: string } | null;
   mechanic?: { name: string } | null;
 }
@@ -34,6 +43,16 @@ interface AppointmentListProps {
   timeZone: string;
   emptyLabel: string;
   periodLabel?: string;
+  shopName: string;
+  shopSlug?: string | null;
+  smsEnabled?: boolean;
+}
+
+/** Alerta en español con el SMS exacto y el número antes de enviarlo — el usuario debe confirmar. */
+function confirmSmsSend(phone: string, body: string): boolean {
+  return confirm(
+    `Al continuar se enviará un SMS al cliente.\n\nNúmero: ${phone}\n\nMensaje:\n"${body}"\n\n¿Enviar este SMS?`
+  );
 }
 
 const STATUS_BADGE: Record<string, string> = {
@@ -66,19 +85,48 @@ function groupByDay(appointments: Appointment[], timeZone: string) {
 function AppointmentRow({
   appointment,
   timeZone,
+  shopName,
+  shopSlug,
+  smsEnabled = true,
 }: {
   appointment: Appointment;
   timeZone: string;
+  shopName: string;
+  shopSlug?: string | null;
+  smsEnabled?: boolean;
 }) {
   const router = useRouter();
   const [confirmPending, startConfirm] = useTransition();
   const [cancelPending, startCancel] = useTransition();
+
+  const phone = appointment.client.phone?.trim() || null;
 
   const canConfirm =
     (appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED") &&
     (Boolean(appointment.client.phone?.trim()) || Boolean(appointment.client.email?.trim()));
   const canCancel = appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED";
   const canEdit = canCancel;
+
+  /** Vista previa del SMS que se enviaría para este tipo de evento (null si no se enviará ninguno). */
+  function previewSms(type: "confirmation" | "cancellation"): { phone: string; body: string } | null {
+    if (!smsEnabled || !phone) return null;
+
+    const manageUrl =
+      type !== "cancellation" && shopSlug && appointment.manageToken
+        ? `${window.location.origin}/book/${shopSlug}/manage/${appointment.manageToken}`
+        : null;
+
+    const body = buildAppointmentSmsBody({
+      type,
+      shopName,
+      title: appointment.title,
+      startsAtFormatted: formatShopDateTime(new Date(appointment.startsAt), timeZone),
+      language: appointment.client.language,
+      manageUrl,
+    });
+
+    return { phone, body };
+  }
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 hover:bg-slate-50 transition-colors">
@@ -122,7 +170,10 @@ function AppointmentRow({
           <button
             type="button"
             disabled={confirmPending || cancelPending}
-            onClick={() =>
+            onClick={() => {
+              const preview = previewSms("confirmation");
+              if (preview && !confirmSmsSend(preview.phone, preview.body)) return;
+
               startConfirm(async () => {
                 const result = await sendAppointmentConfirmation(appointment.id);
                 if (result?.error) {
@@ -132,8 +183,8 @@ function AppointmentRow({
                 const via = result.sentVia?.length ? ` por ${result.sentVia.join(" y ")}` : "";
                 toast.success(`Confirmación enviada${via}`);
                 router.refresh();
-              })
-            }
+              });
+            }}
             className="flex items-center gap-1 px-2.5 py-1.5 border border-teal-200 text-teal-700 hover:bg-teal-50 rounded-lg text-xs font-medium disabled:opacity-50"
           >
             {confirmPending ? (
@@ -160,7 +211,12 @@ function AppointmentRow({
             type="button"
             disabled={confirmPending || cancelPending}
             onClick={() => {
-              if (!confirm("¿Cancelar esta cita?")) return;
+              const preview = previewSms("cancellation");
+              const confirmed = preview
+                ? confirmSmsSend(preview.phone, preview.body)
+                : confirm("¿Cancelar esta cita?");
+              if (!confirmed) return;
+
               startCancel(async () => {
                 const result = await cancelAppointment(appointment.id);
                 if (result?.error) {
@@ -191,6 +247,9 @@ export function AppointmentList({
   timeZone,
   emptyLabel,
   periodLabel,
+  shopName,
+  shopSlug,
+  smsEnabled,
 }: AppointmentListProps) {
   const groups = groupByDay(appointments, timeZone);
 
@@ -217,7 +276,14 @@ export function AppointmentList({
           </div>
           <div className="divide-y divide-slate-100">
             {dayAppointments.map((apt) => (
-              <AppointmentRow key={apt.id} appointment={apt} timeZone={timeZone} />
+              <AppointmentRow
+                key={apt.id}
+                appointment={apt}
+                timeZone={timeZone}
+                shopName={shopName}
+                shopSlug={shopSlug}
+                smsEnabled={smsEnabled}
+              />
             ))}
           </div>
         </div>
