@@ -6,9 +6,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
-import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
+import { appointmentSchema, appointmentEditSchema, type AppointmentEditFormData, type AppointmentFormData } from "@/lib/validations";
 import { generateAppointmentManageToken, ensureAppointmentManageToken } from "@/lib/appointment-token";
 import { notifyAppointmentEvent, type NotifyAppointmentEventResult } from "@/lib/appointment-notify";
+import { buildAppointmentManageUrl } from "@/lib/appointment-notify";
 import { BRAND } from "@/config/brand";
 import {
   type AppointmentView,
@@ -217,30 +218,30 @@ export async function createAppointment(formData: AppointmentFormData) {
   redirect(`${ADMIN.appointments}?view=day&date=${date}`);
 }
 
-export async function updateAppointment(id: string, formData: AppointmentFormData) {
+export async function updateAppointment(id: string, formData: AppointmentEditFormData) {
   const shopId = await getShopId();
   const timeZone = await getShopTimezone(shopId);
 
   const existing = await db.appointment.findFirst({
-    where: { id, shopId, status: { notIn: ["CANCELLED", "COMPLETED"] } },
+    where: { id, shopId },
   });
 
   if (!existing) {
-    return { error: { _form: ["Cita no encontrada o no editable"] } };
+    return { error: { _form: ["Cita no encontrada"] } };
   }
 
-  const parsed = appointmentSchema.safeParse(formData);
+  const parsed = appointmentEditSchema.safeParse(formData);
   if (!parsed.success) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes } =
+  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes, status } =
     parsed.data;
 
   const startsAt = parseStartsAt(date, time, timeZone);
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
-  if (mechanicId) {
+  if (mechanicId && status !== "CANCELLED" && status !== "NO_SHOW") {
     const hasConflict = await checkMechanicConflict(mechanicId, startsAt, endsAt, id);
     if (hasConflict) {
       return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };
@@ -258,11 +259,37 @@ export async function updateAppointment(id: string, formData: AppointmentFormDat
       endsAt,
       durationMinutes,
       notes: notes || null,
+      status,
     },
   });
 
   revalidatePath(ADMIN.appointments);
   redirect(`${ADMIN.appointments}?view=day&date=${date}`);
+}
+
+export async function updateAppointmentStatus(id: string, status: AppointmentEditFormData["status"]) {
+  const shopId = await getShopId();
+
+  const existing = await db.appointment.findFirst({
+    where: { id, shopId },
+  });
+
+  if (!existing) {
+    return { error: "Cita no encontrada" };
+  }
+
+  const parsed = appointmentEditSchema.shape.status.safeParse(status);
+  if (!parsed.success) {
+    return { error: "Estado inválido" };
+  }
+
+  await db.appointment.update({
+    where: { id },
+    data: { status: parsed.data },
+  });
+
+  revalidatePath(ADMIN.appointments);
+  return { success: true };
 }
 
 export async function cancelAppointment(id: string) {
@@ -296,6 +323,24 @@ export async function cancelAppointment(id: string) {
 
   revalidatePath(ADMIN.appointments);
   return { success: true };
+}
+
+export async function getAppointmentManageUrl(id: string) {
+  const shopId = await getShopId();
+
+  const appointment = await db.appointment.findFirst({
+    where: { id, shopId },
+    include: { shop: { select: { slug: true } } },
+  });
+
+  if (!appointment) return null;
+
+  const manageToken = await ensureAppointmentManageToken(
+    appointment.id,
+    appointment.manageToken
+  );
+
+  return buildAppointmentManageUrl(appointment.shop, manageToken);
 }
 
 // ── Notificaciones (SMS principal, email secundario) ──────────

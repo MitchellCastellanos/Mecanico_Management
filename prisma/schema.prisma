@@ -204,6 +204,10 @@ model Invoice {
   sentAt        DateTime?     // primera vez registrada como pendiente (SENT)
   emailSentAt   DateTime?     // último envío por correo al cliente
   emailSendCount Int          @default(0)
+  smsSentAt     DateTime?     // último envío por SMS al cliente
+  smsSendCount  Int           @default(0)
+  downloadToken String?       @unique // link público para descargar la factura (SMS)
+  clientPackagePath String?   // PDF empaquetado para el link del cliente
   subtotal      Decimal         @db.Decimal(10, 2)
   taxRate       Decimal         @db.Decimal(6, 5) // 0.14975 = TPS+TVQ Quebec
   taxAmount     Decimal         @db.Decimal(10, 2)

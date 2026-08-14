@@ -12,7 +12,7 @@ import {
 import { InvoiceSendDialog } from "@/components/invoices/InvoiceSendDialog";
 import { InvoiceMarkPaidDialog } from "@/components/invoices/InvoiceMarkPaidDialog";
 import { isInvoicePending } from "@/lib/invoice-status";
-import { Ban, Trash2, RotateCcw, Mail, Loader2 } from "lucide-react";
+import { Ban, Trash2, RotateCcw, Send, Loader2 } from "lucide-react";
 
 interface InvoiceActionsProps {
   invoiceId: string;
@@ -20,7 +20,9 @@ interface InvoiceActionsProps {
   status: string;
   clientId: string;
   clientEmail?: string | null;
+  clientPhone?: string | null;
   emailSendCount?: number;
+  smsSendCount?: number;
   subtotal?: number;
   total?: number;
   revenueType?: "OFFICIAL" | "INTERNAL_ONLY";
@@ -28,7 +30,7 @@ interface InvoiceActionsProps {
 }
 
 const VOIDABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
-const EMAILABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
+const SENDABLE = new Set(["DRAFT", "SENT", "PAID", "OVERDUE"]);
 
 export function InvoiceActions({
   invoiceId,
@@ -36,7 +38,9 @@ export function InvoiceActions({
   status,
   clientId,
   clientEmail,
+  clientPhone,
   emailSendCount = 0,
+  smsSendCount = 0,
   subtotal = 0,
   total = 0,
   revenueType = "OFFICIAL",
@@ -50,8 +54,8 @@ export function InvoiceActions({
   const isAnyPending = cancelPending || deletePending || revertPendingPending;
 
   const hasClientEmail = Boolean(clientEmail?.trim());
-  const canEmail = EMAILABLE.has(status) && hasClientEmail;
-  const isResend = emailSendCount > 0;
+  const hasClientPhone = Boolean(clientPhone?.trim());
+  const canSend = SENDABLE.has(status) && (hasClientEmail || hasClientPhone);
   const isPending = isInvoicePending(status);
 
   function handleCancel() {
@@ -91,14 +95,16 @@ export function InvoiceActions({
 
   return (
     <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
-      {EMAILABLE.has(status) && (
+      {SENDABLE.has(status) && (
         <>
-          {canEmail ? (
+          {canSend ? (
             <InvoiceSendDialog
               invoiceId={invoiceId}
               invoiceNumber={invoiceNumber}
-              clientEmail={clientEmail!.trim()}
-              isResend={isResend}
+              clientEmail={clientEmail}
+              clientPhone={clientPhone}
+              emailSendCount={emailSendCount}
+              smsSendCount={smsSendCount}
               requiresPendingConfirm={isPending}
               disabled={isAnyPending}
               isPaid={isPaid}
@@ -106,11 +112,11 @@ export function InvoiceActions({
           ) : (
             <Link
               href={`/clients/${clientId}`}
-              title="Agrega un email al cliente para enviar la factura"
+              title="Agrega email o teléfono al cliente para enviar la factura"
               className="flex items-center gap-2 px-4 py-2 border border-dashed border-slate-300 text-slate-500 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors"
             >
-              <Mail className="w-4 h-4" />
-              <span className="hidden sm:inline">Sin email del cliente</span>
+              <Send className="w-4 h-4" />
+              <span className="hidden sm:inline">Sin contacto del cliente</span>
             </Link>
           )}
         </>

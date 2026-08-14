@@ -1,11 +1,17 @@
 "use client";
 
-import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
+import { ADMIN } from "@/lib/routes";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTransition } from "react";
-import { appointmentSchema, type AppointmentFormData } from "@/lib/validations";
+import {
+  appointmentEditSchema,
+  appointmentSchema,
+  type AppointmentEditFormData,
+  type AppointmentFormData,
+} from "@/lib/validations";
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_LABEL } from "@/lib/appointment-status";
 import { formatClientName } from "@/lib/client-name";
 
 interface Client {
@@ -20,13 +26,22 @@ interface Mechanic {
   name: string;
 }
 
-interface AppointmentFormProps {
-  clients: Client[];
-  mechanics: Mechanic[];
+type CreateProps = {
+  mode?: "create";
   onSubmit: (data: AppointmentFormData) => Promise<{ error?: Record<string, string[]> } | void>;
   initialValues?: Partial<AppointmentFormData>;
-  mode?: "create" | "edit";
-}
+};
+
+type EditProps = {
+  mode: "edit";
+  onSubmit: (data: AppointmentEditFormData) => Promise<{ error?: Record<string, string[]> } | void>;
+  initialValues?: Partial<AppointmentEditFormData>;
+};
+
+type AppointmentFormProps = (CreateProps | EditProps) & {
+  clients: Client[];
+  mechanics: Mechanic[];
+};
 
 export function AppointmentForm({
   clients,
@@ -36,16 +51,16 @@ export function AppointmentForm({
   mode = "create",
 }: AppointmentFormProps) {
   const [isPending, startTransition] = useTransition();
+  const isEdit = mode === "edit";
 
   const {
     register,
-    control,
     handleSubmit,
     watch,
     setError,
     formState: { errors },
-  } = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
+  } = useForm<AppointmentEditFormData>({
+    resolver: zodResolver(isEdit ? appointmentEditSchema : appointmentSchema),
     defaultValues: {
       clientId: "",
       vehicleId: "",
@@ -55,6 +70,7 @@ export function AppointmentForm({
       time: "09:00",
       durationMinutes: 60,
       notes: "",
+      status: "SCHEDULED",
       ...initialValues,
     },
   });
@@ -63,12 +79,18 @@ export function AppointmentForm({
   const selectedClient = clients.find((c) => c.id === selectedClientId);
   const vehicles = selectedClient?.vehicles ?? [];
 
-  async function onValid(data: AppointmentFormData) {
+  async function onValid(data: AppointmentEditFormData) {
     startTransition(async () => {
-      const result = await onSubmit(data);
+      const result = isEdit
+        ? await (onSubmit as EditProps["onSubmit"])(data)
+        : await (onSubmit as CreateProps["onSubmit"])(data);
       if (result?.error) {
+        if (result.error._form?.[0]) {
+          setError("root", { message: result.error._form[0] });
+        }
         for (const [field, messages] of Object.entries(result.error)) {
-          setError(field as keyof AppointmentFormData, { message: messages[0] });
+          if (field === "_form") continue;
+          setError(field as keyof AppointmentEditFormData, { message: messages[0] });
         }
       }
     });
@@ -78,6 +100,24 @@ export function AppointmentForm({
     <form onSubmit={handleSubmit(onValid)} className="space-y-6 max-w-2xl">
       <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-4">
         <h2 className="font-semibold text-slate-900">Datos de la cita</h2>
+
+        {isEdit && (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Estado
+            </label>
+            <select {...register("status")} className={selectClass(!!errors.status)}>
+              {APPOINTMENT_STATUSES.map((status) => (
+                <option key={status} value={status}>
+                  {APPOINTMENT_STATUS_LABEL[status]}
+                </option>
+              ))}
+            </select>
+            {errors.status && (
+              <p className="text-red-600 text-xs mt-1">{errors.status.message}</p>
+            )}
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -200,13 +240,17 @@ export function AppointmentForm({
         </div>
       </div>
 
+      {errors.root && (
+        <p className="text-red-600 text-sm">{errors.root.message}</p>
+      )}
+
       <div className="flex items-center gap-3">
         <button
           type="submit"
           disabled={isPending}
           className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium px-6 py-2.5 rounded-lg text-sm transition-colors"
         >
-          {isPending ? "Guardando..." : mode === "edit" ? "Guardar cambios" : "Crear cita"}
+          {isPending ? "Guardando..." : isEdit ? "Guardar cambios" : "Crear cita"}
         </button>
         <a href={ADMIN.appointments} className="text-sm text-slate-500 hover:text-slate-800 transition-colors">
           Cancelar

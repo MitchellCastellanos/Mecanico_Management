@@ -44,7 +44,7 @@ export interface NotifyAppointmentEventResult {
   anySent: boolean;
 }
 
-/** Link público para que el cliente edite/cancele su cita (null si el taller no tiene slug o no hay token). */
+/** Link público para que el cliente confirme/cancele su cita (null si el taller no tiene slug o no hay token). */
 export function buildAppointmentManageUrl(
   shop: { slug: string | null },
   manageToken: string | null

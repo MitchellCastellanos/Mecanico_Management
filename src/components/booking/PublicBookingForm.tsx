@@ -142,7 +142,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         {manageUrl && (
           <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-left">
             <p className="text-slate-700 mb-1">
-              Guarda este link para editar o cancelar tu cita más tarde:
+              Guarda este link para confirmar o cancelar tu cita más tarde:
             </p>
             <a
               href={manageUrl}

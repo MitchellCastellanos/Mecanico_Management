@@ -25,7 +25,7 @@ export interface AppointmentEmailProps {
   shopEmail?: string | null;
   /** Idioma preferido del cliente — por defecto español. */
   language?: AppointmentEmailLanguage | string | null;
-  /** Link público para que el cliente edite o cancele esta cita (sin login). */
+  /** Link público para que el cliente confirme o cancele esta cita (sin login). */
   manageUrl?: string | null;
 }
 
@@ -65,7 +65,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     greeting: (name) => `Hola, ${name}`,
     serviceLabel: "SERVICIO",
     dateTimeLabel: "FECHA Y HORA",
-    manageButton: "Editar o cancelar mi cita",
+    manageButton: "Confirmar o cancelar mi cita",
     contactPrompt: "Para cambios o consultas, contáctanos:",
     footer: (shop) => `Este correo fue enviado por ${shop}.`,
   },
@@ -91,7 +91,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     greeting: (name) => `Hello, ${name}`,
     serviceLabel: "SERVICE",
     dateTimeLabel: "DATE AND TIME",
-    manageButton: "Edit or cancel my appointment",
+    manageButton: "Confirm or cancel my appointment",
     contactPrompt: "For changes or questions, contact us:",
     footer: (shop) => `This email was sent by ${shop}.`,
   },
@@ -117,7 +117,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     greeting: (name) => `Bonjour, ${name}`,
     serviceLabel: "SERVICE",
     dateTimeLabel: "DATE ET HEURE",
-    manageButton: "Modifier ou annuler mon rendez-vous",
+    manageButton: "Confirmer ou annuler mon rendez-vous",
     contactPrompt: "Pour tout changement ou question, contactez-nous :",
     footer: (shop) => `Ce courriel a été envoyé par ${shop}.`,
   },

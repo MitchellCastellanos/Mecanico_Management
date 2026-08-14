@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import {
   getAvailableSlots,
   getBookableDates,
@@ -21,24 +20,13 @@ export async function GET(
   const date = req.nextUrl.searchParams.get("date");
   const mechanicId = req.nextUrl.searchParams.get("mechanicId") ?? undefined;
 
-  // Al editar una cita existente, su propio horario no debe contarse como ocupado.
-  const manageToken = req.nextUrl.searchParams.get("manageToken") ?? undefined;
-  let excludeAppointmentId: string | undefined;
-  if (manageToken) {
-    const appointment = await db.appointment.findFirst({
-      where: { shopId: shop.id, manageToken },
-      select: { id: true },
-    });
-    excludeAppointmentId = appointment?.id;
-  }
-
   if (date) {
-    const slots = await getAvailableSlots(shop, date, mechanicId || undefined, excludeAppointmentId);
+    const slots = await getAvailableSlots(shop, date, mechanicId || undefined);
     return NextResponse.json({ slots });
   }
 
   const [dates, mechanics] = await Promise.all([
-    getBookableDates(shop, 14, excludeAppointmentId),
+    getBookableDates(shop, 14),
     getBookableMechanics(shop.id),
   ]);
 

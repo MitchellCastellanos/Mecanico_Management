@@ -26,9 +26,13 @@ import { generateInvoicePdf } from "@/lib/pdf";
 import { sendInvoiceEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
 import { parseEmailAttachments } from "@/lib/email-attachments";
+import { buildInvoicePackageBuffer } from "@/lib/invoice-pdf-package";
+import { buildInvoiceDownloadUrl } from "@/lib/invoice-download";
+import { ensureInvoiceDownloadToken } from "@/lib/invoice-token";
+import { sendInvoiceSms } from "@/lib/sms";
+import { uploadInvoiceClientPackage } from "@/lib/storage";
 import {
   buildInvoicePackagePdf,
-  emailAttachmentsToParts,
   storagePathsToParts,
 } from "@/lib/invoice-document-package";
 import { uploadToStorage } from "@/lib/storage";
@@ -218,78 +222,75 @@ export async function createInvoice(formData: InvoiceFormData) {
 
 const EMAILABLE_STATUSES = ["DRAFT", "SENT", "PAID", "OVERDUE"] as const;
 
+const invoiceForSendInclude = {
+  client: true,
+  vehicles: {
+    include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
+    orderBy: { sortOrder: "asc" },
+  },
+  paymentEntries: { orderBy: { sortOrder: "asc" } },
+  shop: true,
+} as const;
+
+async function loadInvoiceForSend(id: string, shopId: string) {
+  return db.invoice.findFirst({
+    where: { id, shopId },
+    include: invoiceForSendInclude,
+  });
+}
+
+function validateInvoiceSendable(invoice: { status: string }) {
+  if (invoice.status === "CANCELLED") {
+    return { error: "No se puede enviar una factura anulada" };
+  }
+  if (!EMAILABLE_STATUSES.includes(invoice.status as (typeof EMAILABLE_STATUSES)[number])) {
+    return { error: "Esta factura no se puede enviar al cliente" };
+  }
+  return null;
+}
+
 export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const shopId = await getShopId();
 
-  const invoice = await db.invoice.findFirst({
-    where: { id, shopId },
-    include: {
-      client: true,
-      vehicles: {
-        include: { vehicle: true, lineItems: { orderBy: { sortOrder: "asc" } } },
-        orderBy: { sortOrder: "asc" },
-      },
-      paymentEntries: { orderBy: { sortOrder: "asc" } },
-      shop: true,
-    },
-  });
+  const invoice = await loadInvoiceForSend(id, shopId);
 
   if (!invoice) {
     return { error: "Factura no encontrada" };
   }
 
-  if (invoice.status === "CANCELLED") {
-    return { error: "No se puede enviar una factura anulada" };
-  }
-
-  if (!EMAILABLE_STATUSES.includes(invoice.status as (typeof EMAILABLE_STATUSES)[number])) {
-    return { error: "Esta factura no se puede enviar por email" };
-  }
+  const validationError = validateInvoiceSendable(invoice);
+  if (validationError) return validationError;
 
   const clientEmail = invoice.client.email?.trim();
   if (!clientEmail) {
     return {
-      error: "El cliente no tiene email. Agrégalo en su ficha antes de enviar la factura.",
+      error: "El cliente no tiene email. Agrégalo en su ficha o envía por SMS si tiene teléfono.",
     };
   }
 
   const isResend = invoice.emailSendCount > 0;
-  const pdfSerialized = serializeInvoiceForPdf(invoice);
-  const pdfBuffer = await generateInvoicePdf(pdfSerialized);
-  const clientName = formatClientName(invoice.client);
-  const vehicleDescription = invoice.vehicles
-    .map((iv) => `${iv.vehicle.year} ${iv.vehicle.make} ${iv.vehicle.model}`)
-    .join(", ");
 
   const attachmentResult = await parseEmailAttachments(formData);
   if ("error" in attachmentResult) {
     return { error: attachmentResult.error };
   }
 
-  const storedExtraPaths = parsePaymentExtraPaths(invoice.paymentExtraPaths);
-  const middleParts = [
-    ...(await storagePathsToParts(storedExtraPaths)),
-    ...emailAttachmentsToParts(attachmentResult.attachments),
-  ];
+  const { buffer: packagePdf, filename: pdfFilename } = await buildInvoicePackageBuffer(
+    invoice,
+    attachmentResult.attachments
+  );
 
-  const receiptPaths = invoice.paymentEntries
-    .filter((e) => e.method === "CARD" && e.receiptPath)
-    .map((e) => e.receiptPath!);
-  const receiptParts =
-    invoice.status === "PAID" ? await storagePathsToParts(receiptPaths) : [];
-
-  const packagePdf = await buildInvoicePackagePdf({
-    invoicePdf: pdfBuffer,
-    middle: middleParts,
-    receipts: receiptParts,
-  });
+  const clientName = formatClientName(invoice.client);
+  const vehicleDescription = invoice.vehicles
+    .map((iv) => `${iv.vehicle.year} ${iv.vehicle.make} ${iv.vehicle.model}`)
+    .join(", ");
 
   try {
     await sendInvoiceEmail({
       shop: shopToEmailConfig(invoice.shop),
       to: clientEmail,
       pdfBuffer: packagePdf,
-      pdfFilename: `${invoice.invoiceNumber}.pdf`,
+      pdfFilename,
       extraAttachments: [],
       clientName,
       shopName: invoice.shop.name,
@@ -325,8 +326,93 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
 
   return {
     success: true,
+    channel: "email" as const,
     isResend,
     sentTo: clientEmail,
+  };
+}
+
+export async function sendInvoiceBySms(id: string, formData?: FormData) {
+  const shopId = await getShopId();
+
+  const invoice = await loadInvoiceForSend(id, shopId);
+
+  if (!invoice) {
+    return { error: "Factura no encontrada" };
+  }
+
+  const validationError = validateInvoiceSendable(invoice);
+  if (validationError) return validationError;
+
+  const clientPhone = invoice.client.phone?.trim();
+  if (!clientPhone) {
+    return {
+      error: "El cliente no tiene teléfono. Agrégalo en su ficha o envía por email si tiene correo.",
+    };
+  }
+
+  const isResend = invoice.smsSendCount > 0;
+
+  const attachmentResult = await parseEmailAttachments(formData);
+  if ("error" in attachmentResult) {
+    return { error: attachmentResult.error };
+  }
+
+  const downloadToken = await ensureInvoiceDownloadToken(invoice.id, invoice.downloadToken);
+  const { buffer: packagePdf } = await buildInvoicePackageBuffer(
+    invoice,
+    attachmentResult.attachments
+  );
+
+  let clientPackagePath = invoice.clientPackagePath;
+  try {
+    clientPackagePath = await uploadInvoiceClientPackage(shopId, downloadToken, packagePdf);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    console.error(`Error subiendo PDF de factura ${invoice.invoiceNumber}:`, err);
+    return { error: message };
+  }
+
+  const downloadUrl = buildInvoiceDownloadUrl(downloadToken);
+
+  try {
+    await sendInvoiceSms({
+      to: clientPhone,
+      shopName: invoice.shop.name,
+      invoiceNumber: invoice.invoiceNumber,
+      totalFormatted: formatCurrency(Number(invoice.total)),
+      downloadUrl,
+      language: invoice.language,
+      isResend,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Error desconocido";
+    console.error(`Error enviando SMS de factura ${invoice.invoiceNumber}:`, err);
+    return { error: message };
+  }
+
+  const now = new Date();
+  await db.invoice.update({
+    where: { id },
+    data: {
+      sentAt: invoice.sentAt ?? now,
+      smsSentAt: now,
+      smsSendCount: { increment: 1 },
+      downloadToken,
+      clientPackagePath,
+    },
+  });
+
+  revalidatePath(`/invoices/${id}`);
+  revalidatePath(ADMIN.invoices);
+  revalidatePath(ADMIN.dashboard);
+
+  return {
+    success: true,
+    channel: "sms" as const,
+    isResend,
+    sentTo: clientPhone,
+    downloadUrl,
   };
 }
 

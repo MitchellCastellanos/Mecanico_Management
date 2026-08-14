@@ -86,6 +86,29 @@ export async function uploadShopLogoToStorage(
   return { storagePath, publicUrl: data.publicUrl };
 }
 
+/** Sube o reemplaza el PDF empaquetado para el link de descarga del cliente. */
+export async function uploadInvoiceClientPackage(
+  shopId: string,
+  downloadToken: string,
+  buffer: Buffer
+): Promise<string> {
+  const supabase = getClient();
+  await ensureAccountingBucket(supabase);
+
+  const storagePath = `${shopId}/invoice-share/${downloadToken}.pdf`;
+
+  const { error } = await supabase.storage
+    .from(ACCOUNTING_BUCKET)
+    .upload(storagePath, buffer, {
+      contentType: "application/pdf",
+      upsert: true,
+    });
+
+  if (error) throw new Error(`Supabase upload error: ${error.message}`);
+
+  return storagePath;
+}
+
 /** URL pública de un archivo ya subido al bucket accounting. */
 export function publicUrlForStoragePath(storagePath: string): string {
   const supabase = getClient();

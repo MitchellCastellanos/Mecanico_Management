@@ -103,6 +103,8 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
               {` · Idioma: ${langLabel}`}
               {invoice.emailSentAt &&
                 ` · Email: ${formatDate(invoice.emailSentAt)}${invoice.emailSendCount > 1 ? ` (${invoice.emailSendCount}×)` : ""}`}
+              {invoice.smsSentAt &&
+                ` · SMS: ${formatDate(invoice.smsSentAt)}${invoice.smsSendCount > 1 ? ` (${invoice.smsSendCount}×)` : ""}`}
             </p>
           </div>
         </div>
@@ -139,7 +141,9 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             status={invoice.status}
             clientId={invoice.clientId}
             clientEmail={invoice.client.email}
+            clientPhone={invoice.client.phone}
             emailSendCount={invoice.emailSendCount}
+            smsSendCount={invoice.smsSendCount}
             subtotal={Number(invoice.subtotal)}
             total={Number(invoice.total)}
             revenueType={revenueType}

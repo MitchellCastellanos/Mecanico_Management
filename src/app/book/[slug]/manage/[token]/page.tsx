@@ -1,22 +1,20 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { getShopAndAppointmentByToken, isAppointmentEditable } from "@/lib/appointment-manage";
-import { ManageAppointmentForm } from "@/components/booking/ManageAppointmentForm";
+import {
+  canClientCancel,
+  canClientConfirm,
+  getShopAndAppointmentByToken,
+  isAppointmentManageable,
+} from "@/lib/appointment-manage";
+import { ClientAppointmentActions } from "@/components/booking/ClientAppointmentActions";
+import { APPOINTMENT_STATUS_LABEL } from "@/lib/appointment-status";
 import { formatClientName } from "@/lib/client-name";
-import { formatShopDate, formatShopDateTime, formatShopTime } from "@/lib/shop-timezone";
+import { formatShopDateTime } from "@/lib/shop-timezone";
 import { BRAND } from "@/config/brand";
 
 interface PageProps {
   params: Promise<{ slug: string; token: string }>;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  SCHEDULED: "Programada",
-  CONFIRMED: "Confirmada",
-  COMPLETED: "Completada",
-  CANCELLED: "Cancelada",
-  NO_SHOW: "No asistió",
-};
 
 export default async function ManageAppointmentPage({ params }: PageProps) {
   const { slug, token } = await params;
@@ -25,7 +23,17 @@ export default async function ManageAppointmentPage({ params }: PageProps) {
   if (!found) notFound();
 
   const { shop, appointment } = found;
-  const editable = isAppointmentEditable(appointment);
+  const manageable = isAppointmentManageable(appointment);
+  const canConfirm = canClientConfirm(appointment);
+  const canCancel = canClientCancel(appointment);
+
+  const vehicleLabel = appointment.vehicle
+    ? `${appointment.vehicle.year} ${appointment.vehicle.make} ${appointment.vehicle.model} — ${appointment.vehicle.licensePlate}`
+    : null;
+
+  const statusLabel =
+    APPOINTMENT_STATUS_LABEL[appointment.status as keyof typeof APPOINTMENT_STATUS_LABEL] ??
+    appointment.status;
 
   return (
     <div className="min-h-full bg-slate-50">
@@ -45,31 +53,29 @@ export default async function ManageAppointmentPage({ params }: PageProps) {
           )}
           <h1 className="text-2xl font-bold text-slate-900">{shop.name}</h1>
           <p className="text-slate-500 mt-1">
-            {editable ? "Edita tu cita" : "Detalles de tu cita"}
+            {manageable ? "Confirma o cancela tu cita" : "Detalles de tu cita"}
           </p>
         </header>
 
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
-          {editable ? (
-            <ManageAppointmentForm
+          {isAppointmentManageable(appointment) ? (
+            <ClientAppointmentActions
               slug={slug}
               token={token}
-              shop={{
-                phone: shop.phone,
-                bookingSlotMinutes: shop.bookingSlotMinutes,
-              }}
-              initialValues={{
-                title: appointment.title,
-                date: formatShopDate(appointment.startsAt, shop.timezone),
-                time: formatShopTime(appointment.startsAt, shop.timezone),
-                mechanicId: appointment.mechanicId ?? "",
-                notes: appointment.notes ?? "",
-              }}
+              shop={{ phone: shop.phone }}
+              clientName={formatClientName(appointment.client)}
+              title={appointment.title}
+              startsAtFormatted={formatShopDateTime(appointment.startsAt, shop.timezone)}
+              status={appointment.status}
+              vehicleLabel={vehicleLabel}
+              mechanicName={appointment.mechanic?.name ?? null}
+              canConfirm={canConfirm}
+              canCancel={canCancel}
             />
           ) : (
             <div className="space-y-4 text-center py-6">
               <p className="text-slate-700">
-                Hola {formatClientName(appointment.client)}, esta cita ya no se puede editar en
+                Hola {formatClientName(appointment.client)}, esta cita ya no admite cambios en
                 línea.
               </p>
               <div className="bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm text-left space-y-1">
@@ -77,13 +83,11 @@ export default async function ManageAppointmentPage({ params }: PageProps) {
                 <p className="text-slate-600">
                   {formatShopDateTime(appointment.startsAt, shop.timezone)}
                 </p>
-                <p className="text-slate-500">
-                  Estado: {STATUS_LABEL[appointment.status] ?? appointment.status}
-                </p>
+                <p className="text-slate-500">Estado: {statusLabel}</p>
               </div>
               {shop.phone && (
                 <p className="text-sm text-slate-500">
-                  Para cambios, llama al{" "}
+                  Para consultas, llama al{" "}
                   <a href={`tel:${shop.phone}`} className="text-teal-700 font-medium">
                     {shop.phone}
                   </a>
