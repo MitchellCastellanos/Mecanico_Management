@@ -98,12 +98,13 @@ export function AppointmentMonthCalendar({
               </Link>
               <div className="space-y-0.5 flex-1 overflow-hidden">
                 {dayAppointments.slice(0, 3).map((apt) => (
-                  <div
+                  <Link
                     key={apt.id}
-                    className={`text-[10px] leading-tight px-1 py-0.5 rounded truncate ${
+                    href={`${ADMIN.appointments}/${apt.id}/edit`}
+                    className={`block text-[10px] leading-tight px-1 py-0.5 rounded truncate transition-colors ${
                       apt.status === "CANCELLED"
-                        ? "bg-slate-100 text-slate-400 line-through"
-                        : "bg-teal-100 text-teal-800"
+                        ? "bg-slate-100 text-slate-400 line-through hover:bg-slate-200"
+                        : "bg-teal-100 text-teal-800 hover:bg-teal-200"
                     }`}
                     title={`${formatShopTime(new Date(apt.startsAt), timeZone)} — ${apt.title} (${formatClientName(apt.client)})`}
                   >
@@ -111,7 +112,7 @@ export function AppointmentMonthCalendar({
                       {formatShopTime(new Date(apt.startsAt), timeZone)}
                     </span>{" "}
                     {apt.title}
-                  </div>
+                  </Link>
                 ))}
                 {dayAppointments.length > 3 && (
                   <Link
