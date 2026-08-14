@@ -1,14 +1,58 @@
-/** Convierte fecha/hora local del taller a Date UTC para guardar en DB. */
+function partsInTimeZone(date: Date, timeZone: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  }).formatToParts(date);
+
+  const get = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+
+  return {
+    year: get("year"),
+    month: get("month"),
+    day: get("day"),
+    hour: get("hour"),
+    minute: get("minute"),
+  };
+}
+
+/** Convierte fecha/hora local del taller a Date UTC (independiente del TZ del servidor). */
 export function parseShopDateTime(
   dateStr: string,
   timeStr: string,
   timeZone: string
 ): Date {
-  const naive = new Date(`${dateStr}T${timeStr}:00`);
-  const inUtc = new Date(naive.toLocaleString("en-US", { timeZone: "UTC" }));
-  const inShop = new Date(naive.toLocaleString("en-US", { timeZone }));
-  const offsetMs = inUtc.getTime() - inShop.getTime();
-  return new Date(naive.getTime() + offsetMs);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const [hour, minute] = timeStr.split(":").map(Number);
+
+  let lo = Date.UTC(year, month - 1, day, hour, minute) - 16 * 3_600_000;
+  let hi = Date.UTC(year, month - 1, day, hour, minute) + 16 * 3_600_000;
+
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const p = partsInTimeZone(new Date(mid), timeZone);
+    const cmp =
+      p.year !== year
+        ? p.year - year
+        : p.month !== month
+          ? p.month - month
+          : p.day !== day
+            ? p.day - day
+            : p.hour !== hour
+              ? p.hour - hour
+              : p.minute - minute;
+
+    if (cmp === 0) return new Date(mid);
+    if (cmp < 0) lo = mid + 1;
+    else hi = mid - 1;
+  }
+
+  throw new Error(`Fecha/hora inválida en ${timeZone}: ${dateStr} ${timeStr}`);
 }
 
 /** YYYY-MM-DD en la zona horaria del taller. */

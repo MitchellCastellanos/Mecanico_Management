@@ -16,6 +16,7 @@ import {
   type ShopEmailConfig,
   type EmailChannel,
 } from "@/lib/email-config";
+import { BRAND } from "@/config/brand";
 import { getInvoiceStrings, type InvoiceLanguage } from "@/lib/invoice-i18n";
 import React from "react";
 
@@ -34,6 +35,7 @@ interface TransactionalSendOptions {
   subject: string;
   react: React.ReactElement;
   attachments?: { filename: string; content: Buffer }[];
+  cc?: string | string[];
 }
 
 async function sendTransactionalEmail(options: TransactionalSendOptions) {
@@ -49,6 +51,7 @@ async function sendTransactionalEmail(options: TransactionalSendOptions) {
     from: route.from,
     replyTo: route.replyTo,
     to: options.to,
+    cc: options.cc,
     subject: options.subject,
     html,
     attachments: options.attachments,
@@ -249,6 +252,16 @@ const APPOINTMENT_SUBJECTS: Record<string, Record<AppointmentEmailType, (title: 
   },
 };
 
+function resolveAppointmentAdminCc(
+  shop: ShopEmailConfig,
+  clientEmail: string
+): string | undefined {
+  const adminEmail = shop.infoEmail?.trim() || BRAND.emails.info;
+  if (!adminEmail) return undefined;
+  if (adminEmail.toLowerCase() === clientEmail.toLowerCase()) return undefined;
+  return adminEmail;
+}
+
 export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
   const route = resolveEmailRoute(data.shop, "APPOINTMENT");
   const lang = data.language === "EN" || data.language === "FR" ? data.language : "ES";
@@ -266,10 +279,16 @@ export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
     manageUrl: data.manageUrl,
   });
 
+  const cc =
+    data.type === "confirmation" || data.type === "cancellation"
+      ? resolveAppointmentAdminCc(data.shop, data.to)
+      : undefined;
+
   await sendTransactionalEmail({
     shop: data.shop,
     channel: "APPOINTMENT",
     to: data.to,
+    cc,
     subject,
     react: element,
   });
