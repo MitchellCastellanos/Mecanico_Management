@@ -114,7 +114,6 @@ export async function getAppointments(options?: {
     view: resolvedView,
     anchor,
     timeZone,
-    weekStart: resolvedView === "week" ? anchor : getWeekRangeShop(anchor, timeZone).weekStart,
   };
 }
 

@@ -1,3 +1,10 @@
+/** Asegura YYYY-MM-DD; si solo viene YYYY-MM, usa el día 01. */
+export function ensureFullShopDate(dateStr: string): string {
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}$/.test(trimmed)) return `${trimmed}-01`;
+  return trimmed;
+}
+
 function partsInTimeZone(date: Date, timeZone: string) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone,
@@ -79,7 +86,7 @@ export function formatShopTime(date: Date, timeZone: string): string {
 }
 
 export function getShopDayOfWeek(dateStr: string, timeZone: string): number {
-  const noon = parseShopDateTime(dateStr, "12:00", timeZone);
+  const noon = parseShopDateTime(ensureFullShopDate(dateStr), "12:00", timeZone);
   const weekday = new Intl.DateTimeFormat("en-US", {
     timeZone,
     weekday: "short",
@@ -149,9 +156,10 @@ export function getMonthRange(month: string, timeZone: string) {
 }
 
 export function getWeekRangeShop(anchorDate: string, timeZone: string) {
-  const dayOfWeek = getShopDayOfWeek(anchorDate, timeZone);
+  const anchor = ensureFullShopDate(anchorDate);
+  const dayOfWeek = getShopDayOfWeek(anchor, timeZone);
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const weekStart = addShopDays(anchorDate, mondayOffset, timeZone);
+  const weekStart = addShopDays(anchor, mondayOffset, timeZone);
   const weekEnd = addShopDays(weekStart, 6, timeZone);
   const start = parseShopDateTime(weekStart, "00:00", timeZone);
   const end = parseShopDateTime(weekEnd, "23:59", timeZone);
@@ -160,10 +168,11 @@ export function getWeekRangeShop(anchorDate: string, timeZone: string) {
 }
 
 export function getDayRangeShop(day: string, timeZone: string) {
-  const start = parseShopDateTime(day, "00:00", timeZone);
-  const end = parseShopDateTime(day, "23:59", timeZone);
+  const fullDay = ensureFullShopDate(day);
+  const start = parseShopDateTime(fullDay, "00:00", timeZone);
+  const end = parseShopDateTime(fullDay, "23:59", timeZone);
   end.setMinutes(end.getMinutes() + 1);
-  return { start, end, day };
+  return { start, end, day: fullDay };
 }
 
 export function shiftMonth(month: string, delta: number): string {
