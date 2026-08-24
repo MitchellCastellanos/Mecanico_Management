@@ -124,7 +124,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   if (step === "done") {
     return (
       <div className="text-center py-12 space-y-4">
-        <CheckCircle2 className="w-16 h-16 text-teal-600 mx-auto" />
+        <CheckCircle2 className="w-16 h-16 text-brand-red mx-auto" />
         <h2 className="text-2xl font-bold text-slate-900">¡Cita confirmada!</h2>
         <p className="text-slate-600">
           Recibirás un SMS de confirmación a tu teléfono.
@@ -132,7 +132,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
             <>
               {" "}
               Para cambios, llama al{" "}
-              <a href={`tel:${shop.phone}`} className="text-teal-700 font-medium">
+              <a href={`tel:${shop.phone}`} className="text-brand-red-dark font-medium">
                 {shop.phone}
               </a>
               .
@@ -140,13 +140,13 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           )}
         </p>
         {manageUrl && (
-          <div className="bg-teal-50 border border-teal-200 rounded-lg px-4 py-3 text-sm text-left">
+          <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-left">
             <p className="text-slate-700 mb-1">
               Guarda este link para confirmar o cancelar tu cita más tarde:
             </p>
             <a
               href={manageUrl}
-              className="text-teal-700 font-medium break-all underline underline-offset-2"
+              className="text-brand-red-dark font-medium break-all underline underline-offset-2"
             >
               {manageUrl}
             </a>
@@ -261,8 +261,8 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
               className={[
                 "px-3 py-2 rounded-lg text-sm border transition-colors",
                 selectedDate === d
-                  ? "bg-teal-600 text-white border-teal-600"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-teal-300",
+                  ? "bg-brand-red text-white border-brand-red"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
               ].join(" ")}
             >
               {formatDateLabel(d)}
@@ -287,8 +287,8 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
                 className={[
                   "px-3 py-2 rounded-lg text-sm border transition-colors min-w-[4.5rem]",
                   selectedTime === slot.time
-                    ? "bg-teal-600 text-white border-teal-600"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-teal-300",
+                    ? "bg-brand-red text-white border-brand-red"
+                    : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
                 ].join(" ")}
               >
                 {slot.time}
@@ -312,7 +312,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       <button
         type="submit"
         disabled={pending || !selectedDate || !selectedTime}
-        className="w-full flex items-center justify-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
+        className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
       >
         {pending && <Loader2 className="w-4 h-4 animate-spin" />}
         Confirmar cita ({shop.bookingSlotMinutes} min)
@@ -330,4 +330,4 @@ function formatDateLabel(isoDate: string): string {
 }
 
 const inputClass =
-  "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent";
+  "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent";

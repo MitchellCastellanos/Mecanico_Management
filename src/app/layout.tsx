@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
+import { Oswald } from "next/font/google";
 import "./globals.css";
 import { BRAND } from "@/config/brand";
+
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-oswald",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(BRAND.appUrl),
@@ -27,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className="h-full">
+    <html lang="es" className={`h-full ${oswald.variable}`}>
       <body className="min-h-full font-sans antialiased">{children}</body>
     </html>
   );
