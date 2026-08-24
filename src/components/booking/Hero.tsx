@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, MapPin, Phone } from "lucide-react";
+import { useSiteLocale } from "@/components/booking/LocaleProvider";
 
 interface HeroProps {
   shopName: string;
   address: string | null;
   phone: string | null;
-  tagline: string;
 }
 
 function scrollTo(id: string) {
@@ -20,7 +20,8 @@ function scrollTo(id: string) {
  * (public/garage-exterior.jpg). Si aún no existe, cae a un fondo oscuro
  * con textura en vez de romper el layout.
  */
-export function Hero({ shopName, address, phone, tagline }: HeroProps) {
+export function Hero({ shopName, address, phone }: HeroProps) {
+  const { t } = useSiteLocale();
   const [photoFailed, setPhotoFailed] = useState(false);
 
   return (
@@ -54,9 +55,9 @@ export function Hero({ shopName, address, phone, tagline }: HeroProps) {
             {shopName}
           </h1>
           <p className="mt-4 font-display font-semibold uppercase tracking-wide text-brand-red text-lg sm:text-xl">
-            Mecánica de confianza para tu auto de todos los días
+            {t.hero.subheadline}
           </p>
-          <p className="mt-4 text-slate-300 max-w-lg">{tagline}</p>
+          <p className="mt-4 text-slate-300 max-w-lg">{t.hero.tagline}</p>
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <motion.button
@@ -65,7 +66,7 @@ export function Hero({ shopName, address, phone, tagline }: HeroProps) {
               onClick={() => scrollTo("#cita")}
               className="inline-flex items-center gap-2 bg-brand-red hover:bg-brand-red-dark text-white font-semibold uppercase tracking-wide text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-red-950/40 transition-colors"
             >
-              Reservar cita
+              {t.hero.bookCta}
               <ChevronRight className="w-4 h-4" />
             </motion.button>
             <motion.button
@@ -74,7 +75,7 @@ export function Hero({ shopName, address, phone, tagline }: HeroProps) {
               onClick={() => scrollTo("#servicios")}
               className="inline-flex items-center gap-2 border border-white/40 hover:border-white text-white font-semibold uppercase tracking-wide text-sm px-6 py-3.5 rounded-xl transition-colors"
             >
-              Ver servicios
+              {t.hero.viewServicesCta}
             </motion.button>
           </div>
 

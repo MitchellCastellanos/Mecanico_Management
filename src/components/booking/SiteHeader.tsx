@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { Menu, Phone, X } from "lucide-react";
+import { useSiteLocale } from "@/components/booking/LocaleProvider";
+import { LanguageSwitcher } from "@/components/booking/LanguageSwitcher";
 
 interface SiteHeaderProps {
   shopName: string;
@@ -10,13 +12,8 @@ interface SiteHeaderProps {
   phone: string | null;
 }
 
-const NAV_LINKS = [
-  { href: "#servicios", label: "Servicios" },
-  { href: "#taller", label: "El taller" },
-  { href: "#cita", label: "Reservar" },
-];
-
 export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
+  const { t } = useSiteLocale();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -26,6 +23,12 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  const navLinks = [
+    { href: "#servicios", label: t.nav.services },
+    { href: "#taller", label: t.nav.shop },
+    { href: "#cita", label: t.nav.book },
+  ];
 
   function goTo(href: string) {
     setMenuOpen(false);
@@ -44,7 +47,7 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
           <button
             onClick={() => goTo("#top")}
             className="flex items-center gap-3 group"
-            aria-label="Inicio"
+            aria-label={t.header.home}
           >
             {logoUrl && (
               <Image
@@ -62,7 +65,7 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
           </button>
 
           <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <button
                 key={link.href}
                 onClick={() => goTo(link.href)}
@@ -74,6 +77,7 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
+            <LanguageSwitcher />
             {phone && (
               <a
                 href={`tel:${phone}`}
@@ -87,14 +91,14 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
               onClick={() => goTo("#cita")}
               className="bg-brand-red hover:bg-brand-red-dark text-white text-sm font-semibold uppercase tracking-wide px-5 py-2.5 rounded-lg transition-colors shadow-md shadow-red-950/30"
             >
-              Reservar cita
+              {t.header.bookCta}
             </button>
           </div>
 
           <button
             className="md:hidden text-white p-2"
             onClick={() => setMenuOpen((v) => !v)}
-            aria-label="Abrir menú"
+            aria-label={t.header.openMenu}
           >
             {menuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -103,7 +107,7 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
 
       {menuOpen && (
         <div className="md:hidden bg-brand-black border-t border-white/10 px-4 py-4 space-y-3">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <button
               key={link.href}
               onClick={() => goTo(link.href)}
@@ -121,11 +125,12 @@ export function SiteHeader({ shopName, logoUrl, phone }: SiteHeaderProps) {
               {phone}
             </a>
           )}
+          <LanguageSwitcher variant="mobile" />
           <button
             onClick={() => goTo("#cita")}
             className="w-full bg-brand-red text-white text-sm font-semibold uppercase tracking-wide px-5 py-3 rounded-lg"
           >
-            Reservar cita
+            {t.header.bookCta}
           </button>
         </div>
       )}

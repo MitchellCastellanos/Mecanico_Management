@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { PublicBookingForm } from "@/components/booking/PublicBookingForm";
+import { useSiteLocale } from "@/components/booking/LocaleProvider";
 
 interface BookingSectionProps {
   slug: string;
@@ -15,6 +16,8 @@ interface BookingSectionProps {
 }
 
 export function BookingSection({ slug, shop }: BookingSectionProps) {
+  const { t } = useSiteLocale();
+
   return (
     <section id="cita" className="bg-slate-50 py-20 sm:py-28">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
@@ -26,14 +29,12 @@ export function BookingSection({ slug, shop }: BookingSectionProps) {
           className="text-center mb-10"
         >
           <span className="text-brand-red font-semibold text-sm uppercase tracking-widest">
-            Reserva en línea
+            {t.booking.eyebrow}
           </span>
           <h2 className="font-display font-bold uppercase text-3xl sm:text-4xl text-slate-900 mt-2">
-            Agenda tu cita
+            {t.booking.heading}
           </h2>
-          <p className="text-slate-500 mt-3">
-            Elige el día, la hora y cuéntanos qué le pasa a tu auto.
-          </p>
+          <p className="text-slate-500 mt-3">{t.booking.subtitle}</p>
         </motion.div>
 
         <motion.div

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
+import { useSiteLocale } from "@/components/booking/LocaleProvider";
 
 interface ShopInfo {
   name: string;
@@ -27,7 +28,10 @@ interface PublicBookingFormProps {
   shop: ShopInfo;
 }
 
+const NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE = { fr: "FR", en: "EN", es: "ES" } as const;
+
 export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
+  const { locale, t } = useSiteLocale();
   const [step, setStep] = useState<"form" | "done">("form");
   const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
@@ -50,8 +54,8 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         }
         if (data.mechanics) setMechanics(data.mechanics);
       })
-      .catch(() => setError("No se pudo cargar disponibilidad"));
-  }, [slug]);
+      .catch(() => setError(t.form.couldNotLoadAvailability));
+  }, [slug, t.form.couldNotLoadAvailability]);
 
   const loadSlots = useCallback(async () => {
     if (!selectedDate) return;
@@ -110,7 +114,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           data.error?.time?.[0] ??
           data.error?.phone?.[0] ??
           data.error?.email?.[0] ??
-          (typeof data.error === "string" ? data.error : "No se pudo reservar");
+          (typeof data.error === "string" ? data.error : t.form.couldNotBook);
         setError(msg);
         if (res.status === 409) loadSlots();
         return;
@@ -125,13 +129,13 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     return (
       <div className="text-center py-12 space-y-4">
         <CheckCircle2 className="w-16 h-16 text-brand-red mx-auto" />
-        <h2 className="text-2xl font-bold text-slate-900">¡Cita confirmada!</h2>
+        <h2 className="text-2xl font-bold text-slate-900">{t.form.doneTitle}</h2>
         <p className="text-slate-600">
-          Recibirás un SMS de confirmación a tu teléfono.
+          {t.form.smsNotice}
           {shop.phone && (
             <>
               {" "}
-              Para cambios, llama al{" "}
+              {t.form.callForChanges}{" "}
               <a href={`tel:${shop.phone}`} className="text-brand-red-dark font-medium">
                 {shop.phone}
               </a>
@@ -141,9 +145,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         </p>
         {manageUrl && (
           <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-left">
-            <p className="text-slate-700 mb-1">
-              Guarda este link para confirmar o cancelar tu cita más tarde:
-            </p>
+            <p className="text-slate-700 mb-1">{t.form.saveLink}</p>
             <a
               href={manageUrl}
               className="text-brand-red-dark font-medium break-all underline underline-offset-2"
@@ -160,20 +162,24 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            {t.form.firstName}
+          </label>
           <input name="firstName" required className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Apellido</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            {t.form.lastName}
+          </label>
           <input name="lastName" className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Teléfono *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.phone}</label>
           <input name="phone" type="tel" required className={inputClass} />
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            Email (opcional)
+            {t.form.emailOptional}
           </label>
           <input name="email" type="email" className={inputClass} />
         </div>
@@ -181,7 +187,12 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           <label className="block text-sm font-medium text-slate-700 mb-1">
             Idioma / Language / Langue
           </label>
-          <select name="language" defaultValue="ES" className={inputClass}>
+          <select
+            key={locale}
+            name="language"
+            defaultValue={NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE[locale]}
+            className={inputClass}
+          >
             {INVOICE_LANGUAGES.map((lang) => (
               <option key={lang.value} value={lang.value}>
                 {lang.label}
@@ -193,27 +204,27 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1">
-          Servicio solicitado *
+          {t.form.serviceRequested}
         </label>
         <input
           name="title"
           required
-          placeholder="Cambio de aceite, revisión, frenos..."
+          placeholder={t.form.serviceRequestedPlaceholder}
           className={inputClass}
         />
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Marca *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.make}</label>
           <input name="make" required className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Modelo *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.model}</label>
           <input name="model" required className={inputClass} />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Año *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.year}</label>
           <input
             name="year"
             type="number"
@@ -224,25 +235,27 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Placa *</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">
+            {t.form.licensePlate}
+          </label>
           <input name="licensePlate" required className={inputClass} />
         </div>
       </div>
 
       <div className="border-t border-slate-100 pt-6 space-y-4">
-        <h3 className="font-semibold text-slate-900">Elige fecha y hora</h3>
+        <h3 className="font-semibold text-slate-900">{t.form.chooseDateTime}</h3>
 
         {mechanics.length > 1 && (
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Mecánico (opcional)
+              {t.form.mechanicOptional}
             </label>
             <select
               value={selectedMechanicId}
               onChange={(e) => setSelectedMechanicId(e.target.value)}
               className={inputClass}
             >
-              <option value="">Cualquier disponible</option>
+              <option value="">{t.form.anyAvailable}</option>
               {mechanics.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -265,7 +278,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
                   : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
               ].join(" ")}
             >
-              {formatDateLabel(d)}
+              {formatDateLabel(d, t.intlLocale)}
             </button>
           ))}
         </div>
@@ -273,10 +286,10 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         {loadingSlots ? (
           <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
             <Loader2 className="w-4 h-4 animate-spin" />
-            Cargando horarios...
+            {t.form.loadingAvailability}
           </div>
         ) : slots.length === 0 ? (
-          <p className="text-sm text-slate-500">No hay horarios disponibles este día.</p>
+          <p className="text-sm text-slate-500">{t.form.noSlots}</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {slots.map((slot) => (
@@ -299,7 +312,9 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Notas (opcional)</label>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          {t.form.notesOptional}
+        </label>
         <textarea name="notes" rows={2} className={inputClass} />
       </div>
 
@@ -315,18 +330,20 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
       >
         {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-        Confirmar cita ({shop.bookingSlotMinutes} min)
+        {t.form.confirmAppointment(shop.bookingSlotMinutes)}
       </button>
     </form>
   );
 }
 
-function formatDateLabel(isoDate: string): string {
+function formatDateLabel(isoDate: string, intlLocale: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   const date = new Date(y, m - 1, d);
-  return new Intl.DateTimeFormat("es", { weekday: "short", day: "numeric", month: "short" }).format(
-    date
-  );
+  return new Intl.DateTimeFormat(intlLocale, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 const inputClass =
