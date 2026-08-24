@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-import { BRAND } from "./src/config/brand";
+import { BRAND, bookingPublicPath } from "./src/config/brand";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@react-pdf/renderer", "googleapis", "canvas", "sharp", "pdf-lib"],
@@ -49,7 +49,13 @@ const nextConfig: NextConfig = {
       permanent: true,
     }));
 
-    return [...legacyHostRedirects, ...legacyAppRoots, ...legacyAppPaths];
+    const rootRedirect = {
+      source: "/",
+      destination: bookingPublicPath(),
+      permanent: false,
+    };
+
+    return [...legacyHostRedirects, rootRedirect, ...legacyAppRoots, ...legacyAppPaths];
   },
 
   typescript: {
