@@ -39,6 +39,9 @@ export interface SiteDictionary {
     eyebrow: string;
     heading: string;
     subtitle: string;
+    unavailableTitle: string;
+    unavailableBody: string;
+    callInstead: string;
   };
   form: {
     firstName: string;
@@ -120,6 +123,9 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Réservation en ligne",
       heading: "Prenez rendez-vous",
       subtitle: "Choisissez le jour, l'heure, et dites-nous ce qui ne va pas avec votre auto.",
+      unavailableTitle: "La réservation en ligne arrive bientôt",
+      unavailableBody: "On met la dernière touche à la réservation en ligne. En attendant, appelez-nous pour prendre rendez-vous.",
+      callInstead: "Appeler pour réserver",
     },
     form: {
       firstName: "Prénom *",
@@ -199,6 +205,9 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Online booking",
       heading: "Book your appointment",
       subtitle: "Choose the day, the time, and tell us what's wrong with your car.",
+      unavailableTitle: "Online booking is coming soon",
+      unavailableBody: "We're putting the final touches on online booking. In the meantime, give us a call to book your appointment.",
+      callInstead: "Call to book",
     },
     form: {
       firstName: "First name *",
@@ -278,6 +287,9 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Reserva en línea",
       heading: "Agenda tu cita",
       subtitle: "Elige el día, la hora y cuéntanos qué le pasa a tu auto.",
+      unavailableTitle: "La reserva en línea llega pronto",
+      unavailableBody: "Estamos afinando la reserva en línea. Mientras tanto, llámanos para agendar tu cita.",
+      callInstead: "Llamar para reservar",
     },
     form: {
       firstName: "Nombre *",

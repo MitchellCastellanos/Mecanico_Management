@@ -29,7 +29,7 @@ export default async function PublicBookingPage({ params }: PageProps) {
   const { slug } = await params;
   const shop = await getShopBySlug(slug);
 
-  if (!shop || !shop.bookingEnabled) {
+  if (!shop) {
     notFound();
   }
 
@@ -43,6 +43,7 @@ export default async function PublicBookingPage({ params }: PageProps) {
         <OurShopSection shopName={shop.name} address={shop.address} phone={shop.phone} />
         <BookingSection
           slug={slug}
+          bookingEnabled={shop.bookingEnabled}
           shop={{
             name: shop.name,
             phone: shop.phone,
