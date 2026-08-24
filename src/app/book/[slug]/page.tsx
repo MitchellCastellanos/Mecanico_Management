@@ -9,6 +9,7 @@ import { ServicesSection } from "@/components/booking/ServicesSection";
 import { OurShopSection } from "@/components/booking/OurShopSection";
 import { BookingSection } from "@/components/booking/BookingSection";
 import { SiteFooter } from "@/components/booking/SiteFooter";
+import { WhatsAppButton } from "@/components/booking/WhatsAppButton";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -43,7 +44,6 @@ export default async function PublicBookingPage({ params }: PageProps) {
         <OurShopSection shopName={shop.name} address={shop.address} phone={shop.phone} />
         <BookingSection
           slug={slug}
-          bookingEnabled={shop.bookingEnabled}
           shop={{
             name: shop.name,
             phone: shop.phone,
@@ -58,6 +58,7 @@ export default async function PublicBookingPage({ params }: PageProps) {
           address={shop.address}
           phone={shop.phone}
         />
+        <WhatsAppButton phone={shop.phone} />
       </div>
     </LocaleProvider>
   );

@@ -1,13 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Phone } from "lucide-react";
 import { PublicBookingForm } from "@/components/booking/PublicBookingForm";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
 
 interface BookingSectionProps {
   slug: string;
-  bookingEnabled: boolean;
   shop: {
     name: string;
     phone: string | null;
@@ -17,7 +15,7 @@ interface BookingSectionProps {
   };
 }
 
-export function BookingSection({ slug, bookingEnabled, shop }: BookingSectionProps) {
+export function BookingSection({ slug, shop }: BookingSectionProps) {
   const { t } = useSiteLocale();
 
   return (
@@ -46,23 +44,7 @@ export function BookingSection({ slug, bookingEnabled, shop }: BookingSectionPro
           transition={{ duration: 0.55, delay: 0.1 }}
           className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-6 sm:p-8"
         >
-          {bookingEnabled ? (
-            <PublicBookingForm slug={slug} shop={shop} />
-          ) : (
-            <div className="text-center py-8 space-y-4">
-              <h3 className="text-xl font-bold text-slate-900">{t.booking.unavailableTitle}</h3>
-              <p className="text-slate-500 max-w-sm mx-auto">{t.booking.unavailableBody}</p>
-              {shop.phone && (
-                <a
-                  href={`tel:${shop.phone}`}
-                  className="inline-flex items-center gap-2 bg-brand-red hover:bg-brand-red-dark text-white font-medium px-5 py-3 rounded-xl transition-colors"
-                >
-                  <Phone className="w-4 h-4" />
-                  {t.booking.callInstead} · {shop.phone}
-                </a>
-              )}
-            </div>
-          )}
+          <PublicBookingForm slug={slug} shop={shop} />
         </motion.div>
       </div>
     </section>

@@ -14,7 +14,7 @@ export async function GET(
   const { slug } = await params;
   const shop = await getShopBySlug(slug);
 
-  if (!shop || !shop.bookingEnabled) {
+  if (!shop) {
     return NextResponse.json({ error: "Reservas no disponibles" }, { status: 404 });
   }
 

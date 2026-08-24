@@ -14,6 +14,7 @@ export interface SiteDictionary {
   intlLocale: string;
   nav: { services: string; shop: string; book: string };
   header: { bookCta: string; home: string; openMenu: string };
+  whatsapp: { label: string; message: string };
   hero: {
     subheadline: string;
     tagline: string;
@@ -39,9 +40,6 @@ export interface SiteDictionary {
     eyebrow: string;
     heading: string;
     subtitle: string;
-    unavailableTitle: string;
-    unavailableBody: string;
-    callInstead: string;
   };
   form: {
     firstName: string;
@@ -75,6 +73,10 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
     intlLocale: "fr-CA",
     nav: { services: "Services", shop: "Le garage", book: "Réserver" },
     header: { bookCta: "Réserver", home: "Accueil", openMenu: "Ouvrir le menu" },
+    whatsapp: {
+      label: "Discuter sur WhatsApp",
+      message: "Bonjour, j'aimerais prendre un rendez-vous.",
+    },
     hero: {
       subheadline: "Une mécanique de confiance pour votre auto de tous les jours",
       tagline:
@@ -123,9 +125,6 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Réservation en ligne",
       heading: "Prenez rendez-vous",
       subtitle: "Choisissez le jour, l'heure, et dites-nous ce qui ne va pas avec votre auto.",
-      unavailableTitle: "La réservation en ligne arrive bientôt",
-      unavailableBody: "On met la dernière touche à la réservation en ligne. En attendant, appelez-nous pour prendre rendez-vous.",
-      callInstead: "Appeler pour réserver",
     },
     form: {
       firstName: "Prénom *",
@@ -157,6 +156,10 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
     intlLocale: "en-CA",
     nav: { services: "Services", shop: "The Shop", book: "Book" },
     header: { bookCta: "Book Appointment", home: "Home", openMenu: "Open menu" },
+    whatsapp: {
+      label: "Chat on WhatsApp",
+      message: "Hi, I'd like to book an appointment.",
+    },
     hero: {
       subheadline: "Trusted mechanics for your everyday car",
       tagline:
@@ -205,9 +208,6 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Online booking",
       heading: "Book your appointment",
       subtitle: "Choose the day, the time, and tell us what's wrong with your car.",
-      unavailableTitle: "Online booking is coming soon",
-      unavailableBody: "We're putting the final touches on online booking. In the meantime, give us a call to book your appointment.",
-      callInstead: "Call to book",
     },
     form: {
       firstName: "First name *",
@@ -239,6 +239,10 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
     intlLocale: "es",
     nav: { services: "Servicios", shop: "El taller", book: "Reservar" },
     header: { bookCta: "Reservar cita", home: "Inicio", openMenu: "Abrir menú" },
+    whatsapp: {
+      label: "Chatear por WhatsApp",
+      message: "Hola, quisiera agendar una cita.",
+    },
     hero: {
       subheadline: "Mecánica de confianza para tu auto de todos los días",
       tagline:
@@ -287,9 +291,6 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       eyebrow: "Reserva en línea",
       heading: "Agenda tu cita",
       subtitle: "Elige el día, la hora y cuéntanos qué le pasa a tu auto.",
-      unavailableTitle: "La reserva en línea llega pronto",
-      unavailableBody: "Estamos afinando la reserva en línea. Mientras tanto, llámanos para agendar tu cita.",
-      callInstead: "Llamar para reservar",
     },
     form: {
       firstName: "Nombre *",
