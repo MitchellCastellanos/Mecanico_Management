@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getShopBySlug } from "@/lib/booking-slots";
 import { SiteHeader } from "@/components/booking/SiteHeader";
 import { Hero } from "@/components/booking/Hero";
+import { QuickServicesStrip } from "@/components/booking/QuickServicesStrip";
 import { ServicesSection } from "@/components/booking/ServicesSection";
 import { OurShopSection } from "@/components/booking/OurShopSection";
 import { BookingSection } from "@/components/booking/BookingSection";
@@ -36,11 +37,11 @@ export default async function PublicBookingPage({ params }: PageProps) {
       <SiteHeader shopName={shop.name} logoUrl={shop.logoUrl} phone={shop.phone} />
       <Hero
         shopName={shop.name}
-        logoUrl={shop.logoUrl}
         address={shop.address}
         phone={shop.phone}
-        tagline="Mecánica de confianza en Montréal — mecánica general, frenos, baterías y neumáticos, con cita en línea en minutos."
+        tagline="Diagnóstico honesto, reparación completa y cita en línea en minutos — sin sorpresas en la factura."
       />
+      <QuickServicesStrip />
       <ServicesSection />
       <OurShopSection shopName={shop.name} address={shop.address} phone={shop.phone} />
       <BookingSection

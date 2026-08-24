@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronRight, MapPin, Phone } from "lucide-react";
 
 interface HeroProps {
   shopName: string;
-  logoUrl: string | null;
   address: string | null;
   phone: string | null;
   tagline: string;
@@ -16,86 +15,88 @@ function scrollTo(id: string) {
   document.querySelector(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-export function Hero({ shopName, logoUrl, address, phone, tagline }: HeroProps) {
+/**
+ * Foto real del taller — usa la misma imagen que la sección "El taller"
+ * (public/garage-exterior.jpg). Si aún no existe, cae a un fondo oscuro
+ * con textura en vez de romper el layout.
+ */
+export function Hero({ shopName, address, phone, tagline }: HeroProps) {
+  const [photoFailed, setPhotoFailed] = useState(false);
+
   return (
-    <section
-      id="top"
-      className="relative overflow-hidden bg-brand-black garage-diagonal-stripes"
-    >
-      {/* Franja roja diagonal, como una puerta de garage */}
-      <div className="pointer-events-none absolute -right-32 top-0 h-full w-[45%] -skew-x-12 bg-gradient-to-b from-brand-red via-brand-red-dark to-brand-black opacity-90" />
-      <div className="pointer-events-none absolute inset-0 garage-grid-texture opacity-40" />
-
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-20 sm:pt-36 sm:pb-28">
-        <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: "easeOut" }}
-          >
-            <span className="inline-block bg-brand-red/15 border border-brand-red/40 text-red-300 text-xs font-semibold uppercase tracking-widest px-3 py-1 rounded-full mb-6">
-              Mécanique générale · Montréal
-            </span>
-            <h1 className="font-display font-bold uppercase text-white text-4xl sm:text-5xl lg:text-6xl leading-[1.05] tracking-tight">
-              {shopName}
-            </h1>
-            <p className="mt-5 text-lg sm:text-xl text-slate-300 max-w-xl">{tagline}</p>
-
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <motion.button
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => scrollTo("#cita")}
-                className="inline-flex items-center gap-2 bg-brand-red hover:bg-brand-red-dark text-white font-semibold uppercase tracking-wide px-6 py-3.5 rounded-xl shadow-lg shadow-red-950/40 transition-colors"
-              >
-                Reservar cita en línea
-                <ChevronRight className="w-4 h-4" />
-              </motion.button>
-              {phone && (
-                <a
-                  href={`tel:${phone}`}
-                  className="inline-flex items-center gap-2 text-white/90 hover:text-white font-medium border border-white/20 hover:border-white/40 px-5 py-3.5 rounded-xl transition-colors"
-                >
-                  <Phone className="w-4 h-4 text-brand-red" />
-                  {phone}
-                </a>
-              )}
-            </div>
-
-            {address && (
-              <p className="mt-6 flex items-center gap-2 text-sm text-slate-400">
-                <MapPin className="w-4 h-4 text-brand-red shrink-0" />
-                {address}
-              </p>
-            )}
-          </motion.div>
-
-          {logoUrl && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85, rotate: -6 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 0.8, ease: "easeOut", delay: 0.15 }}
-              className="justify-self-center"
-            >
-              <div className="garage-float relative">
-                <div className="absolute inset-0 rounded-full bg-brand-red/25 blur-3xl scale-90" />
-                <Image
-                  src={logoUrl}
-                  alt={shopName}
-                  width={280}
-                  height={280}
-                  priority
-                  className="relative object-contain drop-shadow-2xl w-48 h-48 sm:w-64 sm:h-64 lg:w-72 lg:h-72"
-                  unoptimized
-                />
-              </div>
-            </motion.div>
-          )}
-        </div>
+    <section id="top" className="relative overflow-hidden bg-brand-black min-h-[640px] flex items-end">
+      <div className="absolute inset-0">
+        {!photoFailed ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/garage-exterior.jpg"
+            alt={shopName}
+            onError={() => setPhotoFailed(true)}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-brand-charcoal via-brand-black to-black garage-diagonal-stripes" />
+        )}
+        {/* Velo oscuro para que el texto se lea sobre la foto, más denso a la izquierda */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
+        <div className="pointer-events-none absolute inset-0 garage-grid-texture opacity-20" />
       </div>
 
-      {/* Borde inferior tipo "línea de meta" */}
-      <div className="relative h-2 bg-[repeating-linear-gradient(90deg,#fff_0,#fff_16px,#131417_16px,#131417_32px)]" />
+      <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 pt-32 pb-16 sm:pt-40 sm:pb-20">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="max-w-2xl"
+        >
+          <h1 className="font-sans font-black uppercase text-white text-4xl sm:text-5xl lg:text-6xl leading-[1.02] tracking-tight">
+            {shopName}
+          </h1>
+          <p className="mt-4 font-display font-semibold uppercase tracking-wide text-brand-red text-lg sm:text-xl">
+            Mecánica de confianza para tu auto de todos los días
+          </p>
+          <p className="mt-4 text-slate-300 max-w-lg">{tagline}</p>
+
+          <div className="mt-8 flex flex-wrap items-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => scrollTo("#cita")}
+              className="inline-flex items-center gap-2 bg-brand-red hover:bg-brand-red-dark text-white font-semibold uppercase tracking-wide text-sm px-6 py-3.5 rounded-xl shadow-lg shadow-red-950/40 transition-colors"
+            >
+              Reservar cita
+              <ChevronRight className="w-4 h-4" />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => scrollTo("#servicios")}
+              className="inline-flex items-center gap-2 border border-white/40 hover:border-white text-white font-semibold uppercase tracking-wide text-sm px-6 py-3.5 rounded-xl transition-colors"
+            >
+              Ver servicios
+            </motion.button>
+          </div>
+
+          <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2">
+            {phone && (
+              <a
+                href={`tel:${phone}`}
+                className="inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white transition-colors"
+              >
+                <Phone className="w-4 h-4 text-brand-red" />
+                {phone}
+              </a>
+            )}
+            {address && (
+              <span className="inline-flex items-center gap-2 text-sm text-slate-400">
+                <MapPin className="w-4 h-4 text-brand-red shrink-0" />
+                {address}
+              </span>
+            )}
+          </div>
+        </motion.div>
+      </div>
     </section>
   );
 }
