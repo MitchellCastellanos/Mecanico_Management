@@ -463,7 +463,7 @@ export async function getQuoteFormData() {
     db.client.findMany({
       where: { shopId },
       include: { vehicles: true },
-      orderBy: { lastName: "asc" },
+      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     db.shop.findUnique({ where: { id: shopId } }),
   ]);
