@@ -3,6 +3,7 @@ import {
   getAvailableSlots,
   getBookableDates,
   getBookableMechanics,
+  getDateWindow,
   getShopBySlug,
 } from "@/lib/booking-slots";
 
@@ -25,7 +26,7 @@ export async function GET(
     return NextResponse.json({ slots });
   }
 
-  const [dates, mechanics] = await Promise.all([
+  const [availableDates, mechanics] = await Promise.all([
     getBookableDates(shop, 14),
     getBookableMechanics(shop.id),
   ]);
@@ -39,7 +40,8 @@ export async function GET(
       timezone: shop.timezone,
       bookingSlotMinutes: shop.bookingSlotMinutes,
     },
-    dates,
+    dates: getDateWindow(shop, 14),
+    availableDates,
     mechanics,
   });
 }

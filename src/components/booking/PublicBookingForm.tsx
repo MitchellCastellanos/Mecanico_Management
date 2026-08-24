@@ -35,6 +35,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   const [step, setStep] = useState<"form" | "done">("form");
   const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
+  const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
   const [mechanics, setMechanics] = useState<MechanicOption[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
@@ -50,7 +51,9 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       .then((data) => {
         if (data.dates) {
           setDates(data.dates);
-          if (data.dates[0]) setSelectedDate(data.dates[0]);
+          const available: string[] = data.availableDates ?? data.dates;
+          setAvailableDates(new Set(available));
+          setSelectedDate(available[0] ?? data.dates[0] ?? "");
         }
         if (data.mechanics) setMechanics(data.mechanics);
       })
@@ -266,21 +269,27 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         )}
 
         <div className="flex flex-wrap gap-2">
-          {dates.map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setSelectedDate(d)}
-              className={[
-                "px-3 py-2 rounded-lg text-sm border transition-colors",
-                selectedDate === d
-                  ? "bg-brand-red text-white border-brand-red"
-                  : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
-              ].join(" ")}
-            >
-              {formatDateLabel(d, t.intlLocale)}
-            </button>
-          ))}
+          {dates.map((d) => {
+            const isAvailable = availableDates.has(d);
+            return (
+              <button
+                key={d}
+                type="button"
+                disabled={!isAvailable}
+                onClick={() => isAvailable && setSelectedDate(d)}
+                className={[
+                  "px-3 py-2 rounded-lg text-sm border transition-colors",
+                  !isAvailable
+                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
+                    : selectedDate === d
+                      ? "bg-brand-red text-white border-brand-red"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
+                ].join(" ")}
+              >
+                {formatDateLabel(d, t.intlLocale)}
+              </button>
+            );
+          })}
         </div>
 
         {loadingSlots ? (

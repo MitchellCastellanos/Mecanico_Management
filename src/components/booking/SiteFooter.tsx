@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 interface SiteFooterProps {
   shopName: string;
@@ -40,6 +41,15 @@ export function SiteFooter({ shopName, logoUrl, address, phone }: SiteFooterProp
         <p className="text-xs text-slate-600">
           © {new Date().getFullYear()} {shopName}
         </p>
+      </div>
+
+      <div className="border-t border-white/5 py-3 text-center">
+        <Link
+          href="/admin/login"
+          className="text-[11px] text-slate-800 hover:text-slate-500 transition-colors"
+        >
+          Staff
+        </Link>
       </div>
     </footer>
   );

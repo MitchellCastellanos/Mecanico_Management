@@ -148,16 +148,24 @@ export async function getAvailableSlots(
   return slots;
 }
 
+/** Ventana de días a mostrar en el selector, tengan o no horarios libres. */
+export function getDateWindow(shop: { timezone: string }, days = 14): string[] {
+  const now = new Date();
+  const dates: string[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now.getTime() + i * 86_400_000);
+    dates.push(formatShopDate(d, shop.timezone));
+  }
+  return dates;
+}
+
 export async function getBookableDates(
   shop: Parameters<typeof getAvailableSlots>[0],
   days = 14,
   excludeAppointmentId?: string
 ): Promise<string[]> {
   const dates: string[] = [];
-  const now = new Date();
-  for (let i = 0; i < days; i++) {
-    const d = new Date(now.getTime() + i * 86_400_000);
-    const dateStr = formatShopDate(d, shop.timezone);
+  for (const dateStr of getDateWindow(shop, days)) {
     const slots = await getAvailableSlots(shop, dateStr, undefined, excludeAppointmentId);
     if (slots.length > 0) dates.push(dateStr);
   }
