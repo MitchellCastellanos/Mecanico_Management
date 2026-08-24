@@ -26,6 +26,7 @@ import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { REVENUE_TYPE_OPTIONS } from "@/lib/revenue-analytics";
 import { Plus, Trash2 } from "lucide-react";
 import { LineItemDescriptionInput } from "@/components/invoices/LineItemDescriptionInput";
+import { ClientCombobox } from "@/components/invoices/ClientCombobox";
 import Decimal from "decimal.js";
 
 // Tipos de los datos que necesita el form (vienen del servidor)
@@ -41,6 +42,8 @@ interface Client {
   id: string;
   firstName: string;
   lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
   vehicles: VehicleOption[];
 }
 
@@ -120,6 +123,16 @@ export function InvoiceForm({
   const taxRate = watch("taxRate");
   const selectedRevenueType = watch("revenueType");
 
+  // Clientes ordenados alfabéticamente por nombre mostrado (el orden del
+  // servidor puede dejar clientes sin apellido -empresas- desordenados)
+  const sortedClients = useMemo(
+    () =>
+      [...clients].sort((a, b) =>
+        formatClientName(a).localeCompare(formatClientName(b), "es", { sensitivity: "base" })
+      ),
+    [clients]
+  );
+
   // Vehículos disponibles del cliente seleccionado
   const selectedClient = clients.find((c) => c.id === selectedClientId);
   const clientVehicles = selectedClient?.vehicles ?? [];
@@ -174,17 +187,18 @@ export function InvoiceForm({
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Cliente *
             </label>
-            <select
-              {...register("clientId")}
-              className={selectClass(!!errors.clientId)}
-            >
-              <option value="">Seleccionar cliente...</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {formatClientName(client)}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="clientId"
+              render={({ field }) => (
+                <ClientCombobox
+                  clients={sortedClients}
+                  value={field.value}
+                  onChange={field.onChange}
+                  hasError={!!errors.clientId}
+                />
+              )}
+            />
             {errors.clientId && (
               <p className="text-red-600 text-xs mt-1">{errors.clientId.message}</p>
             )}
