@@ -12,7 +12,7 @@ interface OurShopSectionProps {
 }
 
 /**
- * Intenta mostrar una foto real del taller (public/garage-exterior.jpg).
+ * Intenta mostrar una foto real del taller (public/garage-exterior.png).
  * Si el archivo no existe todavía, cae a un panel ilustrado en vez de un ícono roto.
  */
 export function OurShopSection({ shopName, address, phone }: OurShopSectionProps) {
@@ -33,7 +33,7 @@ export function OurShopSection({ shopName, address, phone }: OurShopSectionProps
           {!photoFailed ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src="/garage-exterior.jpg"
+              src="/garage-exterior.png"
               alt={`Taller de ${shopName}`}
               onError={() => setPhotoFailed(true)}
               className="absolute inset-0 w-full h-full object-cover"

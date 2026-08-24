@@ -17,7 +17,7 @@ function scrollTo(id: string) {
 
 /**
  * Foto real del taller — usa la misma imagen que la sección "El taller"
- * (public/garage-exterior.jpg). Si aún no existe, cae a un fondo oscuro
+ * (public/garage-exterior.png). Si aún no existe, cae a un fondo oscuro
  * con textura en vez de romper el layout.
  */
 export function Hero({ shopName, address, phone }: HeroProps) {
@@ -30,7 +30,7 @@ export function Hero({ shopName, address, phone }: HeroProps) {
         {!photoFailed ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src="/garage-exterior.jpg"
+            src="/garage-exterior.png"
             alt={shopName}
             onError={() => setPhotoFailed(true)}
             className="absolute inset-0 w-full h-full object-cover"
