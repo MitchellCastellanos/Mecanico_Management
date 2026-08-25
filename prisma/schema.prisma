@@ -73,6 +73,7 @@ model User {
   accounts     Account[]
   sessions     Session[]
   appointments Appointment[] @relation("AppointmentMechanic")
+  workingHours MechanicWorkingHours[]
 }
 
 enum Role {
@@ -475,6 +476,22 @@ model ShopWorkingHours {
   isClosed  Boolean @default(false)
 
   @@unique([shopId, dayOfWeek])
+}
+
+// Horario individual de cada mecánico (0 = domingo … 6 = sábado).
+// Sin filas = sigue el horario del taller (ShopWorkingHours) por defecto.
+model MechanicWorkingHours {
+  @@schema("mecanico")
+
+  id        String  @id @default(cuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dayOfWeek Int     // 0–6, alineado con Date.getDay()
+  openTime  String  // "08:00"
+  closeTime String  // "17:00"
+  isClosed  Boolean @default(false)
+
+  @@unique([userId, dayOfWeek])
 }
 
 // ─────────────────────────────────────────

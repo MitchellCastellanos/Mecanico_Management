@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260814-invoice-sms-download-v1";
+export const SCHEMA_VERSION = "20260825-mechanic-working-hours-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -303,6 +303,23 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "downloadToken" TEXT`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Invoice_downloadToken_key" ON mecanico."Invoice"("downloadToken")`,
   `ALTER TABLE mecanico."Invoice" ADD COLUMN IF NOT EXISTS "clientPackagePath" TEXT`,
+  // ── Disponibilidad individual por mecánico para citas ────
+  `CREATE TABLE IF NOT EXISTS mecanico."MechanicWorkingHours" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "dayOfWeek" INTEGER NOT NULL,
+    "openTime" TEXT NOT NULL,
+    "closeTime" TEXT NOT NULL,
+    "isClosed" BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT "MechanicWorkingHours_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "MechanicWorkingHours_userId_dayOfWeek_key" ON mecanico."MechanicWorkingHours"("userId", "dayOfWeek")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."MechanicWorkingHours"
+      ADD CONSTRAINT "MechanicWorkingHours_userId_fkey"
+      FOREIGN KEY ("userId") REFERENCES mecanico."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
