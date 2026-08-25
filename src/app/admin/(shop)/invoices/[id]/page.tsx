@@ -144,7 +144,6 @@ export default async function InvoiceDetailPage({ params }: PageProps) {
             clientPhone={invoice.client.phone}
             emailSendCount={invoice.emailSendCount}
             smsSendCount={invoice.smsSendCount}
-            subtotal={Number(invoice.subtotal)}
             total={Number(invoice.total)}
             revenueType={revenueType}
             isPaid={invoice.status === "PAID"}

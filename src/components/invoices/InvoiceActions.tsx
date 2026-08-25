@@ -23,7 +23,6 @@ interface InvoiceActionsProps {
   clientPhone?: string | null;
   emailSendCount?: number;
   smsSendCount?: number;
-  subtotal?: number;
   total?: number;
   revenueType?: "OFFICIAL" | "INTERNAL_ONLY";
   isPaid?: boolean;
@@ -41,7 +40,6 @@ export function InvoiceActions({
   clientPhone,
   emailSendCount = 0,
   smsSendCount = 0,
-  subtotal = 0,
   total = 0,
   revenueType = "OFFICIAL",
   isPaid = false,
@@ -126,7 +124,6 @@ export function InvoiceActions({
         <InvoiceMarkPaidDialog
           invoiceId={invoiceId}
           invoiceNumber={invoiceNumber}
-          subtotal={subtotal}
           total={total}
           revenueType={revenueType}
           disabled={isAnyPending}

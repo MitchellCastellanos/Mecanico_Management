@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { shouldSuppressTaxesOnPdf } from "@/lib/invoice-payments";
 
 type QuoteWithRelations = Prisma.QuoteGetPayload<{
   include: {
@@ -14,6 +15,7 @@ export function serializeQuoteForPdf(quote: QuoteWithRelations) {
     documentKind: "quote" as const,
     invoiceNumber: quote.quoteNumber,
     dueAt: quote.validUntil,
+    suppressTaxes: shouldSuppressTaxesOnPdf(quote.revenueType),
     subtotal: quote.subtotal.toString(),
     taxRate: quote.taxRate.toString(),
     taxAmount: quote.taxAmount.toString(),
