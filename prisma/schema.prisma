@@ -364,6 +364,7 @@ model Quote {
   total               Decimal      @db.Decimal(10, 2)
   language            InvoiceLanguage @default(ES)
   notes               String?      @db.Text
+  revenueType         RevenueType  @default(OFFICIAL) // Efectivo/interno vs tarjeta/declarado — decidido al cotizar
   createdAt           DateTime     @default(now())
   updatedAt           DateTime     @updatedAt
 

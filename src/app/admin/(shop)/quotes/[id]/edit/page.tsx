@@ -26,6 +26,7 @@ export default async function EditQuotePage({ params }: PageProps) {
     clientId: quote.clientId,
     taxRate: Number(quote.taxRate),
     language: quote.language as "ES" | "EN" | "FR",
+    revenueType: quote.revenueType as "OFFICIAL" | "INTERNAL_ONLY",
     notes: quote.notes ?? "",
     dueAt: quote.validUntil ? quote.validUntil.toISOString().split("T")[0] : "",
     vehicles: quote.vehicles.map((qv) => ({

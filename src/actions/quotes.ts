@@ -70,7 +70,9 @@ export async function createQuote(formData: QuoteFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, language, revenueType, notes, dueAt } = parsed.data;
+
+  const taxRate = revenueType === "INTERNAL_ONLY" ? 0 : parsed.data.taxRate;
 
   const allLineItems = vehicles.flatMap((v) => v.lineItems);
   const subtotal = allLineItems.reduce((sum, item) => {
@@ -81,7 +83,7 @@ export async function createQuote(formData: QuoteFormData) {
   const total = subtotal.plus(taxAmount);
 
   const quote = await db.$transaction(async (tx) => {
-    const quoteNumber = await allocateNextQuoteNumber(tx, shopId);
+    const quoteNumber = await allocateNextQuoteNumber(tx, shopId, revenueType);
 
     return tx.quote.create({
       data: {
@@ -94,6 +96,7 @@ export async function createQuote(formData: QuoteFormData) {
         taxAmount: taxAmount.toFixed(2),
         total: total.toFixed(2),
         language,
+        revenueType,
         notes: notes || null,
         validUntil: dueAt ? new Date(dueAt) : null,
         vehicles: {
@@ -143,7 +146,12 @@ export async function updateQuote(id: string, formData: QuoteFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, language, notes, dueAt } = parsed.data;
+
+  // Igual que en facturas: el tipo queda fijo desde la creación, su folio ya
+  // se asignó en la serie de ese tipo.
+  const revenueType = existing.revenueType;
+  const taxRate = revenueType === "INTERNAL_ONLY" ? 0 : parsed.data.taxRate;
 
   const allLineItems = vehicles.flatMap((v) => v.lineItems);
   const subtotal = allLineItems.reduce((sum, item) => {
@@ -361,7 +369,7 @@ export async function convertQuoteToInvoice(id: string) {
   }
 
   const invoice = await db.$transaction(async (tx) => {
-    const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId);
+    const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId, quote.revenueType);
 
     const created = await tx.invoice.create({
       data: {
@@ -369,6 +377,7 @@ export async function convertQuoteToInvoice(id: string) {
         clientId: quote.clientId,
         invoiceNumber,
         status: "DRAFT",
+        revenueType: quote.revenueType,
         subtotal: quote.subtotal,
         taxRate: quote.taxRate,
         taxAmount: quote.taxAmount,

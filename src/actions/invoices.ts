@@ -41,7 +41,6 @@ import { formatClientName } from "@/lib/client-name";
 import { INVOICE_PENDING_FILTER, INVOICE_PENDING_STATUSES } from "@/lib/invoice-status";
 import {
   paymentTargetAmount,
-  shouldSuppressTaxesOnPdf,
   sumPaymentEntries,
   type InvoicePaymentMode,
   type PaymentEntryInput,
@@ -134,7 +133,11 @@ export async function createInvoice(formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, revenueType, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, language, revenueType, notes, dueAt } = parsed.data;
+
+  // Efectivo/interno nunca lleva impuestos — se fuerza en el servidor sin
+  // importar lo que haya llegado del formulario (defensa en profundidad).
+  const taxRate = revenueType === "INTERNAL_ONLY" ? 0 : parsed.data.taxRate;
 
   // Calcular totales con Decimal para evitar errores de punto flotante.
   // Problema real: 0.1 + 0.2 = 0.30000000000000004 en JavaScript.
@@ -184,7 +187,7 @@ export async function createInvoice(formData: InvoiceFormData) {
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
       invoice = await db.$transaction(async (tx) => {
-        const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId);
+        const invoiceNumber = await allocateNextInvoiceNumber(tx, shopId, revenueType);
         return tx.invoice.create({
           data: { ...invoiceData, invoiceNumber },
         });
@@ -451,11 +454,7 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
   }
 
   const { paymentMode: mode, entries: validEntries } = parsed.data;
-  const target = paymentTargetAmount(
-    mode,
-    invoice.subtotal.toString(),
-    invoice.total.toString()
-  );
+  const target = paymentTargetAmount(invoice.total.toString());
   const paidSum = validEntries.reduce(
     (s, e) => s.plus(e.amount),
     new Decimal(0)
@@ -533,13 +532,7 @@ export async function markInvoiceAsPaid(id: string, formData: FormData) {
     });
   });
 
-  const pdfInvoice = {
-    ...serializeInvoiceForPdf({
-      ...invoice,
-      paymentMode: mode,
-    }),
-    suppressTaxes: shouldSuppressTaxesOnPdf(mode),
-  };
+  const pdfInvoice = serializeInvoiceForPdf(invoice);
   const invoicePdfBuffer = await generateInvoicePdf(pdfInvoice);
 
   const middleParts = await storagePathsToParts(extraPaths);
@@ -724,7 +717,14 @@ export async function updateInvoice(id: string, formData: InvoiceFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicles, taxRate, language, revenueType, notes, dueAt } = parsed.data;
+  const { clientId, vehicles, language, notes, dueAt } = parsed.data;
+
+  // El tipo (efectivo/interno vs tarjeta/declarado) queda fijo desde la
+  // creación: su folio ya se asignó en la serie de ese tipo, y cambiarlo
+  // aquí rompería la consecutividad de esa serie. Se ignora cualquier valor
+  // distinto que llegue del formulario.
+  const revenueType = existing.revenueType;
+  const taxRate = revenueType === "INTERNAL_ONLY" ? 0 : parsed.data.taxRate;
 
   const allLineItems = vehicles.flatMap((v) => v.lineItems);
   const subtotal = allLineItems.reduce((sum, item) => {

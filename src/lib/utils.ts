@@ -24,13 +24,18 @@ export function formatDate(date: Date | string): string {
   }).format(new Date(date));
 }
 
-// Genera el número formateado de factura: "INV-0042"
+// Genera el número formateado de factura/cotización con un prefijo dado,
+// ej. formatDocumentNumber(42, "INV") => "INV-0042"
+export function formatDocumentNumber(sequence: number, prefix: string): string {
+  return `${prefix}-${String(sequence).padStart(4, "0")}`;
+}
+
 export function formatInvoiceNumber(sequence: number): string {
-  return `INV-${String(sequence).padStart(4, "0")}`;
+  return formatDocumentNumber(sequence, "INV");
 }
 
 export function formatQuoteNumber(sequence: number): string {
-  return `COT-${String(sequence).padStart(4, "0")}`;
+  return formatDocumentNumber(sequence, "COT");
 }
 
 // Calcula totales de factura

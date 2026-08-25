@@ -18,7 +18,6 @@ import { Loader2, X, CreditCard, Banknote, Split, Trash2 } from "lucide-react";
 interface InvoiceMarkPaidDialogProps {
   invoiceId: string;
   invoiceNumber: string;
-  subtotal: number;
   total: number;
   revenueType?: "OFFICIAL" | "INTERNAL_ONLY";
   disabled?: boolean;
@@ -41,19 +40,19 @@ const MODES: {
   {
     value: "CARD",
     label: "Tarjeta",
-    hint: "Con impuestos · comprobante de terminal opcional por cada cobro",
+    hint: "Comprobante de terminal opcional por cada cobro",
     icon: CreditCard,
   },
   {
     value: "CASH",
     label: "Efectivo",
-    hint: "Sin impuestos en la factura · cuenta en ingresos del negocio",
+    hint: "Cuenta en ingresos de caja del negocio",
     icon: Banknote,
   },
   {
     value: "MIXED",
     label: "Ambos",
-    hint: "El total a cubrir incluye impuestos",
+    hint: "Parte en tarjeta, parte en efectivo",
     icon: Split,
   },
 ];
@@ -61,7 +60,6 @@ const MODES: {
 export function InvoiceMarkPaidDialog({
   invoiceId,
   invoiceNumber,
-  subtotal,
   total,
   revenueType = "OFFICIAL",
   disabled,
@@ -69,17 +67,14 @@ export function InvoiceMarkPaidDialog({
   const isInternalOnly = revenueType === "INTERNAL_ONLY";
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<InvoicePaymentMode>("CARD");
+  const [mode, setMode] = useState<InvoicePaymentMode>(isInternalOnly ? "CASH" : "CARD");
   const [entries, setEntries] = useState<LocalEntry[]>([]);
   const [draftMethod, setDraftMethod] = useState<"CARD" | "CASH">("CARD");
   const [draftAmount, setDraftAmount] = useState("");
   const [extraFiles, setExtraFiles] = useState<File[]>([]);
   const [pending, startTransition] = useTransition();
 
-  const target = useMemo(
-    () => paymentTargetAmount(mode, subtotal, total),
-    [mode, subtotal, total]
-  );
+  const target = useMemo(() => paymentTargetAmount(total), [total]);
 
   const paidSoFar = useMemo(
     () => entries.reduce((s, e) => s.plus(e.amount), new Decimal(0)),

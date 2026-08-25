@@ -9,20 +9,19 @@ export type PaymentEntryInput = {
   receiptPath?: string;
 };
 
-/** Monto objetivo según modo de pago. */
-export function paymentTargetAmount(
-  mode: InvoicePaymentMode,
-  subtotal: string | number,
-  total: string | number
-): Decimal {
-  if (mode === "CASH") {
-    return new Decimal(subtotal);
-  }
+// El monto a cobrar siempre es el total de la factura: si es efectivo/interno,
+// su total ya nació sin impuestos (revenueType decidido al crearla); si es
+// tarjeta/declarada, el total ya incluye impuestos. El modo de pago elegido
+// al cobrar (CARD/CASH/MIXED) es solo cómo se recibió el dinero, no cambia
+// cuánto se debe cobrar.
+export function paymentTargetAmount(total: string | number): Decimal {
   return new Decimal(total);
 }
 
-export function shouldSuppressTaxesOnPdf(mode: InvoicePaymentMode): boolean {
-  return mode === "CASH";
+export function shouldSuppressTaxesOnPdf(
+  revenueType: "OFFICIAL" | "INTERNAL_ONLY" | string | null | undefined
+): boolean {
+  return revenueType === "INTERNAL_ONLY";
 }
 
 /** Suma de montos registrados para ingresos / analytics. */

@@ -5,15 +5,15 @@ export type RevenueType = "OFFICIAL" | "INTERNAL_ONLY";
 export const REVENUE_TYPE_OPTIONS = [
   {
     value: "OFFICIAL" as const,
-    label: "Ingreso oficial",
+    label: "Tarjeta · Declarado",
     helper:
-      "Incluido en exportaciones para contabilidad y reportes oficiales.",
+      "Impuestos aplicados automáticamente. Folio de su propia serie consecutiva y se exporta a contabilidad al pagarse.",
   },
   {
     value: "INTERNAL_ONLY" as const,
-    label: "Solo interno",
+    label: "Efectivo · Interno",
     helper:
-      "Visible en el panel del dueño y seguimiento de caja; no se exporta automáticamente a contabilidad.",
+      "Sin impuestos. Folio de una serie separada, solo para seguimiento del dueño y caja — no se exporta a contabilidad.",
   },
 ] as const;
 
