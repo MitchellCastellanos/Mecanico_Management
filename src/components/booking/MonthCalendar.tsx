@@ -78,8 +78,8 @@ export function MonthCalendar({
   }, [viewDate]);
 
   return (
-    <div className="max-w-sm mx-auto">
-      <div className="flex items-center justify-between mb-3">
+    <div className="max-w-[320px] mx-auto">
+      <div className="flex items-center justify-between mb-2">
         <button
           type="button"
           onClick={() => canGoPrev && setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}
@@ -103,7 +103,7 @@ export function MonthCalendar({
 
       <div className="grid grid-cols-7 gap-1 text-center">
         {weekdayLabels.map((w) => (
-          <div key={w} className="text-[11px] font-medium text-slate-400 uppercase py-1">
+          <div key={w} className="text-[10px] font-medium text-slate-400 uppercase py-0.5">
             {w}
           </div>
         ))}

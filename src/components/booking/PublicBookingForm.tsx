@@ -214,7 +214,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
         <h3 className={stepHeadingClass}>1. {t.form.stepPickDay}</h3>
         <MonthCalendar
@@ -229,7 +229,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       </div>
 
       {selectedDate && (
-        <div ref={timeStepRef} className="border-t border-slate-100 pt-6 scroll-mt-24">
+        <div ref={timeStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
           <h3 className={stepHeadingClass}>2. {t.form.stepPickTime}</h3>
           <p className="text-sm font-medium text-slate-700 mb-3 text-center capitalize">
             {formatDateLabel(selectedDate, t.intlLocale)}
@@ -264,7 +264,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {selectedTime && (
-        <div ref={vehicleStepRef} className="border-t border-slate-100 pt-6 space-y-4 scroll-mt-24">
+        <div ref={vehicleStepRef} className="border-t border-slate-100 pt-5 space-y-4 scroll-mt-24">
           <h3 className={stepHeadingClass}>3. {t.form.stepVehicle}</h3>
 
           <div>
@@ -364,7 +364,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {resolvedModel && (
-        <div ref={serviceStepRef} className="border-t border-slate-100 pt-6 scroll-mt-24">
+        <div ref={serviceStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
           <h3 className={stepHeadingClass}>4. {t.form.serviceRequested}</h3>
           <select
             value={serviceValue}
@@ -393,7 +393,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {resolvedTitle && (
-        <div ref={infoStepRef} className="border-t border-slate-100 pt-6 space-y-4 scroll-mt-24">
+        <div ref={infoStepRef} className="border-t border-slate-100 pt-5 space-y-4 scroll-mt-24">
           <h3 className={stepHeadingClass}>5. {t.form.stepYourInfo}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -463,4 +463,4 @@ function formatDateLabel(isoDate: string, intlLocale: string): string {
 const inputClass =
   "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent";
 
-const stepHeadingClass = "font-display font-bold uppercase text-sm tracking-wide text-slate-900 mb-4";
+const stepHeadingClass = "font-display font-bold uppercase text-sm tracking-wide text-slate-900 mb-2";
