@@ -1,21 +1,25 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   fixOnlineBookingAvailability,
   updateAppointmentBookingSettings,
   updateMechanicBookable,
+  updateMechanicWorkingHours,
+  resetMechanicWorkingHours,
   updateShopWorkingHours,
 } from "@/actions/booking-settings";
 import type { WorkingHoursRow } from "@/lib/working-hours";
-import { Copy, ExternalLink, Loader2, Wrench } from "lucide-react";
+import { Calendar, ChevronDown, Copy, ExternalLink, Loader2, Wrench } from "lucide-react";
 
 interface MechanicRow {
   id: string;
   name: string;
   role: string;
   bookable: boolean;
+  usesShopHours: boolean;
+  workingHours: WorkingHoursRow[];
 }
 
 interface AppointmentBookingSettingsProps {
@@ -303,27 +307,31 @@ export function AppointmentBookingSettings({
         ) : (
           <div className="divide-y divide-slate-100 border border-slate-100 rounded-lg">
             {mechanics.map((m) => (
-              <label
-                key={m.id}
-                className="flex items-center justify-between gap-4 p-4 cursor-pointer hover:bg-slate-50"
-              >
-                <div>
-                  <p className="font-medium text-slate-900">{m.name}</p>
-                  <p className="text-xs text-slate-500">
-                    {m.role === "OWNER" ? "Dueño" : "Mecánico"}
-                  </p>
+              <div key={m.id}>
+                <div className="flex items-center justify-between gap-4 p-4 hover:bg-slate-50">
+                  <label className="flex items-center gap-4 flex-1 cursor-pointer">
+                    <div>
+                      <p className="font-medium text-slate-900">{m.name}</p>
+                      <p className="text-xs text-slate-500">
+                        {m.role === "OWNER" ? "Dueño" : "Mecánico"}
+                        {m.usesShopHours ? " · sigue el horario del taller" : " · horario propio"}
+                      </p>
+                    </div>
+                  </label>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <MechanicScheduleToggle mechanicId={m.id} />
+                    <span className="text-xs text-slate-500">Recibe citas web</span>
+                    <input
+                      type="checkbox"
+                      defaultChecked={m.bookable}
+                      disabled={mechanicPending}
+                      onChange={(e) => toggleMechanicBookable(m.id, e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-teal-600"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500">Recibe citas web</span>
-                  <input
-                    type="checkbox"
-                    defaultChecked={m.bookable}
-                    disabled={mechanicPending}
-                    onChange={(e) => toggleMechanicBookable(m.id, e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-300 text-teal-600"
-                  />
-                </div>
-              </label>
+                <MechanicSchedulePanel mechanic={m} />
+              </div>
             ))}
           </div>
         )}
@@ -350,6 +358,114 @@ export function AppointmentBookingSettings({
         </button>
       </div>
     </div>
+  );
+}
+
+/**
+ * El botón vive fuera del panel para no depender de un context: usa el mismo id de
+ * elemento <details> renderizado por MechanicSchedulePanel para expandir/contraer.
+ */
+function MechanicScheduleToggle({ mechanicId }: { mechanicId: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        const el = document.getElementById(`mechanic-schedule-${mechanicId}`);
+        el?.toggleAttribute("open");
+      }}
+      className="flex items-center gap-1 text-xs font-medium text-slate-600 hover:text-teal-700 px-2 py-1.5 rounded-lg hover:bg-teal-50"
+      title="Horario del mecánico"
+    >
+      <Calendar className="w-3.5 h-3.5" />
+      Horario
+      <ChevronDown className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
+function MechanicSchedulePanel({ mechanic }: { mechanic: MechanicRow }) {
+  const [custom, setCustom] = useState(!mechanic.usesShopHours);
+  const [pending, startTransition] = useTransition();
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    startTransition(async () => {
+      if (!custom) {
+        const result = await resetMechanicWorkingHours(mechanic.id);
+        if (result?.success) toast.success(`${mechanic.name} sigue el horario del taller`);
+        else toast.error(result?.error ?? "Error al guardar");
+        return;
+      }
+
+      const formData = new FormData(e.currentTarget);
+      formData.set("userId", mechanic.id);
+      const result = await updateMechanicWorkingHours(formData);
+      if (result?.success) toast.success(`Horario de ${mechanic.name} guardado`);
+      else if (result?.error) {
+        const msg = Object.values(result.error).flat()[0];
+        toast.error(typeof msg === "string" ? msg : "Error al guardar");
+      }
+    });
+  }
+
+  return (
+    <details id={`mechanic-schedule-${mechanic.id}`} className="group">
+      <summary className="hidden" />
+      <form onSubmit={handleSubmit} className="px-4 pb-4 space-y-3 bg-slate-50/70 border-t border-slate-100">
+        <label className="flex items-center gap-2 text-sm text-slate-700 pt-3">
+          <input
+            type="checkbox"
+            checked={custom}
+            onChange={(e) => setCustom(e.target.checked)}
+            className="rounded border-slate-300 text-teal-600"
+          />
+          Horario propio (si no, sigue el horario del taller)
+        </label>
+
+        {custom && (
+          <div className="divide-y divide-slate-100 border border-slate-200 rounded-lg overflow-hidden bg-white">
+            {mechanic.workingHours.map((row) => (
+              <div key={row.dayOfWeek} className="flex flex-wrap items-center gap-3 p-2.5">
+                <span className="w-24 text-sm font-medium text-slate-800">{row.dayLabel}</span>
+                <label className="flex items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    name={`closed_${row.dayOfWeek}`}
+                    defaultChecked={row.isClosed}
+                    className="rounded border-slate-300"
+                  />
+                  No trabaja
+                </label>
+                <input
+                  type="time"
+                  name={`open_${row.dayOfWeek}`}
+                  defaultValue={row.openTime}
+                  className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm"
+                />
+                <span className="text-slate-400">—</span>
+                <input
+                  type="time"
+                  name={`close_${row.dayOfWeek}`}
+                  defaultValue={row.closeTime}
+                  className="px-2 py-1.5 border border-slate-200 rounded-lg text-sm"
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={pending}
+            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-sm font-medium px-4 py-2 rounded-lg"
+          >
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+            Guardar horario de {mechanic.name}
+          </button>
+        </div>
+      </form>
+    </details>
   );
 }
 

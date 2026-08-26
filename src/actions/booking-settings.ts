@@ -46,6 +46,32 @@ export async function getAppointmentBookingSettings() {
     }));
   }
 
+  const mechanicHoursRows = await db.mechanicWorkingHours.findMany({
+    where: { userId: { in: mechanics.map((m) => m.id) } },
+    orderBy: { dayOfWeek: "asc" },
+  });
+
+  const mechanicsWithHours = mechanics.map((mechanic) => {
+    const rows = mechanicHoursRows.filter((r) => r.userId === mechanic.id);
+    const usesShopHours = rows.length === 0;
+    const hours: WorkingHoursRow[] = usesShopHours
+      ? workingHours
+      : workingHours.map((shopRow) => {
+          const row = rows.find((r) => r.dayOfWeek === shopRow.dayOfWeek);
+          return row
+            ? {
+                dayOfWeek: row.dayOfWeek,
+                dayLabel: DAY_LABELS[row.dayOfWeek],
+                openTime: row.openTime,
+                closeTime: row.closeTime,
+                isClosed: row.isClosed,
+              }
+            : { ...shopRow, isClosed: true };
+        });
+
+    return { ...mechanic, usesShopHours, workingHours: hours };
+  });
+
   const slug = shop.slug ?? BRAND.bookingSlug;
 
   return {
@@ -60,7 +86,7 @@ export async function getAppointmentBookingSettings() {
       bookingUrl: shop.slug ? getPublicBookingUrl(shop.slug) : null,
     },
     workingHours,
-    mechanics,
+    mechanics: mechanicsWithHours,
   };
 }
 
@@ -212,4 +238,69 @@ export async function fixOnlineBookingAvailability() {
 
   revalidatePath(ADMIN.settings);
   return { success: true, advanceDaysUpdated, madeBookable, appointmentsAssigned };
+}
+
+// ── DISPONIBILIDAD POR MECÁNICO ────────────────────────────────
+
+async function findShopMechanic(userId: string, shopId: string) {
+  return db.user.findFirst({
+    where: { id: userId, shopId, role: { in: ["MECHANIC", "OWNER"] } },
+  });
+}
+
+export async function updateMechanicWorkingHours(formData: FormData) {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+
+  const userId = formData.get("userId") as string;
+  if (!userId) return { error: { _form: ["Mecánico no especificado"] } };
+
+  const mechanic = await findShopMechanic(userId, shopId);
+  if (!mechanic) return { error: { _form: ["Mecánico no encontrado"] } };
+
+  const rows: {
+    dayOfWeek: number;
+    openTime: string;
+    closeTime: string;
+    isClosed: boolean;
+  }[] = [];
+
+  for (let day = 0; day <= 6; day++) {
+    const isClosed = formData.get(`closed_${day}`) === "on";
+    const openTime = (formData.get(`open_${day}`) as string) || "08:00";
+    const closeTime = (formData.get(`close_${day}`) as string) || "17:00";
+
+    if (!timeRegex.test(openTime) || !timeRegex.test(closeTime)) {
+      return { error: { _form: [`Horario inválido para ${DAY_LABELS[day]}`] } };
+    }
+
+    rows.push({ dayOfWeek: day, openTime, closeTime, isClosed });
+  }
+
+  await db.$transaction([
+    db.mechanicWorkingHours.deleteMany({ where: { userId } }),
+    db.mechanicWorkingHours.createMany({
+      data: rows.map((row) => ({
+        id: crypto.randomUUID(),
+        userId,
+        ...row,
+      })),
+    }),
+  ]);
+
+  revalidatePath(ADMIN.settings);
+  return { success: true };
+}
+
+/** El mecánico vuelve a seguir el horario general del taller (borra su horario propio). */
+export async function resetMechanicWorkingHours(userId: string) {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+
+  const mechanic = await findShopMechanic(userId, shopId);
+  if (!mechanic) return { error: "Mecánico no encontrado" };
+
+  await db.mechanicWorkingHours.deleteMany({ where: { userId } });
+  revalidatePath(ADMIN.settings);
+  return { success: true };
 }

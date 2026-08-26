@@ -64,6 +64,61 @@ export async function getBookableMechanics(shopId: string) {
   });
 }
 
+interface MechanicDayWindow {
+  /** true = el mecánico no trabaja ese día (no genera slots para él). */
+  closed: boolean;
+  openMin: number;
+  closeMin: number;
+}
+
+/**
+ * Ventana de trabajo de cada mecánico para un día dado, acotada al horario del taller.
+ * Un mecánico sin filas propias en MechanicWorkingHours sigue el horario del taller.
+ */
+async function getMechanicDayWindows(
+  mechanicIds: string[],
+  dayOfWeek: number,
+  shopOpenMin: number,
+  shopCloseMin: number
+): Promise<Map<string, MechanicDayWindow>> {
+  const windows = new Map<string, MechanicDayWindow>();
+  if (mechanicIds.length === 0) return windows;
+
+  const rows = await db.mechanicWorkingHours.findMany({
+    where: { userId: { in: mechanicIds } },
+    select: { userId: true, dayOfWeek: true, openTime: true, closeTime: true, isClosed: true },
+  });
+
+  const rowsByUser = new Map<string, typeof rows>();
+  for (const row of rows) {
+    const list = rowsByUser.get(row.userId) ?? [];
+    list.push(row);
+    rowsByUser.set(row.userId, list);
+  }
+
+  for (const mechanicId of mechanicIds) {
+    const userRows = rowsByUser.get(mechanicId);
+    if (!userRows || userRows.length === 0) {
+      windows.set(mechanicId, { closed: false, openMin: shopOpenMin, closeMin: shopCloseMin });
+      continue;
+    }
+
+    const todayRow = userRows.find((r) => r.dayOfWeek === dayOfWeek);
+    if (!todayRow || todayRow.isClosed) {
+      windows.set(mechanicId, { closed: true, openMin: 0, closeMin: 0 });
+      continue;
+    }
+
+    windows.set(mechanicId, {
+      closed: false,
+      openMin: Math.max(shopOpenMin, parseMinutes(todayRow.openTime)),
+      closeMin: Math.min(shopCloseMin, parseMinutes(todayRow.closeTime)),
+    });
+  }
+
+  return windows;
+}
+
 export async function getAvailableSlots(
   shop: {
     id: string;
@@ -126,6 +181,13 @@ export async function getAvailableSlots(
   const gridStep = shop.bookingSlotMinutes;
   const slots: AvailableSlot[] = [];
 
+  const mechanicWindows = await getMechanicDayWindows(
+    filteredMechanics.map((m) => m.id),
+    dayOfWeek,
+    openMin,
+    closeMin
+  );
+
   for (let minute = openMin; minute + slotDuration <= closeMin; minute += gridStep) {
     const time = minutesToTime(minute);
     const startsAt = parseShopDateTime(dateStr, time, shop.timezone);
@@ -134,6 +196,10 @@ export async function getAvailableSlots(
     if (startsAt < minStart) continue;
 
     for (const mechanic of filteredMechanics) {
+      const window = mechanicWindows.get(mechanic.id);
+      if (!window || window.closed) continue;
+      if (minute < window.openMin || minute + slotDuration > window.closeMin) continue;
+
       const busy = existing.some(
         (apt) =>
           apt.mechanicId === mechanic.id &&

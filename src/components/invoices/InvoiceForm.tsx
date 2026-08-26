@@ -13,7 +13,7 @@
 
 import { useForm, useFieldArray, useWatch, Controller, type Control, type UseFormRegister, type UseFormSetValue, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTransition, useMemo } from "react";
+import { useTransition, useMemo, useEffect, useRef } from "react";
 import { invoiceSchema, type InvoiceFormData } from "@/lib/validations";
 import { formatClientName } from "@/lib/client-name";
 import {
@@ -26,6 +26,7 @@ import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { REVENUE_TYPE_OPTIONS } from "@/lib/revenue-analytics";
 import { Plus, Trash2 } from "lucide-react";
 import { LineItemDescriptionInput } from "@/components/invoices/LineItemDescriptionInput";
+import { ClientCombobox } from "@/components/invoices/ClientCombobox";
 import Decimal from "decimal.js";
 
 // Tipos de los datos que necesita el form (vienen del servidor)
@@ -41,6 +42,8 @@ interface Client {
   id: string;
   firstName: string;
   lastName?: string | null;
+  phone?: string | null;
+  email?: string | null;
   vehicles: VehicleOption[];
 }
 
@@ -120,6 +123,35 @@ export function InvoiceForm({
   const taxRate = watch("taxRate");
   const selectedRevenueType = watch("revenueType");
 
+  // Efectivo/interno nunca lleva impuestos: al elegir ese tipo forzamos la
+  // tasa a 0 (el servidor la vuelve a forzar de todos modos). Al volver a
+  // tarjeta/declarado, restauramos la tasa por defecto si quedó en 0.
+  // El tipo ya no puede cambiarse una vez creada la factura (ver más abajo),
+  // así que este efecto solo importa durante la creación.
+  const isFirstRevenueTypeRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRevenueTypeRender.current) {
+      isFirstRevenueTypeRender.current = false;
+      return;
+    }
+    if (selectedRevenueType === "INTERNAL_ONLY") {
+      setValue("taxRate", 0);
+    } else if (taxRate === 0) {
+      setValue("taxRate", TAX_RATE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRevenueType]);
+
+  // Clientes ordenados alfabéticamente por nombre mostrado (el orden del
+  // servidor puede dejar clientes sin apellido -empresas- desordenados)
+  const sortedClients = useMemo(
+    () =>
+      [...clients].sort((a, b) =>
+        formatClientName(a).localeCompare(formatClientName(b), "es", { sensitivity: "base" })
+      ),
+    [clients]
+  );
+
   // Vehículos disponibles del cliente seleccionado
   const selectedClient = clients.find((c) => c.id === selectedClientId);
   const clientVehicles = selectedClient?.vehicles ?? [];
@@ -174,17 +206,18 @@ export function InvoiceForm({
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
               Cliente *
             </label>
-            <select
-              {...register("clientId")}
-              className={selectClass(!!errors.clientId)}
-            >
-              <option value="">Seleccionar cliente...</option>
-              {clients.map((client) => (
-                <option key={client.id} value={client.id}>
-                  {formatClientName(client)}
-                </option>
-              ))}
-            </select>
+            <Controller
+              control={control}
+              name="clientId"
+              render={({ field }) => (
+                <ClientCombobox
+                  clients={sortedClients}
+                  value={field.value}
+                  onChange={field.onChange}
+                  hasError={!!errors.clientId}
+                />
+              )}
+            />
             {errors.clientId && (
               <p className="text-red-600 text-xs mt-1">{errors.clientId.message}</p>
             )}
@@ -214,27 +247,27 @@ export function InvoiceForm({
           </div>
         </div>
 
-        {!isQuote && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-              Visibilidad contable
-            </label>
-            <select
-              {...register("revenueType")}
-              className={selectClass(!!errors.revenueType)}
-            >
-              {REVENUE_TYPE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-slate-500 mt-1.5">
-              {REVENUE_TYPE_OPTIONS.find((o) => o.value === selectedRevenueType)?.helper ??
-                "El ingreso oficial se incluye en exportaciones para contabilidad. Solo interno se usa para seguimiento del dueño y no se exporta automáticamente."}
-            </p>
-          </div>
-        )}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Tipo de {isQuote ? "cotización" : "factura"} *
+          </label>
+          <select
+            {...register("revenueType")}
+            disabled={mode === "edit"}
+            className={selectClass(!!errors.revenueType)}
+          >
+            {REVENUE_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-500 mt-1.5">
+            {mode === "edit"
+              ? "No se puede cambiar después de creada: ya tiene folio asignado en la serie de este tipo."
+              : REVENUE_TYPE_OPTIONS.find((o) => o.value === selectedRevenueType)?.helper}
+          </p>
+        </div>
       </div>
 
       {/* ── Vehículos (uno o varios) ── */}
@@ -304,7 +337,7 @@ export function InvoiceForm({
         <div className="bg-white rounded-xl border border-slate-200 p-5">
           <h2 className="font-semibold text-slate-900 mb-4">Resumen</h2>
 
-          {/* Tasa de impuesto (editable) */}
+          {/* Tasa de impuesto (editable solo para tarjeta/declarado) */}
           <div className="flex items-center justify-between text-sm mb-4">
             <label className="text-slate-600">
               Tasa de impuestos (TPS+TVQ)
@@ -316,7 +349,8 @@ export function InvoiceForm({
                 min={0}
                 max={1}
                 step="0.00001"
-                className="w-24 text-right border border-slate-300 rounded px-2 py-1 text-sm"
+                disabled={selectedRevenueType === "INTERNAL_ONLY"}
+                className="w-24 text-right border border-slate-300 rounded px-2 py-1 text-sm disabled:bg-slate-100 disabled:text-slate-400"
               />
               <span className="text-slate-500 text-sm">({combinedPct}%)</span>
             </div>
