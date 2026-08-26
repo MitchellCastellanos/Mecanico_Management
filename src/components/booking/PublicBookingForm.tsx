@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
 import { OTHER_VALUE, VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from "@/lib/vehicle-catalog";
@@ -60,6 +60,44 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     setModel("");
     setModelOther("");
   }
+
+  // Cada vez que un paso nuevo se revela, lo lleva a la vista — el usuario no
+  // debería tener que hacer scroll a mano para encontrar el siguiente campo.
+  const timeStepRef = useRef<HTMLDivElement>(null);
+  const vehicleStepRef = useRef<HTMLDivElement>(null);
+  const makeFieldRef = useRef<HTMLDivElement>(null);
+  const modelFieldRef = useRef<HTMLDivElement>(null);
+  const serviceStepRef = useRef<HTMLDivElement>(null);
+  const infoStepRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (selectedDate) timeStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedDate]);
+
+  useEffect(() => {
+    if (selectedTime) vehicleStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selectedTime]);
+
+  useEffect(() => {
+    if (year) makeFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [year]);
+
+  useEffect(() => {
+    if (make) modelFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [make]);
+
+  // resolvedModel/resolvedTitle cambian con cada tecla cuando el campo es de texto
+  // libre ("Otro") — se usa el booleano para no reencuadrar en cada letra escrita.
+  const hasVehicle = Boolean(resolvedModel);
+  const hasService = Boolean(resolvedTitle);
+
+  useEffect(() => {
+    if (hasVehicle) serviceStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hasVehicle]);
+
+  useEffect(() => {
+    if (hasService) infoStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hasService]);
 
   useEffect(() => {
     fetch(`/api/book/${slug}/slots`)
@@ -191,7 +229,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       </div>
 
       {selectedDate && (
-        <div className="border-t border-slate-100 pt-6">
+        <div ref={timeStepRef} className="border-t border-slate-100 pt-6 scroll-mt-24">
           <h3 className={stepHeadingClass}>2. {t.form.stepPickTime}</h3>
           <p className="text-sm font-medium text-slate-700 mb-3 text-center capitalize">
             {formatDateLabel(selectedDate, t.intlLocale)}
@@ -226,7 +264,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {selectedTime && (
-        <div className="border-t border-slate-100 pt-6 space-y-4">
+        <div ref={vehicleStepRef} className="border-t border-slate-100 pt-6 space-y-4 scroll-mt-24">
           <h3 className={stepHeadingClass}>3. {t.form.stepVehicle}</h3>
 
           <div>
@@ -249,7 +287,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           </div>
 
           {year && (
-            <div>
+            <div ref={makeFieldRef} className="scroll-mt-24">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {t.form.make}
               </label>
@@ -281,7 +319,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           )}
 
           {make && (
-            <div>
+            <div ref={modelFieldRef} className="scroll-mt-24">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {t.form.model}
               </label>
@@ -326,7 +364,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {resolvedModel && (
-        <div className="border-t border-slate-100 pt-6">
+        <div ref={serviceStepRef} className="border-t border-slate-100 pt-6 scroll-mt-24">
           <h3 className={stepHeadingClass}>4. {t.form.serviceRequested}</h3>
           <select
             value={serviceValue}
@@ -355,7 +393,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       )}
 
       {resolvedTitle && (
-        <div className="border-t border-slate-100 pt-6 space-y-4">
+        <div ref={infoStepRef} className="border-t border-slate-100 pt-6 space-y-4 scroll-mt-24">
           <h3 className={stepHeadingClass}>5. {t.form.stepYourInfo}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
