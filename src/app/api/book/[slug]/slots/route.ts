@@ -21,9 +21,9 @@ export async function GET(
     return NextResponse.json({ slots });
   }
 
-  // Tope de 60 días aunque el taller configure una ventana más larga —
-  // evita disparar cientos de consultas de disponibilidad en un solo request.
-  const windowDays = Math.min(shop.bookingAdvanceDays, 60);
+  // Tope de 90 días (3 meses) — coincide con el máximo que ya permite
+  // Configuración → bookingAdvanceDays (ver booking-settings.ts).
+  const windowDays = Math.min(shop.bookingAdvanceDays, 90);
   const availableDates = await getBookableDates(shop, windowDays);
 
   return NextResponse.json({

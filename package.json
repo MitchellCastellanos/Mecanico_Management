@@ -14,7 +14,8 @@
     "db:seed": "ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed.ts",
     "db:studio": "prisma studio",
     "db:bootstrap": "tsx scripts/bootstrap-platform.ts",
-    "db:fix-appointment-times": "tsx scripts/fix-appointment-timezones.ts"
+    "db:fix-appointment-times": "tsx scripts/fix-appointment-timezones.ts",
+    "db:assign-carlos-mechanic": "tsx scripts/assign-carlos-mechanic.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.1",
