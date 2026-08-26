@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
 import { OTHER_VALUE, VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from "@/lib/vehicle-catalog";
+import { resolveServiceDuration } from "@/lib/service-catalog";
 import { MonthCalendar } from "@/components/booking/MonthCalendar";
 
 interface ShopInfo {
@@ -35,6 +36,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [loadingDates, setLoadingDates] = useState(false);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -54,6 +56,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     serviceValue === OTHER_VALUE
       ? serviceOther.trim()
       : (t.form.serviceOptions.find((o) => o.value === serviceValue)?.label ?? "");
+  const durationMinutes = resolveServiceDuration(serviceValue, shop.bookingSlotMinutes);
 
   function handleMakeChange(value: string) {
     setMake(value);
@@ -61,14 +64,24 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     setModelOther("");
   }
 
+  // resolvedTitle/resolvedModel cambian con cada tecla cuando el campo es de
+  // texto libre ("Otro") — se usa el booleano para no reencuadrar/refetchear
+  // en cada letra escrita.
+  const hasService = Boolean(resolvedTitle);
+  const hasVehicle = Boolean(resolvedModel);
+
   // Cada vez que un paso nuevo se revela, lo lleva a la vista — el usuario no
   // debería tener que hacer scroll a mano para encontrar el siguiente campo.
+  const dayStepRef = useRef<HTMLDivElement>(null);
   const timeStepRef = useRef<HTMLDivElement>(null);
   const vehicleStepRef = useRef<HTMLDivElement>(null);
   const makeFieldRef = useRef<HTMLDivElement>(null);
   const modelFieldRef = useRef<HTMLDivElement>(null);
-  const serviceStepRef = useRef<HTMLDivElement>(null);
   const infoStepRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (hasService) dayStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [hasService]);
 
   useEffect(() => {
     if (selectedDate) timeStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -86,21 +99,19 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     if (make) modelFieldRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [make]);
 
-  // resolvedModel/resolvedTitle cambian con cada tecla cuando el campo es de texto
-  // libre ("Otro") — se usa el booleano para no reencuadrar en cada letra escrita.
-  const hasVehicle = Boolean(resolvedModel);
-  const hasService = Boolean(resolvedTitle);
-
   useEffect(() => {
-    if (hasVehicle) serviceStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (hasVehicle) infoStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [hasVehicle]);
 
+  // El servicio elegido define la duración real de la cita, así que el
+  // calendario de días solo se carga (y se vuelve a cargar si cambian de
+  // servicio) una vez que hay un servicio resuelto.
   useEffect(() => {
-    if (hasService) infoStepRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }, [hasService]);
-
-  useEffect(() => {
-    fetch(`/api/book/${slug}/slots`)
+    if (!hasService) return;
+    setSelectedDate("");
+    setSelectedTime("");
+    setLoadingDates(true);
+    fetch(`/api/book/${slug}/slots?service=${encodeURIComponent(serviceValue)}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.dates) {
@@ -108,27 +119,27 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           setAvailableDates(new Set(data.availableDates ?? data.dates));
         }
       })
-      .catch(() => setError(t.form.couldNotLoadAvailability));
-  }, [slug, t.form.couldNotLoadAvailability]);
+      .catch(() => setError(t.form.couldNotLoadAvailability))
+      .finally(() => setLoadingDates(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, hasService, serviceValue]);
 
-  const loadSlots = useCallback(async () => {
-    if (!selectedDate) return;
+  function loadSlotsFor(dateStr: string) {
     setLoadingSlots(true);
-    setSelectedTime("");
-    try {
-      const res = await fetch(`/api/book/${slug}/slots?date=${selectedDate}`);
-      const data = await res.json();
-      setSlots(data.slots ?? []);
-    } catch {
-      setSlots([]);
-    } finally {
-      setLoadingSlots(false);
-    }
-  }, [slug, selectedDate]);
+    const params = new URLSearchParams({ date: dateStr, service: serviceValue });
+    fetch(`/api/book/${slug}/slots?${params}`)
+      .then((r) => r.json())
+      .then((data) => setSlots(data.slots ?? []))
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false));
+  }
 
   useEffect(() => {
-    loadSlots();
-  }, [loadSlots]);
+    if (!selectedDate) return;
+    setSelectedTime("");
+    loadSlotsFor(selectedDate);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, selectedDate, serviceValue]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -151,6 +162,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       year,
       licensePlate: formData.get("licensePlate"),
       title: resolvedTitle,
+      serviceValue,
       date: selectedDate,
       time: selectedTime,
       notes: formData.get("notes"),
@@ -171,7 +183,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           data.error?.email?.[0] ??
           (typeof data.error === "string" ? data.error : t.form.couldNotBook);
         setError(msg);
-        if (res.status === 409) loadSlots();
+        if (res.status === 409 && selectedDate) loadSlotsFor(selectedDate);
         return;
       }
 
@@ -216,21 +228,57 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <h3 className={stepHeadingClass}>1. {t.form.stepPickDay}</h3>
-        <MonthCalendar
-          dates={dates}
-          availableDates={availableDates}
-          selectedDate={selectedDate}
-          onSelect={setSelectedDate}
-          intlLocale={t.intlLocale}
-          prevMonthLabel={t.form.previousMonth}
-          nextMonthLabel={t.form.nextMonth}
-        />
+        <h3 className={stepHeadingClass}>1. {t.form.serviceRequested}</h3>
+        <select
+          value={serviceValue}
+          onChange={(e) => setServiceValue(e.target.value)}
+          required
+          className={inputClass}
+        >
+          <option value="" disabled>
+            {t.form.selectPlaceholder}
+          </option>
+          {t.form.serviceOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {serviceValue === OTHER_VALUE && (
+          <input
+            value={serviceOther}
+            onChange={(e) => setServiceOther(e.target.value)}
+            placeholder={t.form.specify}
+            className={`${inputClass} mt-2`}
+          />
+        )}
       </div>
+
+      {hasService && (
+        <div ref={dayStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
+          <h3 className={stepHeadingClass}>2. {t.form.stepPickDay}</h3>
+          {loadingDates ? (
+            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm py-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {t.form.loadingAvailability}
+            </div>
+          ) : (
+            <MonthCalendar
+              dates={dates}
+              availableDates={availableDates}
+              selectedDate={selectedDate}
+              onSelect={setSelectedDate}
+              intlLocale={t.intlLocale}
+              prevMonthLabel={t.form.previousMonth}
+              nextMonthLabel={t.form.nextMonth}
+            />
+          )}
+        </div>
+      )}
 
       {selectedDate && (
         <div ref={timeStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
-          <h3 className={stepHeadingClass}>2. {t.form.stepPickTime}</h3>
+          <h3 className={stepHeadingClass}>3. {t.form.stepPickTime}</h3>
           <p className="text-sm font-medium text-slate-700 mb-3 text-center capitalize">
             {formatDateLabel(selectedDate, t.intlLocale)}
           </p>
@@ -265,7 +313,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
 
       {selectedTime && (
         <div ref={vehicleStepRef} className="border-t border-slate-100 pt-5 space-y-4 scroll-mt-24">
-          <h3 className={stepHeadingClass}>3. {t.form.stepVehicle}</h3>
+          <h3 className={stepHeadingClass}>4. {t.form.stepVehicle}</h3>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.year}</label>
@@ -363,36 +411,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         </div>
       )}
 
-      {resolvedModel && (
-        <div ref={serviceStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
-          <h3 className={stepHeadingClass}>4. {t.form.serviceRequested}</h3>
-          <select
-            value={serviceValue}
-            onChange={(e) => setServiceValue(e.target.value)}
-            required
-            className={inputClass}
-          >
-            <option value="" disabled>
-              {t.form.selectPlaceholder}
-            </option>
-            {t.form.serviceOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          {serviceValue === OTHER_VALUE && (
-            <input
-              value={serviceOther}
-              onChange={(e) => setServiceOther(e.target.value)}
-              placeholder={t.form.specify}
-              className={`${inputClass} mt-2`}
-            />
-          )}
-        </div>
-      )}
-
-      {resolvedTitle && (
+      {hasVehicle && (
         <div ref={infoStepRef} className="border-t border-slate-100 pt-5 space-y-4 scroll-mt-24">
           <h3 className={stepHeadingClass}>5. {t.form.stepYourInfo}</h3>
 
@@ -442,7 +461,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
             className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
           >
             {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {t.form.confirmAppointment(shop.bookingSlotMinutes)}
+            {t.form.confirmAppointment(durationMinutes)}
           </button>
         </div>
       )}

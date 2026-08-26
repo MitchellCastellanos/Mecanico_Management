@@ -81,7 +81,9 @@ export async function getAvailableSlots(
   dateStr: string,
   mechanicId?: string,
   /** Ignora esta cita al calcular disponibilidad (edición: su propio horario no cuenta como ocupado). */
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
+  /** Duración real del servicio a reservar — si no se da, usa el default del taller. */
+  durationMinutes?: number
 ): Promise<AvailableSlot[]> {
   const dayOfWeek = getShopDayOfWeek(dateStr, shop.timezone);
   const hours =
@@ -116,10 +118,15 @@ export async function getAvailableSlots(
 
   const openMin = parseMinutes(hours.openTime);
   const closeMin = parseMinutes(hours.closeTime);
-  const slotDuration = shop.bookingSlotMinutes;
+  // La duración real del servicio determina el bloque a reservar; la
+  // granularidad del taller (bookingSlotMinutes) solo marca cada cuánto
+  // puede *empezar* una cita — así un servicio de 3 horas bloquea las 3
+  // horas completas aunque el taller ofrezca horas cada 30/60 minutos.
+  const slotDuration = durationMinutes ?? shop.bookingSlotMinutes;
+  const gridStep = shop.bookingSlotMinutes;
   const slots: AvailableSlot[] = [];
 
-  for (let minute = openMin; minute + slotDuration <= closeMin; minute += slotDuration) {
+  for (let minute = openMin; minute + slotDuration <= closeMin; minute += gridStep) {
     const time = minutesToTime(minute);
     const startsAt = parseShopDateTime(dateStr, time, shop.timezone);
     const endsAt = new Date(startsAt.getTime() + slotDuration * 60_000);
@@ -162,11 +169,12 @@ export function getDateWindow(shop: { timezone: string }, days = 14): string[] {
 export async function getBookableDates(
   shop: Parameters<typeof getAvailableSlots>[0],
   days = 14,
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
+  durationMinutes?: number
 ): Promise<string[]> {
   const dates: string[] = [];
   for (const dateStr of getDateWindow(shop, days)) {
-    const slots = await getAvailableSlots(shop, dateStr, undefined, excludeAppointmentId);
+    const slots = await getAvailableSlots(shop, dateStr, undefined, excludeAppointmentId, durationMinutes);
     if (slots.length > 0) dates.push(dateStr);
   }
   return dates;
@@ -177,9 +185,16 @@ export async function findAvailableMechanic(
   dateStr: string,
   time: string,
   preferredMechanicId?: string,
-  excludeAppointmentId?: string
+  excludeAppointmentId?: string,
+  durationMinutes?: number
 ): Promise<{ id: string; name: string } | null> {
-  const slots = await getAvailableSlots(shop, dateStr, preferredMechanicId, excludeAppointmentId);
+  const slots = await getAvailableSlots(
+    shop,
+    dateStr,
+    preferredMechanicId,
+    excludeAppointmentId,
+    durationMinutes
+  );
   const match = slots.find((s) => s.time === time);
   if (match) return { id: match.mechanicId, name: match.mechanicName };
   return null;

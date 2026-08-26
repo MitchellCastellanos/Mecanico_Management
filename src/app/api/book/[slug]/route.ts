@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { findAvailableMechanic, getShopBySlug } from "@/lib/booking-slots";
+import { resolveServiceDuration } from "@/lib/service-catalog";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
 import { generateAppointmentManageToken } from "@/lib/appointment-token";
@@ -42,11 +43,14 @@ export async function POST(
   }
 
   const data = parsed.data;
+  const durationMinutes = resolveServiceDuration(data.serviceValue, shop.bookingSlotMinutes);
   const mechanic = await findAvailableMechanic(
     shop,
     data.date,
     data.time,
-    data.mechanicId || undefined
+    data.mechanicId || undefined,
+    undefined,
+    durationMinutes
   );
 
   if (!mechanic) {
@@ -57,7 +61,7 @@ export async function POST(
   }
 
   const startsAt = parseShopDateTime(data.date, data.time, shop.timezone);
-  const endsAt = new Date(startsAt.getTime() + shop.bookingSlotMinutes * 60_000);
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   const email = data.email?.trim().toLowerCase() || null;
   const digits = phoneDigits(data.phone);
@@ -125,7 +129,7 @@ export async function POST(
       title: data.title,
       startsAt,
       endsAt,
-      durationMinutes: shop.bookingSlotMinutes,
+      durationMinutes,
       notes: data.notes || null,
       status: "CONFIRMED",
       source: "PUBLIC_WEB",

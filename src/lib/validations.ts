@@ -117,6 +117,8 @@ export const publicBookingSchema = z.object({
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
   licensePlate: z.string().max(20).optional().or(z.literal("")),
   title: z.string().min(1, "Describe el servicio").max(200),
+  /** Clave del catálogo de servicios (src/lib/service-catalog.ts) — determina la duración real de la cita. */
+  serviceValue: z.string().max(50).optional().or(z.literal("")),
   date: z.string().min(1),
   time: z.string().regex(/^\d{2}:\d{2}$/),
   mechanicId: z.string().optional().or(z.literal("")),
