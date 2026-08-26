@@ -87,12 +87,16 @@ export async function POST(
     });
   }
 
-  let vehicle = await db.vehicle.findFirst({
-    where: {
-      clientId: client.id,
-      licensePlate: { equals: data.licensePlate, mode: "insensitive" },
-    },
-  });
+  const licensePlate = data.licensePlate?.trim() || "";
+
+  let vehicle = licensePlate
+    ? await db.vehicle.findFirst({
+        where: {
+          clientId: client.id,
+          licensePlate: { equals: licensePlate, mode: "insensitive" },
+        },
+      })
+    : null;
 
   if (!vehicle) {
     vehicle = await db.vehicle.create({
@@ -101,7 +105,7 @@ export async function POST(
         make: data.make,
         model: data.model,
         year: data.year,
-        licensePlate: data.licensePlate.toUpperCase(),
+        licensePlate: licensePlate.toUpperCase(),
       },
     });
   }

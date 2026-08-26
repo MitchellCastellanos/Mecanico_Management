@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import { INVOICE_LANGUAGES } from "@/lib/invoice-i18n";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
 
 interface ShopInfo {
@@ -87,12 +86,16 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
+    const fullName = String(formData.get("fullName") ?? "").trim();
+    const [firstName, ...rest] = fullName.split(/\s+/);
+    const lastName = rest.join(" ");
+
     const payload = {
-      firstName: formData.get("firstName"),
-      lastName: formData.get("lastName"),
+      firstName,
+      lastName,
       email: formData.get("email"),
       phone: formData.get("phone"),
-      language: formData.get("language"),
+      language: NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE[locale],
       make: formData.get("make"),
       model: formData.get("model"),
       year: formData.get("year"),
@@ -164,17 +167,11 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
+        <div className="sm:col-span-2">
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t.form.firstName}
+            {t.form.fullName}
           </label>
-          <input name="firstName" required className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t.form.lastName}
-          </label>
-          <input name="lastName" className={inputClass} />
+          <input name="fullName" required className={inputClass} />
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.phone}</label>
@@ -185,23 +182,6 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
             {t.form.emailOptional}
           </label>
           <input name="email" type="email" className={inputClass} />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            Idioma / Language / Langue
-          </label>
-          <select
-            key={locale}
-            name="language"
-            defaultValue={NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE[locale]}
-            className={inputClass}
-          >
-            {INVOICE_LANGUAGES.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -241,7 +221,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           <label className="block text-sm font-medium text-slate-700 mb-1">
             {t.form.licensePlate}
           </label>
-          <input name="licensePlate" required className={inputClass} />
+          <input name="licensePlate" className={inputClass} />
         </div>
       </div>
 

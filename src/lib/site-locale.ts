@@ -42,8 +42,7 @@ export interface SiteDictionary {
     subtitle: string;
   };
   form: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     phone: string;
     emailOptional: string;
     serviceRequested: string;
@@ -127,8 +126,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       subtitle: "Choisissez le jour, l'heure, et dites-nous ce qui ne va pas avec votre auto.",
     },
     form: {
-      firstName: "Prénom *",
-      lastName: "Nom",
+      fullName: "Nom complet *",
       phone: "Téléphone *",
       emailOptional: "Courriel (optionnel)",
       serviceRequested: "Service demandé *",
@@ -136,7 +134,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       make: "Marque *",
       model: "Modèle *",
       year: "Année *",
-      licensePlate: "Plaque *",
+      licensePlate: "Plaque (optionnelle)",
       chooseDateTime: "Choisissez la date et l'heure",
       mechanicOptional: "Mécanicien (optionnel)",
       anyAvailable: "N'importe lequel disponible",
@@ -210,8 +208,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       subtitle: "Choose the day, the time, and tell us what's wrong with your car.",
     },
     form: {
-      firstName: "First name *",
-      lastName: "Last name",
+      fullName: "Full name *",
       phone: "Phone *",
       emailOptional: "Email (optional)",
       serviceRequested: "Requested service *",
@@ -219,7 +216,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       make: "Make *",
       model: "Model *",
       year: "Year *",
-      licensePlate: "License plate *",
+      licensePlate: "License plate (optional)",
       chooseDateTime: "Choose date and time",
       mechanicOptional: "Mechanic (optional)",
       anyAvailable: "Any available",
@@ -293,8 +290,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       subtitle: "Elige el día, la hora y cuéntanos qué le pasa a tu auto.",
     },
     form: {
-      firstName: "Nombre *",
-      lastName: "Apellido",
+      fullName: "Nombre completo *",
       phone: "Teléfono *",
       emailOptional: "Email (opcional)",
       serviceRequested: "Servicio solicitado *",
@@ -302,7 +298,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       make: "Marca *",
       model: "Modelo *",
       year: "Año *",
-      licensePlate: "Placa *",
+      licensePlate: "Placa (opcional)",
       chooseDateTime: "Elige fecha y hora",
       mechanicOptional: "Mecánico (opcional)",
       anyAvailable: "Cualquier disponible",

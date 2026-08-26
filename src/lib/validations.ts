@@ -115,7 +115,7 @@ export const publicBookingSchema = z.object({
   make: z.string().min(1, "Marca requerida").max(50),
   model: z.string().min(1, "Modelo requerido").max(50),
   year: z.coerce.number().int().min(1900).max(new Date().getFullYear() + 1),
-  licensePlate: z.string().min(1, "Placa requerida").max(20),
+  licensePlate: z.string().max(20).optional().or(z.literal("")),
   title: z.string().min(1, "Describe el servicio").max(200),
   date: z.string().min(1),
   time: z.string().regex(/^\d{2}:\d{2}$/),
