@@ -178,3 +178,38 @@ export async function updateMechanicBookable(userId: string, bookable: boolean) 
   revalidatePath(ADMIN.settings);
   return { success: true };
 }
+
+/**
+ * Ajuste de arranque para la reserva en línea: deja la ventana en 90 días,
+ * te marca (dueño logueado) como mecánico reservable, y asigna a tu cuenta
+ * todas las citas del taller que todavía no tienen mecánico — sin eso esas
+ * citas no bloquean horarios en el sitio público y se podría reservar
+ * encima de ellas. Seguro de correr más de una vez (no duplica nada).
+ */
+export async function fixOnlineBookingAvailability() {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+  const ownerId = session.user.id!;
+
+  const shop = await db.shop.findUnique({ where: { id: shopId } });
+  if (!shop) return { error: "Taller no encontrado" };
+
+  const advanceDaysUpdated = shop.bookingAdvanceDays !== 90;
+  if (advanceDaysUpdated) {
+    await db.shop.update({ where: { id: shopId }, data: { bookingAdvanceDays: 90 } });
+  }
+
+  const owner = await db.user.findUnique({ where: { id: ownerId } });
+  const madeBookable = !!owner && !owner.bookable;
+  if (madeBookable) {
+    await db.user.update({ where: { id: ownerId }, data: { bookable: true } });
+  }
+
+  const { count: appointmentsAssigned } = await db.appointment.updateMany({
+    where: { shopId, mechanicId: null },
+    data: { mechanicId: ownerId },
+  });
+
+  revalidatePath(ADMIN.settings);
+  return { success: true, advanceDaysUpdated, madeBookable, appointmentsAssigned };
+}

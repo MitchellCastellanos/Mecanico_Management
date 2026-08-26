@@ -3,12 +3,13 @@
 import { useTransition } from "react";
 import { toast } from "sonner";
 import {
+  fixOnlineBookingAvailability,
   updateAppointmentBookingSettings,
   updateMechanicBookable,
   updateShopWorkingHours,
 } from "@/actions/booking-settings";
 import type { WorkingHoursRow } from "@/lib/working-hours";
-import { Copy, ExternalLink, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, Loader2, Wrench } from "lucide-react";
 
 interface MechanicRow {
   id: string;
@@ -40,6 +41,7 @@ export function AppointmentBookingSettings({
   const [bookingPending, startBookingTransition] = useTransition();
   const [hoursPending, startHoursTransition] = useTransition();
   const [mechanicPending, startMechanicTransition] = useTransition();
+  const [fixPending, startFixTransition] = useTransition();
 
   function handleBookingSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -70,6 +72,23 @@ export function AppointmentBookingSettings({
       const result = await updateMechanicBookable(userId, bookable);
       if (result?.success) toast.success(bookable ? "Mecánico visible en reservas" : "Mecánico oculto en reservas");
       else toast.error(result?.error ?? "Error");
+    });
+  }
+
+  function handleFixAvailability() {
+    startFixTransition(async () => {
+      const result = await fixOnlineBookingAvailability();
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      const parts: string[] = [];
+      if (result?.advanceDaysUpdated) parts.push("ventana a 90 días");
+      if (result?.madeBookable) parts.push("marcado como reservable");
+      if (result?.appointmentsAssigned) {
+        parts.push(`${result.appointmentsAssigned} cita(s) asignadas a ti`);
+      }
+      toast.success(parts.length > 0 ? `Listo: ${parts.join(", ")}` : "Ya estaba todo al día");
     });
   }
 
@@ -308,6 +327,27 @@ export function AppointmentBookingSettings({
             ))}
           </div>
         )}
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+        <div>
+          <h2 className="font-semibold text-slate-900">Dejar la disponibilidad lista</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            Un solo clic: sube la ventana de reserva a 90 días, te marca (dueño) como mecánico
+            reservable, y asigna a tu cuenta todas las citas del taller que todavía no tienen
+            mecánico — sin eso, esas citas no bloquean horarios en el sitio público. Seguro de
+            correr más de una vez, no duplica nada.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={handleFixAvailability}
+          disabled={fixPending}
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
+        >
+          {fixPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+          Dejar disponibilidad lista
+        </button>
       </div>
     </div>
   );
