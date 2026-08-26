@@ -27,13 +27,13 @@ export const metadata: Metadata = {
     siteName: BRAND.shopName,
     locale: "es_CA",
     type: "website",
-    images: [{ url: BRAND.logoPath, width: 347, height: 329, alt: BRAND.shopName }],
+    images: [{ url: BRAND.ogImagePath, width: 1731, height: 909, alt: BRAND.shopName }],
   },
   twitter: {
     card: "summary_large_image",
     title: BRAND.shopName,
     description: "Taller mecánico en Montréal",
-    images: [BRAND.logoPath],
+    images: [BRAND.ogImagePath],
   },
 };
 

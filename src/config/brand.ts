@@ -9,6 +9,8 @@ export const BRAND = {
   shopName: "Garage Carlos A Inc.",
   /** Logo PNG sin fondo — favicon, homepage, emails de respaldo */
   logoPath: "/logo.png",
+  /** Banner para vistas previas al compartir el link (WhatsApp, Facebook, X, etc.) */
+  ogImagePath: "/Carlos-OG.PNG",
   bookingSlug: "garage-carlos-a",
   timezone: "America/Montreal",
   emails: {
