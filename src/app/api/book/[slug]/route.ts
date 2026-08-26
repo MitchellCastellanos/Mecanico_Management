@@ -4,7 +4,11 @@ import { findAvailableMechanic, getShopBySlug } from "@/lib/booking-slots";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
 import { generateAppointmentManageToken } from "@/lib/appointment-token";
-import { buildAppointmentManageUrl, notifyAppointmentEvent } from "@/lib/appointment-notify";
+import {
+  buildAppointmentManageUrl,
+  notifyAppointmentEvent,
+  notifyShopOfNewWebAppointment,
+} from "@/lib/appointment-notify";
 
 /** Solo dígitos — para emparejar el mismo teléfono aunque venga con distinto formato. */
 function phoneDigits(phone: string): string {
@@ -148,6 +152,14 @@ export async function POST(
       data: { confirmationSentAt: new Date() },
     });
   }
+
+  await notifyShopOfNewWebAppointment({
+    shop,
+    client,
+    appointmentId: appointment.id,
+    title: appointment.title,
+    startsAt,
+  });
 
   return NextResponse.json({
     ok: true,

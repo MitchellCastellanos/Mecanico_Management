@@ -5,7 +5,7 @@ import { getAppUrl } from "@/lib/app-url";
 import { formatClientName } from "@/lib/client-name";
 import { formatShopDateTime } from "@/lib/shop-timezone";
 import { sendAppointmentEmail } from "@/lib/email";
-import { sendAppointmentSms, type AppointmentSmsType } from "@/lib/sms";
+import { sendAppointmentSms, sendSms, type AppointmentSmsType } from "@/lib/sms";
 import { shopToEmailConfig, type ShopEmailConfig } from "@/lib/email-config";
 
 export type AppointmentNotificationType = AppointmentSmsType;
@@ -101,4 +101,32 @@ export async function notifyAppointmentEvent(
   }
 
   return { smsSent, emailSent, anySent: smsSent || emailSent };
+}
+
+/**
+ * Avisa al taller (su propio teléfono) que entró una cita nueva desde el sitio web.
+ * Solo para reservas públicas — cuando el admin agenda una cita a mano ya lo sabe,
+ * no tiene sentido mandarle un SMS de aviso a sí mismo.
+ */
+export async function notifyShopOfNewWebAppointment(params: {
+  shop: AppointmentNotifyShop;
+  client: AppointmentNotifyClient;
+  appointmentId: string;
+  title: string;
+  startsAt: Date;
+}): Promise<boolean> {
+  const shopPhone = params.shop.phone?.trim();
+  if (!params.shop.appointmentSmsEnabled || !shopPhone) return false;
+
+  const startsAtFormatted = formatShopDateTime(params.startsAt, params.shop.timezone);
+  const clientName = formatClientName(params.client);
+  const body = `${params.shop.name}: nueva cita web — ${clientName}, ${params.title}, ${startsAtFormatted}. Tel. cliente: ${params.client.phone ?? "N/D"}`;
+
+  try {
+    await sendSms(shopPhone, body);
+    return true;
+  } catch (err) {
+    console.error(`[appointment-sms] aviso al taller falló (${params.appointmentId}):`, err);
+    return false;
+  }
 }
