@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
+import { OTHER_VALUE, VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from "@/lib/vehicle-catalog";
 
 interface ShopInfo {
   name: string;
@@ -43,6 +44,27 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const [serviceValue, setServiceValue] = useState("");
+  const [serviceOther, setServiceOther] = useState("");
+  const [make, setMake] = useState("");
+  const [makeOther, setMakeOther] = useState("");
+  const [model, setModel] = useState("");
+  const [modelOther, setModelOther] = useState("");
+
+  const resolvedTitle =
+    serviceValue === OTHER_VALUE
+      ? serviceOther.trim()
+      : (t.form.serviceOptions.find((o) => o.value === serviceValue)?.label ?? "");
+  const resolvedMake = make === OTHER_VALUE ? makeOther.trim() : make;
+  const resolvedModel =
+    make === OTHER_VALUE || model === OTHER_VALUE ? modelOther.trim() : model;
+
+  function handleMakeChange(value: string) {
+    setMake(value);
+    setModel("");
+    setModelOther("");
+  }
 
   useEffect(() => {
     fetch(`/api/book/${slug}/slots`)
@@ -96,11 +118,11 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       email: formData.get("email"),
       phone: formData.get("phone"),
       language: NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE[locale],
-      make: formData.get("make"),
-      model: formData.get("model"),
+      make: resolvedMake,
+      model: resolvedModel,
       year: formData.get("year"),
       licensePlate: formData.get("licensePlate"),
-      title: formData.get("title"),
+      title: resolvedTitle,
       date: selectedDate,
       time: selectedTime,
       mechanicId: selectedMechanicId,
@@ -189,33 +211,110 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
         <label className="block text-sm font-medium text-slate-700 mb-1">
           {t.form.serviceRequested}
         </label>
-        <input
-          name="title"
+        <select
+          value={serviceValue}
+          onChange={(e) => setServiceValue(e.target.value)}
           required
-          placeholder={t.form.serviceRequestedPlaceholder}
           className={inputClass}
-        />
+        >
+          <option value="" disabled>
+            {t.form.selectPlaceholder}
+          </option>
+          {t.form.serviceOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {serviceValue === OTHER_VALUE && (
+          <input
+            value={serviceOther}
+            onChange={(e) => setServiceOther(e.target.value)}
+            placeholder={t.form.specify}
+            className={`${inputClass} mt-2`}
+          />
+        )}
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.make}</label>
-          <input name="make" required className={inputClass} />
+          <select
+            value={make}
+            onChange={(e) => handleMakeChange(e.target.value)}
+            required
+            className={inputClass}
+          >
+            <option value="" disabled>
+              {t.form.selectPlaceholder}
+            </option>
+            {VEHICLE_MAKES.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+            <option value={OTHER_VALUE}>{t.form.otherOption}</option>
+          </select>
+          {make === OTHER_VALUE && (
+            <input
+              value={makeOther}
+              onChange={(e) => setMakeOther(e.target.value)}
+              placeholder={t.form.specify}
+              className={`${inputClass} mt-2`}
+            />
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.model}</label>
-          <input name="model" required className={inputClass} />
+          {make === OTHER_VALUE ? (
+            <input
+              value={modelOther}
+              onChange={(e) => setModelOther(e.target.value)}
+              placeholder={t.form.specify}
+              className={inputClass}
+            />
+          ) : (
+            <>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                required
+                disabled={!make}
+                className={inputClass}
+              >
+                <option value="" disabled>
+                  {t.form.selectPlaceholder}
+                </option>
+                {(VEHICLE_MODELS[make] ?? []).map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+                <option value={OTHER_VALUE}>{t.form.otherOption}</option>
+              </select>
+              {model === OTHER_VALUE && (
+                <input
+                  value={modelOther}
+                  onChange={(e) => setModelOther(e.target.value)}
+                  placeholder={t.form.specify}
+                  className={`${inputClass} mt-2`}
+                />
+              )}
+            </>
+          )}
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.year}</label>
-          <input
-            name="year"
-            type="number"
-            required
-            min={1900}
-            max={new Date().getFullYear() + 1}
-            className={inputClass}
-          />
+          <select name="year" required defaultValue="" className={inputClass}>
+            <option value="" disabled>
+              {t.form.selectPlaceholder}
+            </option>
+            {VEHICLE_YEARS.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -315,7 +414,9 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
 
       <button
         type="submit"
-        disabled={pending || !selectedDate || !selectedTime}
+        disabled={
+          pending || !selectedDate || !selectedTime || !resolvedTitle || !resolvedMake || !resolvedModel
+        }
         className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
       >
         {pending && <Loader2 className="w-4 h-4 animate-spin" />}

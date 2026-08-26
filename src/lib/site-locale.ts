@@ -46,7 +46,10 @@ export interface SiteDictionary {
     phone: string;
     emailOptional: string;
     serviceRequested: string;
-    serviceRequestedPlaceholder: string;
+    serviceOptions: { value: string; label: string }[];
+    selectPlaceholder: string;
+    otherOption: string;
+    specify: string;
     make: string;
     model: string;
     year: string;
@@ -130,7 +133,25 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       phone: "Téléphone *",
       emailOptional: "Courriel (optionnel)",
       serviceRequested: "Service demandé *",
-      serviceRequestedPlaceholder: "Changement d'huile, révision, freins...",
+      serviceOptions: [
+        { value: "oil_change", label: "Changement d'huile" },
+        { value: "brakes", label: "Freins" },
+        { value: "tires", label: "Pneus (achat / installation)" },
+        { value: "seasonal_tires", label: "Changement de pneus saisonnier" },
+        { value: "battery", label: "Batterie" },
+        { value: "alignment", label: "Alignement" },
+        { value: "suspension", label: "Suspension" },
+        { value: "diagnostic", label: "Diagnostic (voyant moteur)" },
+        { value: "exhaust", label: "Système d'échappement" },
+        { value: "ac", label: "Climatisation" },
+        { value: "inspection", label: "Inspection mécanique (SAAQ)" },
+        { value: "transmission", label: "Transmission" },
+        { value: "general", label: "Entretien général" },
+        { value: "other", label: "Autre (précisez)" },
+      ],
+      selectPlaceholder: "Sélectionnez...",
+      otherOption: "Autre",
+      specify: "Précisez",
       make: "Marque *",
       model: "Modèle *",
       year: "Année *",
@@ -212,7 +233,25 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       phone: "Phone *",
       emailOptional: "Email (optional)",
       serviceRequested: "Requested service *",
-      serviceRequestedPlaceholder: "Oil change, inspection, brakes...",
+      serviceOptions: [
+        { value: "oil_change", label: "Oil change" },
+        { value: "brakes", label: "Brakes" },
+        { value: "tires", label: "Tires (purchase / installation)" },
+        { value: "seasonal_tires", label: "Seasonal tire change" },
+        { value: "battery", label: "Battery" },
+        { value: "alignment", label: "Alignment" },
+        { value: "suspension", label: "Suspension" },
+        { value: "diagnostic", label: "Diagnostic (check engine light)" },
+        { value: "exhaust", label: "Exhaust system" },
+        { value: "ac", label: "Air conditioning" },
+        { value: "inspection", label: "Mechanical inspection (SAAQ)" },
+        { value: "transmission", label: "Transmission" },
+        { value: "general", label: "General maintenance" },
+        { value: "other", label: "Other (please specify)" },
+      ],
+      selectPlaceholder: "Select...",
+      otherOption: "Other",
+      specify: "Please specify",
       make: "Make *",
       model: "Model *",
       year: "Year *",
@@ -294,7 +333,25 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       phone: "Teléfono *",
       emailOptional: "Email (opcional)",
       serviceRequested: "Servicio solicitado *",
-      serviceRequestedPlaceholder: "Cambio de aceite, revisión, frenos...",
+      serviceOptions: [
+        { value: "oil_change", label: "Cambio de aceite" },
+        { value: "brakes", label: "Frenos" },
+        { value: "tires", label: "Neumáticos (compra / instalación)" },
+        { value: "seasonal_tires", label: "Cambio de llantas de temporada" },
+        { value: "battery", label: "Batería" },
+        { value: "alignment", label: "Alineación" },
+        { value: "suspension", label: "Suspensión" },
+        { value: "diagnostic", label: "Diagnóstico (check engine)" },
+        { value: "exhaust", label: "Sistema de escape" },
+        { value: "ac", label: "Aire acondicionado" },
+        { value: "inspection", label: "Inspección mecánica (SAAQ)" },
+        { value: "transmission", label: "Transmisión" },
+        { value: "general", label: "Revisión general" },
+        { value: "other", label: "Otro (especifica)" },
+      ],
+      selectPlaceholder: "Selecciona...",
+      otherOption: "Otro",
+      specify: "Especifica",
       make: "Marca *",
       model: "Modelo *",
       year: "Año *",
