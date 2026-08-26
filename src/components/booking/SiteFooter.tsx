@@ -63,8 +63,8 @@ export function SiteFooter({ shopName, logoUrl, address, phone }: SiteFooterProp
           <Image
             src="/logo-mark-transparent.png"
             alt="GABAN Solutions"
-            width={16}
-            height={16}
+            width={28}
+            height={28}
             className="object-contain"
           />
           <span className="font-medium text-slate-200">GABAN Solutions</span>
