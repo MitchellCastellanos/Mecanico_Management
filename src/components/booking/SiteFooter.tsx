@@ -57,7 +57,7 @@ export function SiteFooter({ shopName, logoUrl, address, phone }: SiteFooterProp
           href="https://gabansolutions.ca"
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-2 text-xs text-slate-600 hover:text-slate-400 transition-colors"
+          className="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition-colors"
         >
           <span>Website crafted with ❤️ by</span>
           <Image
@@ -67,7 +67,7 @@ export function SiteFooter({ shopName, logoUrl, address, phone }: SiteFooterProp
             height={16}
             className="object-contain"
           />
-          <span className="font-medium">GABAN Solutions</span>
+          <span className="font-medium text-slate-200">GABAN Solutions</span>
         </a>
       </div>
     </footer>
