@@ -14,11 +14,6 @@ interface ShopInfo {
   bookingSlotMinutes: number;
 }
 
-interface MechanicOption {
-  id: string;
-  name: string;
-}
-
 interface Slot {
   time: string;
   mechanicName: string;
@@ -37,29 +32,28 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
   const [availableDates, setAvailableDates] = useState<Set<string>>(new Set());
-  const [mechanics, setMechanics] = useState<MechanicOption[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("");
-  const [selectedMechanicId, setSelectedMechanicId] = useState("");
   const [slots, setSlots] = useState<Slot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const [serviceValue, setServiceValue] = useState("");
-  const [serviceOther, setServiceOther] = useState("");
+  const [year, setYear] = useState("");
   const [make, setMake] = useState("");
   const [makeOther, setMakeOther] = useState("");
   const [model, setModel] = useState("");
   const [modelOther, setModelOther] = useState("");
+  const [serviceValue, setServiceValue] = useState("");
+  const [serviceOther, setServiceOther] = useState("");
 
+  const resolvedMake = make === OTHER_VALUE ? makeOther.trim() : make;
+  const resolvedModel =
+    make === OTHER_VALUE || model === OTHER_VALUE ? modelOther.trim() : model;
   const resolvedTitle =
     serviceValue === OTHER_VALUE
       ? serviceOther.trim()
       : (t.form.serviceOptions.find((o) => o.value === serviceValue)?.label ?? "");
-  const resolvedMake = make === OTHER_VALUE ? makeOther.trim() : make;
-  const resolvedModel =
-    make === OTHER_VALUE || model === OTHER_VALUE ? modelOther.trim() : model;
 
   function handleMakeChange(value: string) {
     setMake(value);
@@ -75,7 +69,6 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           setDates(data.dates);
           setAvailableDates(new Set(data.availableDates ?? data.dates));
         }
-        if (data.mechanics) setMechanics(data.mechanics);
       })
       .catch(() => setError(t.form.couldNotLoadAvailability));
   }, [slug, t.form.couldNotLoadAvailability]);
@@ -85,9 +78,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     setLoadingSlots(true);
     setSelectedTime("");
     try {
-      const params = new URLSearchParams({ date: selectedDate });
-      if (selectedMechanicId) params.set("mechanicId", selectedMechanicId);
-      const res = await fetch(`/api/book/${slug}/slots?${params}`);
+      const res = await fetch(`/api/book/${slug}/slots?date=${selectedDate}`);
       const data = await res.json();
       setSlots(data.slots ?? []);
     } catch {
@@ -95,7 +86,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     } finally {
       setLoadingSlots(false);
     }
-  }, [slug, selectedDate, selectedMechanicId]);
+  }, [slug, selectedDate]);
 
   useEffect(() => {
     loadSlots();
@@ -119,12 +110,11 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       language: NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE[locale],
       make: resolvedMake,
       model: resolvedModel,
-      year: formData.get("year"),
+      year,
       licensePlate: formData.get("licensePlate"),
       title: resolvedTitle,
       date: selectedDate,
       time: selectedTime,
-      mechanicId: selectedMechanicId,
       notes: formData.get("notes"),
     };
 
@@ -186,166 +176,9 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t.form.fullName}
-          </label>
-          <input name="fullName" required className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.phone}</label>
-          <input name="phone" type="tel" required className={inputClass} />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t.form.emailOptional}
-          </label>
-          <input name="email" type="email" className={inputClass} />
-        </div>
-      </div>
-
+    <form onSubmit={handleSubmit} className="space-y-8">
       <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          {t.form.serviceRequested}
-        </label>
-        <select
-          value={serviceValue}
-          onChange={(e) => setServiceValue(e.target.value)}
-          required
-          className={inputClass}
-        >
-          <option value="" disabled>
-            {t.form.selectPlaceholder}
-          </option>
-          {t.form.serviceOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
-        {serviceValue === OTHER_VALUE && (
-          <input
-            value={serviceOther}
-            onChange={(e) => setServiceOther(e.target.value)}
-            placeholder={t.form.specify}
-            className={`${inputClass} mt-2`}
-          />
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.make}</label>
-          <select
-            value={make}
-            onChange={(e) => handleMakeChange(e.target.value)}
-            required
-            className={inputClass}
-          >
-            <option value="" disabled>
-              {t.form.selectPlaceholder}
-            </option>
-            {VEHICLE_MAKES.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-            <option value={OTHER_VALUE}>{t.form.otherOption}</option>
-          </select>
-          {make === OTHER_VALUE && (
-            <input
-              value={makeOther}
-              onChange={(e) => setMakeOther(e.target.value)}
-              placeholder={t.form.specify}
-              className={`${inputClass} mt-2`}
-            />
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.model}</label>
-          {make === OTHER_VALUE ? (
-            <input
-              value={modelOther}
-              onChange={(e) => setModelOther(e.target.value)}
-              placeholder={t.form.specify}
-              className={inputClass}
-            />
-          ) : (
-            <>
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                required
-                disabled={!make}
-                className={inputClass}
-              >
-                <option value="" disabled>
-                  {t.form.selectPlaceholder}
-                </option>
-                {(VEHICLE_MODELS[make] ?? []).map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-                <option value={OTHER_VALUE}>{t.form.otherOption}</option>
-              </select>
-              {model === OTHER_VALUE && (
-                <input
-                  value={modelOther}
-                  onChange={(e) => setModelOther(e.target.value)}
-                  placeholder={t.form.specify}
-                  className={`${inputClass} mt-2`}
-                />
-              )}
-            </>
-          )}
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.year}</label>
-          <select name="year" required defaultValue="" className={inputClass}>
-            <option value="" disabled>
-              {t.form.selectPlaceholder}
-            </option>
-            {VEHICLE_YEARS.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
-            {t.form.licensePlate}
-          </label>
-          <input name="licensePlate" className={inputClass} />
-        </div>
-      </div>
-
-      <div className="border-t border-slate-100 pt-6 space-y-4">
-        <h3 className="font-semibold text-slate-900">{t.form.chooseDateTime}</h3>
-
-        {mechanics.length > 1 && (
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">
-              {t.form.mechanicOptional}
-            </label>
-            <select
-              value={selectedMechanicId}
-              onChange={(e) => setSelectedMechanicId(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">{t.form.anyAvailable}</option>
-              {mechanics.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
+        <h3 className={stepHeadingClass}>1. {t.form.stepPickDay}</h3>
         <MonthCalendar
           dates={dates}
           availableDates={availableDates}
@@ -355,65 +188,226 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           prevMonthLabel={t.form.previousMonth}
           nextMonthLabel={t.form.nextMonth}
         />
-
-        {selectedDate && (
-          <div>
-            <p className="text-sm font-medium text-slate-700 mb-2 text-center capitalize">
-              {formatDateLabel(selectedDate, t.intlLocale)}
-            </p>
-            {loadingSlots ? (
-              <div className="flex items-center justify-center gap-2 text-slate-500 text-sm py-4">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                {t.form.loadingAvailability}
-              </div>
-            ) : slots.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center">{t.form.noSlots}</p>
-            ) : (
-              <div className="flex flex-wrap justify-center gap-2">
-                {slots.map((slot) => (
-                  <button
-                    key={slot.time}
-                    type="button"
-                    onClick={() => setSelectedTime(slot.time)}
-                    className={[
-                      "px-3 py-2 rounded-lg text-sm border transition-colors min-w-[4.5rem]",
-                      selectedTime === slot.time
-                        ? "bg-brand-red text-white border-brand-red"
-                        : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
-                    ].join(" ")}
-                  >
-                    {slot.time}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">
-          {t.form.notesOptional}
-        </label>
-        <textarea name="notes" rows={2} className={inputClass} />
-      </div>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
-          {error}
+      {selectedDate && (
+        <div className="border-t border-slate-100 pt-6">
+          <h3 className={stepHeadingClass}>2. {t.form.stepPickTime}</h3>
+          <p className="text-sm font-medium text-slate-700 mb-3 text-center capitalize">
+            {formatDateLabel(selectedDate, t.intlLocale)}
+          </p>
+          {loadingSlots ? (
+            <div className="flex items-center justify-center gap-2 text-slate-500 text-sm py-4">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              {t.form.loadingAvailability}
+            </div>
+          ) : slots.length === 0 ? (
+            <p className="text-sm text-slate-500 text-center">{t.form.noSlots}</p>
+          ) : (
+            <div className="flex flex-wrap justify-center gap-2">
+              {slots.map((slot) => (
+                <button
+                  key={slot.time}
+                  type="button"
+                  onClick={() => setSelectedTime(slot.time)}
+                  className={[
+                    "px-3 py-2 rounded-lg text-sm border transition-colors min-w-[4.5rem]",
+                    selectedTime === slot.time
+                      ? "bg-brand-red text-white border-brand-red"
+                      : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
+                  ].join(" ")}
+                >
+                  {slot.time}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      <button
-        type="submit"
-        disabled={
-          pending || !selectedDate || !selectedTime || !resolvedTitle || !resolvedMake || !resolvedModel
-        }
-        className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
-      >
-        {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-        {t.form.confirmAppointment(shop.bookingSlotMinutes)}
-      </button>
+      {selectedTime && (
+        <div className="border-t border-slate-100 pt-6 space-y-4">
+          <h3 className={stepHeadingClass}>3. {t.form.stepVehicle}</h3>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">{t.form.year}</label>
+            <select
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              required
+              className={inputClass}
+            >
+              <option value="" disabled>
+                {t.form.selectPlaceholder}
+              </option>
+              {VEHICLE_YEARS.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {year && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.make}
+              </label>
+              <select
+                value={make}
+                onChange={(e) => handleMakeChange(e.target.value)}
+                required
+                className={inputClass}
+              >
+                <option value="" disabled>
+                  {t.form.selectPlaceholder}
+                </option>
+                {VEHICLE_MAKES.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+                <option value={OTHER_VALUE}>{t.form.otherOption}</option>
+              </select>
+              {make === OTHER_VALUE && (
+                <input
+                  value={makeOther}
+                  onChange={(e) => setMakeOther(e.target.value)}
+                  placeholder={t.form.specify}
+                  className={`${inputClass} mt-2`}
+                />
+              )}
+            </div>
+          )}
+
+          {make && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.model}
+              </label>
+              {make === OTHER_VALUE ? (
+                <input
+                  value={modelOther}
+                  onChange={(e) => setModelOther(e.target.value)}
+                  placeholder={t.form.specify}
+                  className={inputClass}
+                />
+              ) : (
+                <>
+                  <select
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                    required
+                    className={inputClass}
+                  >
+                    <option value="" disabled>
+                      {t.form.selectPlaceholder}
+                    </option>
+                    {(VEHICLE_MODELS[make] ?? []).map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                      </option>
+                    ))}
+                    <option value={OTHER_VALUE}>{t.form.otherOption}</option>
+                  </select>
+                  {model === OTHER_VALUE && (
+                    <input
+                      value={modelOther}
+                      onChange={(e) => setModelOther(e.target.value)}
+                      placeholder={t.form.specify}
+                      className={`${inputClass} mt-2`}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {resolvedModel && (
+        <div className="border-t border-slate-100 pt-6">
+          <h3 className={stepHeadingClass}>4. {t.form.serviceRequested}</h3>
+          <select
+            value={serviceValue}
+            onChange={(e) => setServiceValue(e.target.value)}
+            required
+            className={inputClass}
+          >
+            <option value="" disabled>
+              {t.form.selectPlaceholder}
+            </option>
+            {t.form.serviceOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          {serviceValue === OTHER_VALUE && (
+            <input
+              value={serviceOther}
+              onChange={(e) => setServiceOther(e.target.value)}
+              placeholder={t.form.specify}
+              className={`${inputClass} mt-2`}
+            />
+          )}
+        </div>
+      )}
+
+      {resolvedTitle && (
+        <div className="border-t border-slate-100 pt-6 space-y-4">
+          <h3 className={stepHeadingClass}>5. {t.form.stepYourInfo}</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.fullName}
+              </label>
+              <input name="fullName" required className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.phone}
+              </label>
+              <input name="phone" type="tel" required className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.emailOptional}
+              </label>
+              <input name="email" type="email" className={inputClass} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {t.form.licensePlate}
+              </label>
+              <input name="licensePlate" className={inputClass} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              {t.form.notesOptional}
+            </label>
+            <textarea name="notes" rows={2} className={inputClass} />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={pending || !selectedDate || !selectedTime}
+            className="w-full flex items-center justify-center gap-2 bg-brand-red hover:bg-brand-red-dark disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-colors"
+          >
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {t.form.confirmAppointment(shop.bookingSlotMinutes)}
+          </button>
+        </div>
+      )}
     </form>
   );
 }
@@ -430,3 +424,5 @@ function formatDateLabel(isoDate: string, intlLocale: string): string {
 
 const inputClass =
   "w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent";
+
+const stepHeadingClass = "font-display font-bold uppercase text-sm tracking-wide text-slate-900 mb-4";

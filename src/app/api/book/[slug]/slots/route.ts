@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  getAvailableSlots,
-  getBookableDates,
-  getBookableMechanics,
-  getDateWindow,
-  getShopBySlug,
-} from "@/lib/booking-slots";
+import { getAvailableSlots, getBookableDates, getDateWindow, getShopBySlug } from "@/lib/booking-slots";
 
 export async function GET(
   req: NextRequest,
@@ -19,21 +13,18 @@ export async function GET(
   }
 
   const date = req.nextUrl.searchParams.get("date");
-  const mechanicId = req.nextUrl.searchParams.get("mechanicId") ?? undefined;
 
   if (date) {
-    const slots = await getAvailableSlots(shop, date, mechanicId || undefined);
+    // Sin filtro de mecánico: un horario aparece disponible en cuanto
+    // cualquier mecánico del taller esté libre — el sitio no deja elegir uno.
+    const slots = await getAvailableSlots(shop, date);
     return NextResponse.json({ slots });
   }
 
   // Tope de 60 días aunque el taller configure una ventana más larga —
   // evita disparar cientos de consultas de disponibilidad en un solo request.
   const windowDays = Math.min(shop.bookingAdvanceDays, 60);
-
-  const [availableDates, mechanics] = await Promise.all([
-    getBookableDates(shop, windowDays),
-    getBookableMechanics(shop.id),
-  ]);
+  const availableDates = await getBookableDates(shop, windowDays);
 
   return NextResponse.json({
     shop: {
@@ -46,6 +37,5 @@ export async function GET(
     },
     dates: getDateWindow(shop, windowDays),
     availableDates,
-    mechanics,
   });
 }

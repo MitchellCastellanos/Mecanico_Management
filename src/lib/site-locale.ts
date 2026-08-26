@@ -54,11 +54,12 @@ export interface SiteDictionary {
     model: string;
     year: string;
     licensePlate: string;
-    chooseDateTime: string;
+    stepPickDay: string;
+    stepPickTime: string;
+    stepVehicle: string;
+    stepYourInfo: string;
     previousMonth: string;
     nextMonth: string;
-    mechanicOptional: string;
-    anyAvailable: string;
     loadingAvailability: string;
     noSlots: string;
     notesOptional: string;
@@ -158,11 +159,12 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       model: "Modèle *",
       year: "Année *",
       licensePlate: "Plaque (optionnelle)",
-      chooseDateTime: "Choisissez la date et l'heure",
+      stepPickDay: "Choisissez le jour",
+      stepPickTime: "Choisissez l'heure",
+      stepVehicle: "Votre véhicule",
+      stepYourInfo: "Vos coordonnées",
       previousMonth: "Mois précédent",
       nextMonth: "Mois suivant",
-      mechanicOptional: "Mécanicien (optionnel)",
-      anyAvailable: "N'importe lequel disponible",
       loadingAvailability: "Chargement des disponibilités...",
       noSlots: "Aucune disponibilité ce jour-là.",
       notesOptional: "Notes (optionnel)",
@@ -260,11 +262,12 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       model: "Model *",
       year: "Year *",
       licensePlate: "License plate (optional)",
-      chooseDateTime: "Choose date and time",
+      stepPickDay: "Pick a day",
+      stepPickTime: "Pick a time",
+      stepVehicle: "Your vehicle",
+      stepYourInfo: "Your info",
       previousMonth: "Previous month",
       nextMonth: "Next month",
-      mechanicOptional: "Mechanic (optional)",
-      anyAvailable: "Any available",
       loadingAvailability: "Loading availability...",
       noSlots: "No availability that day.",
       notesOptional: "Notes (optional)",
@@ -362,11 +365,12 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       model: "Modelo *",
       year: "Año *",
       licensePlate: "Placa (opcional)",
-      chooseDateTime: "Elige fecha y hora",
+      stepPickDay: "Elige el día",
+      stepPickTime: "Elige la hora",
+      stepVehicle: "Tu vehículo",
+      stepYourInfo: "Tus datos",
       previousMonth: "Mes anterior",
       nextMonth: "Mes siguiente",
-      mechanicOptional: "Mecánico (opcional)",
-      anyAvailable: "Cualquier disponible",
       loadingAvailability: "Cargando horarios...",
       noSlots: "No hay horarios disponibles este día.",
       notesOptional: "Notas (opcional)",
