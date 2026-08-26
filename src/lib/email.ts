@@ -232,6 +232,7 @@ interface AppointmentEmailSendData {
   /** Idioma preferido del cliente — por defecto español. */
   language?: string | null;
   manageUrl?: string | null;
+  bookingUrl?: string | null;
 }
 
 const APPOINTMENT_SUBJECTS: Record<string, Record<AppointmentEmailType, (title: string, shop: string) => string>> = {
@@ -277,6 +278,7 @@ export async function sendAppointmentEmail(data: AppointmentEmailSendData) {
     shopEmail: route.replyTo,
     language: data.language,
     manageUrl: data.manageUrl,
+    bookingUrl: data.bookingUrl,
   });
 
   const cc =

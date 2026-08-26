@@ -2,6 +2,7 @@
 // Centraliza la lógica usada por acciones admin, reserva pública y el cron de recordatorios.
 
 import { getAppUrl } from "@/lib/app-url";
+import { getPublicBookingUrl } from "@/lib/shop-slug";
 import { formatClientName } from "@/lib/client-name";
 import { formatShopDateTime } from "@/lib/shop-timezone";
 import { sendAppointmentEmail } from "@/lib/email";
@@ -59,6 +60,7 @@ export async function notifyAppointmentEvent(
 ): Promise<NotifyAppointmentEventResult> {
   const startsAtFormatted = formatShopDateTime(params.startsAt, params.shop.timezone);
   const manageUrl = buildAppointmentManageUrl(params.shop, params.manageToken);
+  const bookingUrl = params.shop.slug ? getPublicBookingUrl(params.shop.slug) : null;
 
   let smsSent = false;
   const phone = params.client.phone?.trim();
@@ -72,6 +74,7 @@ export async function notifyAppointmentEvent(
         startsAtFormatted,
         language: params.client.language,
         manageUrl,
+        bookingUrl,
       });
       smsSent = true;
     } catch (err) {
@@ -93,6 +96,7 @@ export async function notifyAppointmentEvent(
         shopPhone: params.shop.phone,
         language: params.client.language,
         manageUrl,
+        bookingUrl,
       });
       emailSent = true;
     } catch (err) {

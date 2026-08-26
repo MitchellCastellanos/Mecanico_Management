@@ -18,6 +18,7 @@ import { serializeQuoteForPdf } from "@/lib/quote-serialize";
 import { generateQuotePdf } from "@/lib/pdf";
 import { sendQuoteEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { getPublicBookingUrl } from "@/lib/shop-slug";
 import { parseEmailAttachments } from "@/lib/email-attachments";
 import { syncSavedLineItems } from "@/actions/line-items";
 import { formatClientName } from "@/lib/client-name";
@@ -290,6 +291,7 @@ export async function sendQuoteByEmail(id: string, formData?: FormData) {
       validUntilFormatted: quote.validUntil ? formatDate(quote.validUntil) : null,
       language: quote.language,
       isResend,
+      bookingUrl: quote.shop.slug ? getPublicBookingUrl(quote.shop.slug) : null,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";

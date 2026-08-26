@@ -30,6 +30,7 @@ import { buildInvoicePackageBuffer } from "@/lib/invoice-pdf-package";
 import { buildInvoiceDownloadUrl } from "@/lib/invoice-download";
 import { ensureInvoiceDownloadToken } from "@/lib/invoice-token";
 import { sendInvoiceSms } from "@/lib/sms";
+import { getPublicBookingUrl } from "@/lib/shop-slug";
 import { uploadInvoiceClientPackage } from "@/lib/storage";
 import {
   buildInvoicePackagePdf,
@@ -287,6 +288,7 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
   const vehicleDescription = invoice.vehicles
     .map((iv) => `${iv.vehicle.year} ${iv.vehicle.make} ${iv.vehicle.model}`)
     .join(", ");
+  const bookingUrl = invoice.shop.slug ? getPublicBookingUrl(invoice.shop.slug) : null;
 
   try {
     await sendInvoiceEmail({
@@ -306,6 +308,7 @@ export async function sendInvoiceByEmail(id: string, formData?: FormData) {
       dueDateFormatted: invoice.dueAt ? formatDate(invoice.dueAt) : null,
       language: invoice.language,
       isResend,
+      bookingUrl,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Error desconocido";
@@ -377,6 +380,7 @@ export async function sendInvoiceBySms(id: string, formData?: FormData) {
   }
 
   const downloadUrl = buildInvoiceDownloadUrl(downloadToken);
+  const bookingUrl = invoice.shop.slug ? getPublicBookingUrl(invoice.shop.slug) : null;
 
   try {
     await sendInvoiceSms({
@@ -385,6 +389,7 @@ export async function sendInvoiceBySms(id: string, formData?: FormData) {
       invoiceNumber: invoice.invoiceNumber,
       totalFormatted: formatCurrency(Number(invoice.total)),
       downloadUrl,
+      bookingUrl,
       language: invoice.language,
       isResend,
     });

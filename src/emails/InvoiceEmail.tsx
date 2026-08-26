@@ -6,6 +6,7 @@ import {
   Hr,
   Html,
   Img,
+  Link,
   Preview,
   Section,
   Text,
@@ -28,6 +29,8 @@ export interface InvoiceEmailProps {
   dueDateFormatted?: string | null;
   language: InvoiceLanguage | string;
   isResend?: boolean;
+  /** Link público de reservas del taller — se omite si el taller no tiene sitio de reservas. */
+  bookingUrl?: string | null;
 }
 
 export function InvoiceEmail({
@@ -43,6 +46,7 @@ export function InvoiceEmail({
   dueDateFormatted,
   language,
   isResend = false,
+  bookingUrl,
 }: InvoiceEmailProps) {
   const t = getInvoiceStrings(language).mail;
   const previewText = isResend
@@ -115,6 +119,14 @@ export function InvoiceEmail({
           </Section>
 
           <Section style={styles.footer}>
+            {bookingUrl && (
+              <Text style={styles.bookingText}>
+                {t.bookOnlineLabel}{" "}
+                <Link href={bookingUrl} style={styles.bookingLink}>
+                  {bookingUrl}
+                </Link>
+              </Text>
+            )}
             <Text style={styles.footerText}>{t.footer(shopName)}</Text>
             <Text style={styles.poweredBy}>{t.poweredBy}</Text>
           </Section>
@@ -240,6 +252,18 @@ const styles = {
     backgroundColor: "#f8fafc",
     borderTop: "1px solid #e2e8f0",
     padding: "20px 40px",
+  },
+  bookingText: {
+    fontSize: "12px",
+    color: "#64748b",
+    lineHeight: "1.6",
+    margin: "0 0 12px 0",
+    textAlign: "center" as const,
+  },
+  bookingLink: {
+    color: "#2563eb",
+    fontWeight: "600",
+    textDecoration: "underline",
   },
   footerText: {
     fontSize: "11px",

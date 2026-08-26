@@ -50,6 +50,8 @@ export interface AppointmentSmsData {
   language?: SmsLanguage | string | null;
   /** Link para confirmar/cancelar la cita — se omite en cancelación. */
   manageUrl?: string | null;
+  /** Link público de reservas del taller — para invitar a reservar de nuevo (ej. tras cancelar). */
+  bookingUrl?: string | null;
 }
 
 type SmsCopyFn = (data: AppointmentSmsData) => string;
@@ -63,7 +65,8 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       `${data.shopName}: recordatorio de tu cita — ${data.title}, ${data.startsAtFormatted}.` +
       (data.manageUrl ? ` Confirmar o cancelar: ${data.manageUrl}` : ""),
     cancellation: (data) =>
-      `${data.shopName}: tu cita "${data.title}" del ${data.startsAtFormatted} fue cancelada.`,
+      `${data.shopName}: tu cita "${data.title}" del ${data.startsAtFormatted} fue cancelada.` +
+      (data.bookingUrl ? ` Agenda una nueva en línea: ${data.bookingUrl}` : ""),
   },
   EN: {
     confirmation: (data) =>
@@ -73,7 +76,8 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       `${data.shopName}: reminder of your appointment — ${data.title}, ${data.startsAtFormatted}.` +
       (data.manageUrl ? ` Confirm or cancel: ${data.manageUrl}` : ""),
     cancellation: (data) =>
-      `${data.shopName}: your appointment "${data.title}" on ${data.startsAtFormatted} was cancelled.`,
+      `${data.shopName}: your appointment "${data.title}" on ${data.startsAtFormatted} was cancelled.` +
+      (data.bookingUrl ? ` Book a new one online: ${data.bookingUrl}` : ""),
   },
   FR: {
     confirmation: (data) =>
@@ -83,7 +87,8 @@ const SMS_COPY: Record<SmsLanguage, Record<AppointmentSmsType, SmsCopyFn>> = {
       `${data.shopName} : rappel de votre rendez-vous — ${data.title}, ${data.startsAtFormatted}.` +
       (data.manageUrl ? ` Confirmer ou annuler : ${data.manageUrl}` : ""),
     cancellation: (data) =>
-      `${data.shopName} : votre rendez-vous « ${data.title} » du ${data.startsAtFormatted} a été annulé.`,
+      `${data.shopName} : votre rendez-vous « ${data.title} » du ${data.startsAtFormatted} a été annulé.` +
+      (data.bookingUrl ? ` Réservez-en un nouveau en ligne : ${data.bookingUrl}` : ""),
   },
 };
 
@@ -102,17 +107,22 @@ export interface InvoiceSmsData {
   invoiceNumber: string;
   totalFormatted: string;
   downloadUrl: string;
+  /** Link público de reservas del taller — se omite si el taller no tiene sitio de reservas. */
+  bookingUrl?: string | null;
   language?: SmsLanguage | string | null;
   isResend?: boolean;
 }
 
 const INVOICE_SMS_COPY: Record<SmsLanguage, (data: InvoiceSmsData) => string> = {
   ES: (data) =>
-    `${data.shopName}: ${data.isResend ? "reenvío de " : ""}factura ${data.invoiceNumber} — ${data.totalFormatted}. Descargar: ${data.downloadUrl}`,
+    `${data.shopName}: ${data.isResend ? "reenvío de " : ""}factura ${data.invoiceNumber} — ${data.totalFormatted}. Descargar: ${data.downloadUrl}` +
+    (data.bookingUrl ? ` Agenda en línea: ${data.bookingUrl}` : ""),
   EN: (data) =>
-    `${data.shopName}: ${data.isResend ? "resend of " : ""}invoice ${data.invoiceNumber} — ${data.totalFormatted}. Download: ${data.downloadUrl}`,
+    `${data.shopName}: ${data.isResend ? "resend of " : ""}invoice ${data.invoiceNumber} — ${data.totalFormatted}. Download: ${data.downloadUrl}` +
+    (data.bookingUrl ? ` Book online: ${data.bookingUrl}` : ""),
   FR: (data) =>
-    `${data.shopName} : ${data.isResend ? "renvoi de " : ""}facture ${data.invoiceNumber} — ${data.totalFormatted}. Télécharger : ${data.downloadUrl}`,
+    `${data.shopName} : ${data.isResend ? "renvoi de " : ""}facture ${data.invoiceNumber} — ${data.totalFormatted}. Télécharger : ${data.downloadUrl}` +
+    (data.bookingUrl ? ` Réservez en ligne : ${data.bookingUrl}` : ""),
 };
 
 export async function sendInvoiceSms(data: InvoiceSmsData): Promise<void> {

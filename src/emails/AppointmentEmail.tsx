@@ -6,6 +6,7 @@ import {
   Heading,
   Hr,
   Html,
+  Link,
   Preview,
   Section,
   Text,
@@ -27,6 +28,8 @@ export interface AppointmentEmailProps {
   language?: AppointmentEmailLanguage | string | null;
   /** Link público para que el cliente confirme o cancele esta cita (sin login). */
   manageUrl?: string | null;
+  /** Link público de reservas del taller — se omite si el taller no tiene sitio de reservas. */
+  bookingUrl?: string | null;
 }
 
 type TypeCopy = { preview: (title: string, shop: string) => string; heading: string; body: string };
@@ -39,6 +42,7 @@ interface LanguageStrings {
   dateTimeLabel: string;
   manageButton: string;
   contactPrompt: string;
+  bookOnlineLabel: string;
   footer: (shop: string) => string;
 }
 
@@ -67,6 +71,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     dateTimeLabel: "FECHA Y HORA",
     manageButton: "Confirmar o cancelar mi cita",
     contactPrompt: "Para cambios o consultas, contáctanos:",
+    bookOnlineLabel: "¿Necesitas otra cita? Resérvala en línea:",
     footer: (shop) => `Este correo fue enviado por ${shop}.`,
   },
   EN: {
@@ -93,6 +98,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     dateTimeLabel: "DATE AND TIME",
     manageButton: "Confirm or cancel my appointment",
     contactPrompt: "For changes or questions, contact us:",
+    bookOnlineLabel: "Need another appointment? Book online:",
     footer: (shop) => `This email was sent by ${shop}.`,
   },
   FR: {
@@ -119,6 +125,7 @@ const STRINGS: Record<AppointmentEmailLanguage, LanguageStrings> = {
     dateTimeLabel: "DATE ET HEURE",
     manageButton: "Confirmer ou annuler mon rendez-vous",
     contactPrompt: "Pour tout changement ou question, contactez-nous :",
+    bookOnlineLabel: "Besoin d'un autre rendez-vous ? Réservez en ligne :",
     footer: (shop) => `Ce courriel a été envoyé par ${shop}.`,
   },
 };
@@ -137,6 +144,7 @@ export function AppointmentEmail({
   shopEmail,
   language,
   manageUrl,
+  bookingUrl,
 }: AppointmentEmailProps) {
   const t = STRINGS[resolveLanguage(language)];
   const copy = t.copy[type];
@@ -181,6 +189,14 @@ export function AppointmentEmail({
           </Section>
 
           <Section style={styles.footer}>
+            {bookingUrl && (
+              <Text style={styles.bookingText}>
+                {t.bookOnlineLabel}{" "}
+                <Link href={bookingUrl} style={styles.bookingLink}>
+                  {bookingUrl}
+                </Link>
+              </Text>
+            )}
             <Text style={styles.footerText}>{t.footer(shopName)}</Text>
           </Section>
         </Container>
@@ -280,6 +296,18 @@ const styles = {
     backgroundColor: "#f8fafc",
     borderTop: "1px solid #e2e8f0",
     padding: "20px 40px",
+  },
+  bookingText: {
+    fontSize: "12px",
+    color: "#64748b",
+    lineHeight: "1.6",
+    margin: "0 0 12px 0",
+    textAlign: "center" as const,
+  },
+  bookingLink: {
+    color: "#0f766e",
+    fontWeight: "600",
+    textDecoration: "underline",
   },
   footerText: {
     fontSize: "11px",
