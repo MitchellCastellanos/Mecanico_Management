@@ -24,7 +24,15 @@ export default auth((req) => {
   if (!req.auth) {
     if (isPublic) return NextResponse.next();
     if (isAdminApp || isPlatform) {
-      const loginUrl = new URL("/admin/login", req.url);
+      // Reconstruye el origen desde los headers de la petición real, no desde
+      // req.url/req.nextUrl: con varios dominios apuntando al mismo proyecto de
+      // Vercel (dominio propio + alias .vercel.app), ese origen puede resolver
+      // a un host distinto al que el navegador realmente pidió y mandar el
+      // redirect a un dominio equivocado.
+      const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+      const protocol = req.headers.get("x-forwarded-proto") ?? "https";
+      const origin = host ? `${protocol}://${host}` : req.nextUrl.origin;
+      const loginUrl = new URL("/admin/login", origin);
       loginUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(loginUrl);
     }
