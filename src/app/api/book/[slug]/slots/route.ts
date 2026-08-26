@@ -26,8 +26,12 @@ export async function GET(
     return NextResponse.json({ slots });
   }
 
+  // Tope de 60 días aunque el taller configure una ventana más larga —
+  // evita disparar cientos de consultas de disponibilidad en un solo request.
+  const windowDays = Math.min(shop.bookingAdvanceDays, 60);
+
   const [availableDates, mechanics] = await Promise.all([
-    getBookableDates(shop, 14),
+    getBookableDates(shop, windowDays),
     getBookableMechanics(shop.id),
   ]);
 
@@ -40,7 +44,7 @@ export async function GET(
       timezone: shop.timezone,
       bookingSlotMinutes: shop.bookingSlotMinutes,
     },
-    dates: getDateWindow(shop, 14),
+    dates: getDateWindow(shop, windowDays),
     availableDates,
     mechanics,
   });

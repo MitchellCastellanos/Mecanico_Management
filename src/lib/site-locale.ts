@@ -55,6 +55,8 @@ export interface SiteDictionary {
     year: string;
     licensePlate: string;
     chooseDateTime: string;
+    previousMonth: string;
+    nextMonth: string;
     mechanicOptional: string;
     anyAvailable: string;
     loadingAvailability: string;
@@ -157,6 +159,8 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       year: "Année *",
       licensePlate: "Plaque (optionnelle)",
       chooseDateTime: "Choisissez la date et l'heure",
+      previousMonth: "Mois précédent",
+      nextMonth: "Mois suivant",
       mechanicOptional: "Mécanicien (optionnel)",
       anyAvailable: "N'importe lequel disponible",
       loadingAvailability: "Chargement des disponibilités...",
@@ -257,6 +261,8 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       year: "Year *",
       licensePlate: "License plate (optional)",
       chooseDateTime: "Choose date and time",
+      previousMonth: "Previous month",
+      nextMonth: "Next month",
       mechanicOptional: "Mechanic (optional)",
       anyAvailable: "Any available",
       loadingAvailability: "Loading availability...",
@@ -357,6 +363,8 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       year: "Año *",
       licensePlate: "Placa (opcional)",
       chooseDateTime: "Elige fecha y hora",
+      previousMonth: "Mes anterior",
+      nextMonth: "Mes siguiente",
       mechanicOptional: "Mecánico (opcional)",
       anyAvailable: "Cualquier disponible",
       loadingAvailability: "Cargando horarios...",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
 import { OTHER_VALUE, VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from "@/lib/vehicle-catalog";
+import { MonthCalendar } from "@/components/booking/MonthCalendar";
 
 interface ShopInfo {
   name: string;
@@ -72,9 +73,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
       .then((data) => {
         if (data.dates) {
           setDates(data.dates);
-          const available: string[] = data.availableDates ?? data.dates;
-          setAvailableDates(new Set(available));
-          setSelectedDate(available[0] ?? data.dates[0] ?? "");
+          setAvailableDates(new Set(data.availableDates ?? data.dates));
         }
         if (data.mechanics) setMechanics(data.mechanics);
       })
@@ -347,54 +346,47 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {dates.map((d) => {
-            const isAvailable = availableDates.has(d);
-            return (
-              <button
-                key={d}
-                type="button"
-                disabled={!isAvailable}
-                onClick={() => isAvailable && setSelectedDate(d)}
-                className={[
-                  "px-3 py-2 rounded-lg text-sm border transition-colors",
-                  !isAvailable
-                    ? "bg-slate-50 text-slate-300 border-slate-100 cursor-not-allowed"
-                    : selectedDate === d
-                      ? "bg-brand-red text-white border-brand-red"
-                      : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
-                ].join(" ")}
-              >
-                {formatDateLabel(d, t.intlLocale)}
-              </button>
-            );
-          })}
-        </div>
+        <MonthCalendar
+          dates={dates}
+          availableDates={availableDates}
+          selectedDate={selectedDate}
+          onSelect={setSelectedDate}
+          intlLocale={t.intlLocale}
+          prevMonthLabel={t.form.previousMonth}
+          nextMonthLabel={t.form.nextMonth}
+        />
 
-        {loadingSlots ? (
-          <div className="flex items-center gap-2 text-slate-500 text-sm py-4">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            {t.form.loadingAvailability}
-          </div>
-        ) : slots.length === 0 ? (
-          <p className="text-sm text-slate-500">{t.form.noSlots}</p>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {slots.map((slot) => (
-              <button
-                key={slot.time}
-                type="button"
-                onClick={() => setSelectedTime(slot.time)}
-                className={[
-                  "px-3 py-2 rounded-lg text-sm border transition-colors min-w-[4.5rem]",
-                  selectedTime === slot.time
-                    ? "bg-brand-red text-white border-brand-red"
-                    : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
-                ].join(" ")}
-              >
-                {slot.time}
-              </button>
-            ))}
+        {selectedDate && (
+          <div>
+            <p className="text-sm font-medium text-slate-700 mb-2 text-center capitalize">
+              {formatDateLabel(selectedDate, t.intlLocale)}
+            </p>
+            {loadingSlots ? (
+              <div className="flex items-center justify-center gap-2 text-slate-500 text-sm py-4">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {t.form.loadingAvailability}
+              </div>
+            ) : slots.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center">{t.form.noSlots}</p>
+            ) : (
+              <div className="flex flex-wrap justify-center gap-2">
+                {slots.map((slot) => (
+                  <button
+                    key={slot.time}
+                    type="button"
+                    onClick={() => setSelectedTime(slot.time)}
+                    className={[
+                      "px-3 py-2 rounded-lg text-sm border transition-colors min-w-[4.5rem]",
+                      selectedTime === slot.time
+                        ? "bg-brand-red text-white border-brand-red"
+                        : "bg-white text-slate-700 border-slate-200 hover:border-red-300",
+                    ].join(" ")}
+                  >
+                    {slot.time}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
