@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import {
   fixOnlineBookingAvailability,
+  reassignMechanicAppointments,
   updateAppointmentBookingSettings,
   updateMechanicBookable,
   updateMechanicWorkingHours,
@@ -46,6 +47,10 @@ export function AppointmentBookingSettings({
   const [hoursPending, startHoursTransition] = useTransition();
   const [mechanicPending, startMechanicTransition] = useTransition();
   const [fixPending, startFixTransition] = useTransition();
+  const [fixTargetId, setFixTargetId] = useState(mechanics[0]?.id ?? "");
+  const [reassignPending, startReassignTransition] = useTransition();
+  const [reassignFromId, setReassignFromId] = useState(mechanics[0]?.id ?? "");
+  const [reassignToId, setReassignToId] = useState(mechanics[1]?.id ?? mechanics[0]?.id ?? "");
 
   function handleBookingSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -80,19 +85,49 @@ export function AppointmentBookingSettings({
   }
 
   function handleFixAvailability() {
+    if (!fixTargetId) {
+      toast.error("Elige a qué mecánico asignar");
+      return;
+    }
     startFixTransition(async () => {
-      const result = await fixOnlineBookingAvailability();
+      const result = await fixOnlineBookingAvailability(fixTargetId);
       if (result?.error) {
         toast.error(result.error);
         return;
       }
+      const targetName = mechanics.find((m) => m.id === fixTargetId)?.name ?? "mecánico";
       const parts: string[] = [];
       if (result?.advanceDaysUpdated) parts.push("ventana a 90 días");
-      if (result?.madeBookable) parts.push("marcado como reservable");
+      if (result?.madeBookable) parts.push(`${targetName} marcado como reservable`);
       if (result?.appointmentsAssigned) {
-        parts.push(`${result.appointmentsAssigned} cita(s) asignadas a ti`);
+        parts.push(`${result.appointmentsAssigned} cita(s) asignadas a ${targetName}`);
       }
       toast.success(parts.length > 0 ? `Listo: ${parts.join(", ")}` : "Ya estaba todo al día");
+    });
+  }
+
+  function handleReassign() {
+    if (!reassignFromId || !reassignToId) {
+      toast.error("Elige origen y destino");
+      return;
+    }
+    if (reassignFromId === reassignToId) {
+      toast.error("Elige dos personas distintas");
+      return;
+    }
+    startReassignTransition(async () => {
+      const result = await reassignMechanicAppointments(reassignFromId, reassignToId);
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      const fromName = mechanics.find((m) => m.id === reassignFromId)?.name ?? "origen";
+      const toName = mechanics.find((m) => m.id === reassignToId)?.name ?? "destino";
+      toast.success(
+        result?.reassigned
+          ? `${result.reassigned} cita(s) movidas de ${fromName} a ${toName}`
+          : `${fromName} no tenía citas asignadas`
+      );
     });
   }
 
@@ -341,22 +376,92 @@ export function AppointmentBookingSettings({
         <div>
           <h2 className="font-semibold text-slate-900">Dejar la disponibilidad lista</h2>
           <p className="text-sm text-slate-500 mt-1">
-            Un solo clic: sube la ventana de reserva a 90 días, te marca (dueño) como mecánico
-            reservable, y asigna a tu cuenta todas las citas del taller que todavía no tienen
-            mecánico — sin eso, esas citas no bloquean horarios en el sitio público. Seguro de
-            correr más de una vez, no duplica nada.
+            Sube la ventana de reserva a 90 días, marca como reservable al mecánico que elijas
+            abajo, y le asigna todas las citas del taller que todavía no tienen mecánico — sin
+            eso, esas citas no bloquean horarios en el sitio público. Seguro de correr más de una
+            vez, no duplica nada.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={handleFixAvailability}
-          disabled={fixPending}
-          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
-        >
-          {fixPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
-          Dejar disponibilidad lista
-        </button>
+        {mechanics.length === 0 ? (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-3">
+            Primero crea un usuario con rol Mecánico en Equipo del taller.
+          </p>
+        ) : (
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={fixTargetId}
+              onChange={(e) => setFixTargetId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            >
+              {mechanics.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name} ({m.role === "OWNER" ? "Dueño" : "Mecánico"})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleFixAvailability}
+              disabled={fixPending}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
+            >
+              {fixPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+              Dejar disponibilidad lista
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-slate-400">
+          Ojo: elige aquí a tu mecánico real (ej. Carlos), no una cuenta de soporte o de
+          plataforma — esa cuenta quedaría marcada como reservable y apareciendo en el
+          calendario público.
+        </p>
       </div>
+
+      {mechanics.length >= 2 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-5 space-y-3">
+          <div>
+            <h2 className="font-semibold text-slate-900">Corregir citas mal asignadas</h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Si por error quedaron citas a nombre de la persona equivocada (por ejemplo, se usó
+              una cuenta de soporte en vez del mecánico real), muévelas todas de una sola vez.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <select
+              value={reassignFromId}
+              onChange={(e) => setReassignFromId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            >
+              {mechanics.map((m) => (
+                <option key={m.id} value={m.id}>
+                  De: {m.name} ({m.role === "OWNER" ? "Dueño" : "Mecánico"})
+                </option>
+              ))}
+            </select>
+            <span className="text-slate-400 text-sm">→</span>
+            <select
+              value={reassignToId}
+              onChange={(e) => setReassignToId(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg text-sm"
+            >
+              {mechanics.map((m) => (
+                <option key={m.id} value={m.id}>
+                  A: {m.name} ({m.role === "OWNER" ? "Dueño" : "Mecánico"})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleReassign}
+              disabled={reassignPending}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-medium px-5 py-2 rounded-lg"
+            >
+              {reassignPending && <Loader2 className="w-4 h-4 animate-spin" />}
+              Mover citas
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

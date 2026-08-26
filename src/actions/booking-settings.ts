@@ -207,37 +207,73 @@ export async function updateMechanicBookable(userId: string, bookable: boolean) 
 
 /**
  * Ajuste de arranque para la reserva en línea: deja la ventana en 90 días,
- * te marca (dueño logueado) como mecánico reservable, y asigna a tu cuenta
- * todas las citas del taller que todavía no tienen mecánico — sin eso esas
- * citas no bloquean horarios en el sitio público y se podría reservar
- * encima de ellas. Seguro de correr más de una vez (no duplica nada).
+ * marca como reservable al mecánico indicado, y le asigna todas las citas
+ * del taller que todavía no tienen mecánico — sin eso esas citas no
+ * bloquean horarios en el sitio público y se podría reservar encima de
+ * ellas. Seguro de correr más de una vez (no duplica nada).
+ *
+ * IMPORTANTE: recibe explícitamente a quién asignar — nunca asumas que es
+ * quien está logueado. Una cuenta OWNER puede ser de soporte/plataforma
+ * (no un mecánico real del taller), y asignarle citas a ciegas rompe el
+ * calendario público.
  */
-export async function fixOnlineBookingAvailability() {
+export async function fixOnlineBookingAvailability(targetMechanicId: string) {
   const session = await requireOwner();
   const shopId = session.user.shopId!;
-  const ownerId = session.user.id!;
 
   const shop = await db.shop.findUnique({ where: { id: shopId } });
   if (!shop) return { error: "Taller no encontrado" };
+
+  const target = await findShopMechanic(targetMechanicId, shopId);
+  if (!target) return { error: "Mecánico no encontrado" };
 
   const advanceDaysUpdated = shop.bookingAdvanceDays !== 90;
   if (advanceDaysUpdated) {
     await db.shop.update({ where: { id: shopId }, data: { bookingAdvanceDays: 90 } });
   }
 
-  const owner = await db.user.findUnique({ where: { id: ownerId } });
-  const madeBookable = !!owner && !owner.bookable;
+  const madeBookable = !target.bookable;
   if (madeBookable) {
-    await db.user.update({ where: { id: ownerId }, data: { bookable: true } });
+    await db.user.update({ where: { id: targetMechanicId }, data: { bookable: true } });
   }
 
   const { count: appointmentsAssigned } = await db.appointment.updateMany({
     where: { shopId, mechanicId: null },
-    data: { mechanicId: ownerId },
+    data: { mechanicId: targetMechanicId },
   });
 
   revalidatePath(ADMIN.settings);
   return { success: true, advanceDaysUpdated, madeBookable, appointmentsAssigned };
+}
+
+/**
+ * Corrige una asignación equivocada: mueve todas las citas que quedaron a
+ * nombre de un usuario (ej. una cuenta de soporte/plataforma usada por
+ * error como mecánico) hacia el mecánico correcto.
+ */
+export async function reassignMechanicAppointments(fromUserId: string, toUserId: string) {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+
+  if (fromUserId === toUserId) {
+    return { error: "Elige dos personas distintas" };
+  }
+
+  const [fromUser, toUser] = await Promise.all([
+    db.user.findFirst({ where: { id: fromUserId, shopId } }),
+    findShopMechanic(toUserId, shopId),
+  ]);
+
+  if (!fromUser) return { error: "Usuario de origen no encontrado" };
+  if (!toUser) return { error: "Mecánico de destino no encontrado" };
+
+  const { count: reassigned } = await db.appointment.updateMany({
+    where: { shopId, mechanicId: fromUserId },
+    data: { mechanicId: toUserId },
+  });
+
+  revalidatePath(ADMIN.settings);
+  return { success: true, reassigned };
 }
 
 // ── DISPONIBILIDAD POR MECÁNICO ────────────────────────────────
