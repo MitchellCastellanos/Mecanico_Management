@@ -4,6 +4,7 @@ import {
   getShopDayOfWeek,
   parseShopDateTime,
 } from "@/lib/shop-timezone";
+import { SERVICE_DURATIONS, SERVICE_KEYS } from "@/lib/service-catalog";
 
 export interface AvailableSlot {
   date: string;
@@ -50,6 +51,42 @@ export async function getShopBySlug(slug: string) {
     where: { slug },
     include: { workingHours: { orderBy: { dayOfWeek: "asc" } } },
   });
+}
+
+export interface ShopServiceCatalogRow {
+  key: string;
+  durationMinutes: number;
+  isActive: boolean;
+}
+
+/**
+ * Catálogo de servicios de un taller para el calendario público: fusiona los
+ * defaults de src/lib/service-catalog.ts con los ajustes guardados en
+ * ShopBookingService (Configuración → Servicios). Una clave sin fila ahí usa
+ * el default (activa, con su duración de fábrica).
+ */
+export async function getShopServiceCatalog(shopId: string): Promise<ShopServiceCatalogRow[]> {
+  const overrides = await db.shopBookingService.findMany({
+    where: { shopId },
+    orderBy: { sortOrder: "asc" },
+  });
+  const overrideByKey = new Map(overrides.map((o) => [o.key, o]));
+  const keys = [...SERVICE_KEYS, ...overrides.map((o) => o.key).filter((k) => !SERVICE_KEYS.includes(k))];
+
+  return keys.map((key) => {
+    const override = overrideByKey.get(key);
+    return {
+      key,
+      durationMinutes: override?.durationMinutes ?? SERVICE_DURATIONS[key],
+      isActive: override?.isActive ?? true,
+    };
+  });
+}
+
+/** Mapa clave → duración (minutos) para pasarle a resolveServiceDuration como overrides. */
+export async function getShopServiceDurations(shopId: string): Promise<Record<string, number>> {
+  const catalog = await getShopServiceCatalog(shopId);
+  return Object.fromEntries(catalog.map((row) => [row.key, row.durationMinutes]));
 }
 
 export async function getBookableMechanics(shopId: string) {

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAvailableSlots, getBookableDates, getDateWindow, getShopBySlug } from "@/lib/booking-slots";
+import {
+  getAvailableSlots,
+  getBookableDates,
+  getDateWindow,
+  getShopBySlug,
+  getShopServiceDurations,
+} from "@/lib/booking-slots";
 import { resolveServiceDuration } from "@/lib/service-catalog";
 
 export async function GET(
@@ -15,7 +21,8 @@ export async function GET(
 
   const date = req.nextUrl.searchParams.get("date");
   const service = req.nextUrl.searchParams.get("service");
-  const durationMinutes = resolveServiceDuration(service, shop.bookingSlotMinutes);
+  const serviceDurations = await getShopServiceDurations(shop.id);
+  const durationMinutes = resolveServiceDuration(service, shop.bookingSlotMinutes, serviceDurations);
 
   if (date) {
     // Sin filtro de mecánico: un horario aparece disponible en cuanto

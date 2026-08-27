@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260825-mechanic-working-hours-v1";
+export const SCHEMA_VERSION = "20260827-shop-booking-services-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -318,6 +318,25 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
     ALTER TABLE mecanico."MechanicWorkingHours"
       ADD CONSTRAINT "MechanicWorkingHours_userId_fkey"
       FOREIGN KEY ("userId") REFERENCES mecanico."User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END $$`,
+  // ── Servicios del calendario público por taller: duración y visibilidad ────
+  `CREATE TABLE IF NOT EXISTS mecanico."ShopBookingService" (
+    "id" TEXT NOT NULL,
+    "shopId" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "durationMinutes" INTEGER NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "sortOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    CONSTRAINT "ShopBookingService_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "ShopBookingService_shopId_key_key" ON mecanico."ShopBookingService"("shopId", "key")`,
+  `DO $$ BEGIN
+    ALTER TABLE mecanico."ShopBookingService"
+      ADD CONSTRAINT "ShopBookingService_shopId_fkey"
+      FOREIGN KEY ("shopId") REFERENCES mecanico."Shop"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
 ] as const;

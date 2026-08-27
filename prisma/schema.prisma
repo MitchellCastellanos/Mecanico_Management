@@ -43,6 +43,7 @@ model Shop {
 
   users         User[]
   workingHours  ShopWorkingHours[]
+  bookingServices ShopBookingService[]
   clients       Client[]
   invoices      Invoice[]
   quotes        Quote[]
@@ -493,6 +494,25 @@ model MechanicWorkingHours {
   isClosed  Boolean @default(false)
 
   @@unique([userId, dayOfWeek])
+}
+
+// Ajustes por taller de los servicios que aparecen en el calendario público
+// (/book/[slug]): duración y visibilidad. Una clave sin fila aquí usa el
+// default de src/lib/service-catalog.ts (activo, duración por defecto).
+model ShopBookingService {
+  @@schema("mecanico")
+
+  id              String   @id @default(cuid())
+  shopId          String
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  key             String   // coincide con `value` en site-locale.ts → form.serviceOptions
+  durationMinutes Int
+  isActive        Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([shopId, key])
 }
 
 // ─────────────────────────────────────────

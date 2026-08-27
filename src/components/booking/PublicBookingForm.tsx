@@ -23,12 +23,19 @@ interface Slot {
 interface PublicBookingFormProps {
   slug: string;
   shop: ShopInfo;
+  /** Servicios activos del taller (Configuración → Servicios) con su duración real. */
+  services: { key: string; durationMinutes: number }[];
 }
 
 const NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE = { fr: "FR", en: "EN", es: "ES" } as const;
 
-export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
+export function PublicBookingForm({ slug, shop, services }: PublicBookingFormProps) {
   const { locale, t } = useSiteLocale();
+  const activeServiceKeys = new Set(services.map((s) => s.key));
+  const serviceDurations = Object.fromEntries(services.map((s) => [s.key, s.durationMinutes]));
+  const visibleServiceOptions = t.form.serviceOptions.filter(
+    (opt) => opt.value === OTHER_VALUE || activeServiceKeys.has(opt.value)
+  );
   const [step, setStep] = useState<"form" | "done">("form");
   const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
@@ -56,7 +63,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
     serviceValue === OTHER_VALUE
       ? serviceOther.trim()
       : (t.form.serviceOptions.find((o) => o.value === serviceValue)?.label ?? "");
-  const durationMinutes = resolveServiceDuration(serviceValue, shop.bookingSlotMinutes);
+  const durationMinutes = resolveServiceDuration(serviceValue, shop.bookingSlotMinutes, serviceDurations);
 
   function handleMakeChange(value: string) {
     setMake(value);
@@ -238,7 +245,7 @@ export function PublicBookingForm({ slug, shop }: PublicBookingFormProps) {
           <option value="" disabled>
             {t.form.selectPlaceholder}
           </option>
-          {t.form.serviceOptions.map((opt) => (
+          {visibleServiceOptions.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
             </option>
