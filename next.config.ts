@@ -53,6 +53,22 @@ const nextConfig: NextConfig = {
       source: "/",
       destination: bookingPublicPath(),
       permanent: false,
+      // Los bots que generan vistas previas de links (WhatsApp, Facebook, X,
+      // Slack, Discord, iMessage, buscadores…) no siguen bien redirects para
+      // leer metadatos OG — si el user-agent coincide con uno conocido, se
+      // sirve "/" tal cual (ver src/app/page.tsx) en vez de redirigir, para
+      // que el link corto muestre un preview enriquecido.
+      missing: [
+        {
+          type: "header" as const,
+          key: "user-agent",
+          // Next ancla este valor como ^valor$ (matchHas en
+          // prepare-destination.js), así que hace falta .* a los lados para
+          // que actúe como "contiene", no como igualdad exacta.
+          value:
+            ".*(facebookexternalhit|Facebot|Twitterbot|Slackbot|Discordbot|LinkedInBot|TelegramBot|WhatsApp|SkypeUriPreview|Pinterest|redditbot|Applebot|Googlebot|bingbot|DuckDuckBot|YandexBot|vkShare|Iframely|W3C_Validator|Bytespider|ia_archiver).*",
+        },
+      ],
     };
 
     return [...legacyHostRedirects, rootRedirect, ...legacyAppRoots, ...legacyAppPaths];

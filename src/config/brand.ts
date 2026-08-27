@@ -34,10 +34,10 @@ export const BRAND = {
   legacyHosts: ["mecanico-management.vercel.app"],
 } as const;
 
-export function bookingPublicPath(slug = BRAND.bookingSlug): string {
+export function bookingPublicPath(slug: string = BRAND.bookingSlug): string {
   return `/book/${slug}`;
 }
 
-export function bookingPublicUrl(slug = BRAND.bookingSlug): string {
+export function bookingPublicUrl(slug: string = BRAND.bookingSlug): string {
   return `${BRAND.appUrl}${bookingPublicPath(slug)}`;
 }
