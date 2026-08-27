@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260827-shop-booking-services-v1";
+export const SCHEMA_VERSION = "20260827-quote-revenue-type-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -339,6 +339,8 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
       FOREIGN KEY ("shopId") REFERENCES mecanico."Shop"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL;
   END $$`,
+  // ── Cotizaciones también deciden Efectivo/Interno vs Tarjeta/Declarado ────
+  `ALTER TABLE mecanico."Quote" ADD COLUMN IF NOT EXISTS "revenueType" mecanico."RevenueType" NOT NULL DEFAULT 'OFFICIAL'`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {
