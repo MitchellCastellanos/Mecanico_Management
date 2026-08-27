@@ -6,8 +6,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/permissions";
 import { DEFAULT_WORKING_HOURS, getShopServiceCatalog } from "@/lib/booking-slots";
-import { getPublicBookingUrl, isValidShopSlug, slugifyShopName } from "@/lib/shop-slug";
-import { BRAND } from "@/config/brand";
+import { getPublicBookingUrl } from "@/lib/shop-slug";
 import { DAY_LABELS, type WorkingHoursRow } from "@/lib/working-hours";
 import { SERVICE_KEYS } from "@/lib/service-catalog";
 import { SITE_DICTIONARIES } from "@/lib/site-locale";
@@ -74,12 +73,8 @@ export async function getAppointmentBookingSettings() {
     return { ...mechanic, usesShopHours, workingHours: hours };
   });
 
-  const slug = shop.slug ?? BRAND.bookingSlug;
-
   return {
     shop: {
-      slug: shop.slug,
-      suggestedSlug: slug,
       bookingEnabled: shop.bookingEnabled,
       timezone: shop.timezone,
       bookingSlotMinutes: shop.bookingSlotMinutes,
@@ -93,11 +88,6 @@ export async function getAppointmentBookingSettings() {
 }
 
 const bookingSettingsSchema = z.object({
-  slug: z
-    .string()
-    .min(3, "Mínimo 3 caracteres")
-    .max(48)
-    .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones"),
   bookingEnabled: z.coerce.boolean(),
   bookingSlotMinutes: z.coerce.number().int().min(15).max(240),
   bookingLeadTimeHours: z.coerce.number().int().min(1).max(168),
@@ -109,7 +99,6 @@ export async function updateAppointmentBookingSettings(formData: FormData) {
   const shopId = session.user.shopId!;
 
   const parsed = bookingSettingsSchema.safeParse({
-    slug: (formData.get("slug") as string)?.trim().toLowerCase(),
     bookingEnabled: formData.get("bookingEnabled") === "on",
     bookingSlotMinutes: formData.get("bookingSlotMinutes"),
     bookingLeadTimeHours: formData.get("bookingLeadTimeHours"),
@@ -120,24 +109,12 @@ export async function updateAppointmentBookingSettings(formData: FormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { slug, bookingEnabled, bookingSlotMinutes, bookingLeadTimeHours, bookingAdvanceDays } =
+  const { bookingEnabled, bookingSlotMinutes, bookingLeadTimeHours, bookingAdvanceDays } =
     parsed.data;
-
-  if (!isValidShopSlug(slug)) {
-    return { error: { slug: ["Formato de enlace inválido"] } };
-  }
-
-  const taken = await db.shop.findFirst({
-    where: { slug, NOT: { id: shopId } },
-  });
-  if (taken) {
-    return { error: { slug: ["Este enlace ya está en uso por otro taller"] } };
-  }
 
   await db.shop.update({
     where: { id: shopId },
     data: {
-      slug,
       bookingEnabled,
       bookingSlotMinutes,
       bookingLeadTimeHours,
@@ -146,7 +123,7 @@ export async function updateAppointmentBookingSettings(formData: FormData) {
   });
 
   revalidatePath(ADMIN.settings);
-  return { success: true, bookingUrl: getPublicBookingUrl(slug) };
+  return { success: true };
 }
 
 const timeRegex = /^\d{2}:\d{2}$/;
@@ -205,77 +182,6 @@ export async function updateMechanicBookable(userId: string, bookable: boolean) 
   await db.user.update({ where: { id: userId }, data: { bookable } });
   revalidatePath(ADMIN.settings);
   return { success: true };
-}
-
-/**
- * Ajuste de arranque para la reserva en línea: deja la ventana en 90 días,
- * marca como reservable al mecánico indicado, y le asigna todas las citas
- * del taller que todavía no tienen mecánico — sin eso esas citas no
- * bloquean horarios en el sitio público y se podría reservar encima de
- * ellas. Seguro de correr más de una vez (no duplica nada).
- *
- * IMPORTANTE: recibe explícitamente a quién asignar — nunca asumas que es
- * quien está logueado. Una cuenta OWNER puede ser de soporte/plataforma
- * (no un mecánico real del taller), y asignarle citas a ciegas rompe el
- * calendario público.
- */
-export async function fixOnlineBookingAvailability(targetMechanicId: string) {
-  const session = await requireOwner();
-  const shopId = session.user.shopId!;
-
-  const shop = await db.shop.findUnique({ where: { id: shopId } });
-  if (!shop) return { error: "Taller no encontrado" };
-
-  const target = await findShopMechanic(targetMechanicId, shopId);
-  if (!target) return { error: "Mecánico no encontrado" };
-
-  const advanceDaysUpdated = shop.bookingAdvanceDays !== 90;
-  if (advanceDaysUpdated) {
-    await db.shop.update({ where: { id: shopId }, data: { bookingAdvanceDays: 90 } });
-  }
-
-  const madeBookable = !target.bookable;
-  if (madeBookable) {
-    await db.user.update({ where: { id: targetMechanicId }, data: { bookable: true } });
-  }
-
-  const { count: appointmentsAssigned } = await db.appointment.updateMany({
-    where: { shopId, mechanicId: null },
-    data: { mechanicId: targetMechanicId },
-  });
-
-  revalidatePath(ADMIN.settings);
-  return { success: true, advanceDaysUpdated, madeBookable, appointmentsAssigned };
-}
-
-/**
- * Corrige una asignación equivocada: mueve todas las citas que quedaron a
- * nombre de un usuario (ej. una cuenta de soporte/plataforma usada por
- * error como mecánico) hacia el mecánico correcto.
- */
-export async function reassignMechanicAppointments(fromUserId: string, toUserId: string) {
-  const session = await requireOwner();
-  const shopId = session.user.shopId!;
-
-  if (fromUserId === toUserId) {
-    return { error: "Elige dos personas distintas" };
-  }
-
-  const [fromUser, toUser] = await Promise.all([
-    db.user.findFirst({ where: { id: fromUserId, shopId } }),
-    findShopMechanic(toUserId, shopId),
-  ]);
-
-  if (!fromUser) return { error: "Usuario de origen no encontrado" };
-  if (!toUser) return { error: "Mecánico de destino no encontrado" };
-
-  const { count: reassigned } = await db.appointment.updateMany({
-    where: { shopId, mechanicId: fromUserId },
-    data: { mechanicId: toUserId },
-  });
-
-  revalidatePath(ADMIN.settings);
-  return { success: true, reassigned };
 }
 
 // ── DISPONIBILIDAD POR MECÁNICO ────────────────────────────────
