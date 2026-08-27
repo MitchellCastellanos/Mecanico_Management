@@ -13,9 +13,10 @@ interface BookingSectionProps {
     logoUrl: string | null;
     bookingSlotMinutes: number;
   };
+  services: { key: string; durationMinutes: number }[];
 }
 
-export function BookingSection({ slug, shop }: BookingSectionProps) {
+export function BookingSection({ slug, shop, services }: BookingSectionProps) {
   const { t } = useSiteLocale();
 
   return (
@@ -44,7 +45,7 @@ export function BookingSection({ slug, shop }: BookingSectionProps) {
           transition={{ duration: 0.55, delay: 0.1 }}
           className="bg-white rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50 p-5 sm:p-6"
         >
-          <PublicBookingForm slug={slug} shop={shop} />
+          <PublicBookingForm slug={slug} shop={shop} services={services} />
         </motion.div>
       </div>
     </section>

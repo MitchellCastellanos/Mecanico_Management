@@ -20,11 +20,20 @@ export const SERVICE_DURATIONS: Record<string, number> = {
   general: 90,
 };
 
-/** Duración en minutos para un valor de servicio, o el valor por defecto del taller si no se conoce. */
+/** Orden por defecto de las claves del catálogo (no incluye "other" — es texto libre). */
+export const SERVICE_KEYS = Object.keys(SERVICE_DURATIONS);
+
+/**
+ * Duración en minutos para un valor de servicio.
+ * `overrides` son las duraciones que el taller configuró en Configuración → Servicios
+ * (src/actions/booking-settings.ts); si no hay override ni default conocido, usa el
+ * valor por defecto del taller.
+ */
 export function resolveServiceDuration(
   serviceValue: string | null | undefined,
-  fallbackMinutes: number
+  fallbackMinutes: number,
+  overrides?: Record<string, number>
 ): number {
   if (!serviceValue) return fallbackMinutes;
-  return SERVICE_DURATIONS[serviceValue] ?? fallbackMinutes;
+  return overrides?.[serviceValue] ?? SERVICE_DURATIONS[serviceValue] ?? fallbackMinutes;
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { findAvailableMechanic, getShopBySlug } from "@/lib/booking-slots";
+import { findAvailableMechanic, getShopBySlug, getShopServiceDurations } from "@/lib/booking-slots";
 import { resolveServiceDuration } from "@/lib/service-catalog";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
@@ -43,7 +43,12 @@ export async function POST(
   }
 
   const data = parsed.data;
-  const durationMinutes = resolveServiceDuration(data.serviceValue, shop.bookingSlotMinutes);
+  const serviceDurations = await getShopServiceDurations(shop.id);
+  const durationMinutes = resolveServiceDuration(
+    data.serviceValue,
+    shop.bookingSlotMinutes,
+    serviceDurations
+  );
   const mechanic = await findAvailableMechanic(
     shop,
     data.date,

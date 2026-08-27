@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getShopBySlug } from "@/lib/booking-slots";
+import { getShopBySlug, getShopServiceCatalog } from "@/lib/booking-slots";
 import { BRAND, bookingPublicUrl } from "@/config/brand";
 import { LocaleProvider } from "@/components/booking/LocaleProvider";
 import { SiteHeader } from "@/components/booking/SiteHeader";
@@ -63,6 +63,11 @@ export default async function PublicBookingPage({ params }: PageProps) {
     notFound();
   }
 
+  const catalog = await getShopServiceCatalog(shop.id);
+  const activeServices = catalog
+    .filter((row) => row.isActive)
+    .map((row) => ({ key: row.key, durationMinutes: row.durationMinutes }));
+
   return (
     <LocaleProvider>
       <div className="min-h-full">
@@ -80,6 +85,7 @@ export default async function PublicBookingPage({ params }: PageProps) {
             logoUrl: shop.logoUrl,
             bookingSlotMinutes: shop.bookingSlotMinutes,
           }}
+          services={activeServices}
         />
         <SiteFooter
           shopName={shop.name}

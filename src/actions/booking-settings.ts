@@ -5,10 +5,12 @@ import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireOwner } from "@/lib/permissions";
-import { DEFAULT_WORKING_HOURS } from "@/lib/booking-slots";
+import { DEFAULT_WORKING_HOURS, getShopServiceCatalog } from "@/lib/booking-slots";
 import { getPublicBookingUrl, isValidShopSlug, slugifyShopName } from "@/lib/shop-slug";
 import { BRAND } from "@/config/brand";
 import { DAY_LABELS, type WorkingHoursRow } from "@/lib/working-hours";
+import { SERVICE_KEYS } from "@/lib/service-catalog";
+import { SITE_DICTIONARIES } from "@/lib/site-locale";
 import { z } from "zod";
 
 export async function getAppointmentBookingSettings() {
@@ -337,6 +339,56 @@ export async function resetMechanicWorkingHours(userId: string) {
   if (!mechanic) return { error: "Mecánico no encontrado" };
 
   await db.mechanicWorkingHours.deleteMany({ where: { userId } });
+  revalidatePath(ADMIN.settings);
+  return { success: true };
+}
+
+// ── SERVICIOS DEL CALENDARIO PÚBLICO ────────────────────────────
+
+/**
+ * Catálogo de servicios del taller para /admin/settings: los defaults de
+ * src/lib/service-catalog.ts (todos activos, con su duración de fábrica)
+ * fusionados con lo que el taller haya guardado en ShopBookingService.
+ */
+export async function getServiceCatalogSettings() {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+
+  const catalog = await getShopServiceCatalog(shopId);
+  const labels = SITE_DICTIONARIES.es.form.serviceOptions;
+
+  return catalog.map((row) => ({
+    ...row,
+    label: labels.find((opt) => opt.value === row.key)?.label ?? row.key,
+  }));
+}
+
+export async function updateServiceCatalog(formData: FormData) {
+  const session = await requireOwner();
+  const shopId = session.user.shopId!;
+
+  const rows: { key: string; durationMinutes: number; isActive: boolean; sortOrder: number }[] = [];
+
+  for (const [index, key] of SERVICE_KEYS.entries()) {
+    const durationMinutes = Number(formData.get(`duration_${key}`));
+    if (!Number.isFinite(durationMinutes) || durationMinutes < 5 || durationMinutes > 480) {
+      return { error: { _form: ["Duración inválida — debe estar entre 5 y 480 minutos"] } };
+    }
+    rows.push({
+      key,
+      durationMinutes,
+      isActive: formData.get(`active_${key}`) === "on",
+      sortOrder: index,
+    });
+  }
+
+  await db.$transaction([
+    db.shopBookingService.deleteMany({ where: { shopId } }),
+    db.shopBookingService.createMany({
+      data: rows.map((row) => ({ id: crypto.randomUUID(), shopId, ...row })),
+    }),
+  ]);
+
   revalidatePath(ADMIN.settings);
   return { success: true };
 }
