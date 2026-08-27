@@ -10,6 +10,7 @@ import {
   updateShopWorkingHours,
 } from "@/actions/booking-settings";
 import type { WorkingHoursRow } from "@/lib/working-hours";
+import { Switch } from "@/components/ui/Switch";
 import { Calendar, ChevronDown, Copy, ExternalLink, Loader2 } from "lucide-react";
 
 interface MechanicRow {
@@ -89,13 +90,7 @@ export function AppointmentBookingSettings({
         <form onSubmit={handleBookingSubmit} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center gap-3 sm:col-span-2">
-              <input
-                id="bookingEnabled"
-                name="bookingEnabled"
-                type="checkbox"
-                defaultChecked={shop.bookingEnabled}
-                className="w-4 h-4 rounded border-slate-300 text-teal-600"
-              />
+              <Switch id="bookingEnabled" name="bookingEnabled" defaultChecked={shop.bookingEnabled} />
               <label htmlFor="bookingEnabled" className="text-sm text-slate-700">
                 Activar reservas en línea (visible en /book/…)
               </label>
