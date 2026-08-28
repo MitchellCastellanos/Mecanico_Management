@@ -5,6 +5,7 @@ import {
   parseShopDateTime,
 } from "@/lib/shop-timezone";
 import { SERVICE_DURATIONS, SERVICE_KEYS } from "@/lib/service-catalog";
+import { SITE_DICTIONARIES } from "@/lib/site-locale";
 
 export interface AvailableSlot {
   date: string;
@@ -54,39 +55,58 @@ export async function getShopBySlug(slug: string) {
 }
 
 export interface ShopServiceCatalogRow {
-  key: string;
+  /** Identificador estable para esta fila: usarlo como `value` del <select> y para resolver duración. */
+  id: string;
+  labelFr: string;
+  labelEn: string;
+  labelEs: string;
   durationMinutes: number;
   isActive: boolean;
+  sortOrder: number;
+}
+
+/** Catálogo de fábrica (SERVICE_DURATIONS + traducciones de site-locale.ts) — lo que ve un taller que nunca tocó Configuración → Servicios. */
+function defaultServiceCatalog(): ShopServiceCatalogRow[] {
+  return SERVICE_KEYS.map((key, index) => ({
+    id: key,
+    labelFr: SITE_DICTIONARIES.fr.form.serviceOptions.find((o) => o.value === key)?.label ?? key,
+    labelEn: SITE_DICTIONARIES.en.form.serviceOptions.find((o) => o.value === key)?.label ?? key,
+    labelEs: SITE_DICTIONARIES.es.form.serviceOptions.find((o) => o.value === key)?.label ?? key,
+    durationMinutes: SERVICE_DURATIONS[key],
+    isActive: true,
+    sortOrder: index,
+  }));
 }
 
 /**
- * Catálogo de servicios de un taller para el calendario público: fusiona los
- * defaults de src/lib/service-catalog.ts con los ajustes guardados en
- * ShopBookingService (Configuración → Servicios). Una clave sin fila ahí usa
- * el default (activa, con su duración de fábrica).
+ * Catálogo de servicios de un taller para el calendario público. Si el
+ * taller ya guardó algo desde Configuración → Servicios, esas filas son la
+ * única verdad (el admin puede agregar, editar o quitar libremente). Si
+ * todavía no ha guardado nada, se ve el catálogo de fábrica.
  */
 export async function getShopServiceCatalog(shopId: string): Promise<ShopServiceCatalogRow[]> {
-  const overrides = await db.shopBookingService.findMany({
+  const rows = await db.shopBookingService.findMany({
     where: { shopId },
     orderBy: { sortOrder: "asc" },
   });
-  const overrideByKey = new Map(overrides.map((o) => [o.key, o]));
-  const keys = [...SERVICE_KEYS, ...overrides.map((o) => o.key).filter((k) => !SERVICE_KEYS.includes(k))];
 
-  return keys.map((key) => {
-    const override = overrideByKey.get(key);
-    return {
-      key,
-      durationMinutes: override?.durationMinutes ?? SERVICE_DURATIONS[key],
-      isActive: override?.isActive ?? true,
-    };
-  });
+  if (rows.length === 0) return defaultServiceCatalog();
+
+  return rows.map((row) => ({
+    id: row.id,
+    labelFr: row.labelFr,
+    labelEn: row.labelEn,
+    labelEs: row.labelEs,
+    durationMinutes: row.durationMinutes,
+    isActive: row.isActive,
+    sortOrder: row.sortOrder,
+  }));
 }
 
-/** Mapa clave → duración (minutos) para pasarle a resolveServiceDuration como overrides. */
+/** Mapa id → duración (minutos) para pasarle a resolveServiceDuration como overrides. */
 export async function getShopServiceDurations(shopId: string): Promise<Record<string, number>> {
   const catalog = await getShopServiceCatalog(shopId);
-  return Object.fromEntries(catalog.map((row) => [row.key, row.durationMinutes]));
+  return Object.fromEntries(catalog.map((row) => [row.id, row.durationMinutes]));
 }
 
 export async function getBookableMechanics(shopId: string) {
