@@ -332,7 +332,14 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
     "updatedAt" TIMESTAMP(3) NOT NULL,
     CONSTRAINT "ShopBookingService_pkey" PRIMARY KEY ("id")
   )`,
-  `CREATE UNIQUE INDEX IF NOT EXISTS "ShopBookingService_shopId_key_key" ON mecanico."ShopBookingService"("shopId", "key")`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'ShopBookingService' AND column_name = 'key'
+    ) THEN
+      CREATE UNIQUE INDEX IF NOT EXISTS "ShopBookingService_shopId_key_key" ON mecanico."ShopBookingService"("shopId", "key");
+    END IF;
+  END $$`,
   `DO $$ BEGIN
     ALTER TABLE mecanico."ShopBookingService"
       ADD CONSTRAINT "ShopBookingService_shopId_fkey"
