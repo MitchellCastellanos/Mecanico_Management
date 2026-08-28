@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useSiteLocale } from "@/components/booking/LocaleProvider";
+import type { SiteLocale } from "@/lib/site-locale";
 import { OTHER_VALUE, VEHICLE_MAKES, VEHICLE_MODELS, VEHICLE_YEARS } from "@/lib/vehicle-catalog";
 import { resolveServiceDuration } from "@/lib/service-catalog";
 import { MonthCalendar } from "@/components/booking/MonthCalendar";
@@ -20,22 +21,35 @@ interface Slot {
   mechanicName: string;
 }
 
+interface ServiceOption {
+  id: string;
+  labelFr: string;
+  labelEn: string;
+  labelEs: string;
+  durationMinutes: number;
+}
+
 interface PublicBookingFormProps {
   slug: string;
   shop: ShopInfo;
-  /** Servicios activos del taller (Configuración → Servicios) con su duración real. */
-  services: { key: string; durationMinutes: number }[];
+  /** Servicios activos del taller (Configuración → Servicios), con nombre en cada idioma y su duración real. */
+  services: ServiceOption[];
 }
 
 const NOTIFICATION_LANGUAGE_FOR_SITE_LOCALE = { fr: "FR", en: "EN", es: "ES" } as const;
 
+/** Nombre del servicio en el idioma que el visitante tiene elegido en el sitio. */
+function serviceLabel(service: ServiceOption, locale: SiteLocale): string {
+  if (locale === "fr") return service.labelFr;
+  if (locale === "en") return service.labelEn;
+  return service.labelEs;
+}
+
 export function PublicBookingForm({ slug, shop, services }: PublicBookingFormProps) {
   const { locale, t } = useSiteLocale();
-  const activeServiceKeys = new Set(services.map((s) => s.key));
-  const serviceDurations = Object.fromEntries(services.map((s) => [s.key, s.durationMinutes]));
-  const visibleServiceOptions = t.form.serviceOptions.filter(
-    (opt) => opt.value === OTHER_VALUE || activeServiceKeys.has(opt.value)
-  );
+  const serviceDurations = Object.fromEntries(services.map((s) => [s.id, s.durationMinutes]));
+  const otherLabel =
+    t.form.serviceOptions.find((o) => o.value === OTHER_VALUE)?.label ?? t.form.otherOption;
   const [step, setStep] = useState<"form" | "done">("form");
   const [manageUrl, setManageUrl] = useState<string | null>(null);
   const [dates, setDates] = useState<string[]>([]);
@@ -59,10 +73,11 @@ export function PublicBookingForm({ slug, shop, services }: PublicBookingFormPro
   const resolvedMake = make === OTHER_VALUE ? makeOther.trim() : make;
   const resolvedModel =
     make === OTHER_VALUE || model === OTHER_VALUE ? modelOther.trim() : model;
+  const selectedService = services.find((s) => s.id === serviceValue);
   const resolvedTitle =
     serviceValue === OTHER_VALUE
       ? serviceOther.trim()
-      : (t.form.serviceOptions.find((o) => o.value === serviceValue)?.label ?? "");
+      : (selectedService ? serviceLabel(selectedService, locale) : "");
   const durationMinutes = resolveServiceDuration(serviceValue, shop.bookingSlotMinutes, serviceDurations);
 
   function handleMakeChange(value: string) {
@@ -245,11 +260,12 @@ export function PublicBookingForm({ slug, shop, services }: PublicBookingFormPro
           <option value="" disabled>
             {t.form.selectPlaceholder}
           </option>
-          {visibleServiceOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
+          {services.map((service) => (
+            <option key={service.id} value={service.id}>
+              {serviceLabel(service, locale)}
             </option>
           ))}
+          <option value={OTHER_VALUE}>{otherLabel}</option>
         </select>
         {serviceValue === OTHER_VALUE && (
           <input

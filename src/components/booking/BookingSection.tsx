@@ -13,7 +13,7 @@ interface BookingSectionProps {
     logoUrl: string | null;
     bookingSlotMinutes: number;
   };
-  services: { key: string; durationMinutes: number }[];
+  services: { id: string; labelFr: string; labelEn: string; labelEs: string; durationMinutes: number }[];
 }
 
 export function BookingSection({ slug, shop, services }: BookingSectionProps) {

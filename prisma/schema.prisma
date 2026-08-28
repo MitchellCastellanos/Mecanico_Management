@@ -497,22 +497,25 @@ model MechanicWorkingHours {
 }
 
 // Ajustes por taller de los servicios que aparecen en el calendario público
-// (/book/[slug]): duración y visibilidad. Una clave sin fila aquí usa el
-// default de src/lib/service-catalog.ts (activo, duración por defecto).
+// (/book/[slug]): nombre en cada idioma, duración y visibilidad. Un taller
+// sin ninguna fila aquí todavía usa el catálogo de fábrica de
+// src/lib/service-catalog.ts + src/lib/site-locale.ts; en cuanto guarda algo
+// desde Configuración → Servicios, estas filas pasan a ser la única verdad
+// (se reemplazan todas juntas en cada guardado).
 model ShopBookingService {
   @@schema("mecanico")
 
   id              String   @id @default(cuid())
   shopId          String
   shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  key             String   // coincide con `value` en site-locale.ts → form.serviceOptions
+  labelFr         String
+  labelEn         String
+  labelEs         String
   durationMinutes Int
   isActive        Boolean  @default(true)
   sortOrder       Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
-  @@unique([shopId, key])
 }
 
 // ─────────────────────────────────────────

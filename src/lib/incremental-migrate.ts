@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 
 /** Incrementa al añadir bloques nuevos en INCREMENTAL_MIGRATE_STATEMENTS. */
-export const SCHEMA_VERSION = "20260827-quote-revenue-type-v1";
+export const SCHEMA_VERSION = "20260828-shop-booking-service-labels-v1";
 
 /** Sentencias idempotentes para alinear producción con el schema Prisma actual. */
 export const INCREMENTAL_MIGRATE_STATEMENTS = [
@@ -341,6 +341,17 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   END $$`,
   // ── Cotizaciones también deciden Efectivo/Interno vs Tarjeta/Declarado ────
   `ALTER TABLE mecanico."Quote" ADD COLUMN IF NOT EXISTS "revenueType" mecanico."RevenueType" NOT NULL DEFAULT 'OFFICIAL'`,
+  // ── ShopBookingService pasa de "override por clave fija" a filas con
+  // nombre propio en cada idioma (admin puede agregar/editar servicios) ────
+  `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelFr" TEXT`,
+  `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelEn" TEXT`,
+  `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelEs" TEXT`,
+  `UPDATE mecanico."ShopBookingService" SET "labelFr" = COALESCE("labelFr", "key"), "labelEn" = COALESCE("labelEn", "key"), "labelEs" = COALESCE("labelEs", "key") WHERE "labelFr" IS NULL OR "labelEn" IS NULL OR "labelEs" IS NULL`,
+  `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelFr" SET NOT NULL`,
+  `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelEn" SET NOT NULL`,
+  `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelEs" SET NOT NULL`,
+  `DROP INDEX IF EXISTS mecanico."ShopBookingService_shopId_key_key"`,
+  `ALTER TABLE mecanico."ShopBookingService" DROP COLUMN IF EXISTS "key"`,
 ] as const;
 
 export async function ensureQuoteStatusEnum() {

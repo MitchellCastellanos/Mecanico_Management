@@ -66,7 +66,13 @@ export default async function PublicBookingPage({ params }: PageProps) {
   const catalog = await getShopServiceCatalog(shop.id);
   const activeServices = catalog
     .filter((row) => row.isActive)
-    .map((row) => ({ key: row.key, durationMinutes: row.durationMinutes }));
+    .map(({ id, labelFr, labelEn, labelEs, durationMinutes }) => ({
+      id,
+      labelFr,
+      labelEn,
+      labelEs,
+      durationMinutes,
+    }));
 
   return (
     <LocaleProvider>
