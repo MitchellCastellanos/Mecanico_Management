@@ -346,7 +346,17 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelFr" TEXT`,
   `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelEn" TEXT`,
   `ALTER TABLE mecanico."ShopBookingService" ADD COLUMN IF NOT EXISTS "labelEs" TEXT`,
-  `UPDATE mecanico."ShopBookingService" SET "labelFr" = COALESCE("labelFr", "key"), "labelEn" = COALESCE("labelEn", "key"), "labelEs" = COALESCE("labelEs", "key") WHERE "labelFr" IS NULL OR "labelEn" IS NULL OR "labelEs" IS NULL`,
+  `DO $$ BEGIN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'mecanico' AND table_name = 'ShopBookingService' AND column_name = 'key'
+    ) THEN
+      UPDATE mecanico."ShopBookingService"
+      SET "labelFr" = COALESCE("labelFr", "key"), "labelEn" = COALESCE("labelEn", "key"), "labelEs" = COALESCE("labelEs", "key")
+      WHERE "labelFr" IS NULL OR "labelEn" IS NULL OR "labelEs" IS NULL;
+    END IF;
+  END $$`,
+  `UPDATE mecanico."ShopBookingService" SET "labelFr" = 'Service', "labelEn" = 'Service', "labelEs" = 'Servicio' WHERE "labelFr" IS NULL OR "labelEn" IS NULL OR "labelEs" IS NULL`,
   `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelFr" SET NOT NULL`,
   `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelEn" SET NOT NULL`,
   `ALTER TABLE mecanico."ShopBookingService" ALTER COLUMN "labelEs" SET NOT NULL`,
