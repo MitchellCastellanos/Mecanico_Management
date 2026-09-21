@@ -97,7 +97,11 @@ const ETRANSFER_EMAIL = BRAND.etransferEmail;
 const LOGO_WIDTH = 110;
 const LOGO_HEIGHT = 88;
 const PAGE_PAD = 40;
-const FOOTER_H = 52;
+// El pie ocupaba más alto del que su texto (dos líneas) necesita, y ese
+// margen sobrante se reservaba en TODAS las páginas. Con facturas de varios
+// renglones (p. ej. varias piezas con garantía) ese sobrante empujaba el
+// bloque de notas/totales completo a una segunda página casi vacía.
+const FOOTER_H = 38;
 
 const styles = StyleSheet.create({
   page: {
@@ -106,7 +110,7 @@ const styles = StyleSheet.create({
     color: SLATE_900,
     backgroundColor: WHITE,
     paddingTop: 0,
-    paddingBottom: FOOTER_H + 14,
+    paddingBottom: FOOTER_H + 8,
     paddingHorizontal: PAGE_PAD,
   },
   header: {
@@ -379,7 +383,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 14,
     alignItems: "flex-start",
-    marginTop: 4,
+    marginTop: 2,
   },
   notesCard: {
     borderWidth: 1,
@@ -434,7 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   etransferBox: {
-    marginTop: 8,
+    marginTop: 6,
     backgroundColor: BLUE_LIGHT,
     borderWidth: 1,
     borderColor: "#bfdbfe",
@@ -442,7 +446,7 @@ const styles = StyleSheet.create({
     borderLeftColor: BLUE,
     borderRadius: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   etransferLabel: {
     fontSize: 7,
@@ -462,7 +466,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: SLATE_200,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 4,
   },
   totalsHeaderText: {
     fontSize: 7.5,
@@ -470,11 +474,11 @@ const styles = StyleSheet.create({
     color: SLATE_600,
     textTransform: "uppercase",
   },
-  totalsBody: { paddingHorizontal: 12, paddingVertical: 5 },
+  totalsBody: { paddingHorizontal: 12, paddingVertical: 4 },
   totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 2,
+    paddingVertical: 1.5,
     gap: 8,
   },
   totalLabel: { fontSize: 8.5, color: SLATE_600, flex: 1 },
@@ -482,14 +486,14 @@ const styles = StyleSheet.create({
   totalDivider: {
     height: 1,
     backgroundColor: SLATE_200,
-    marginVertical: 4,
+    marginVertical: 3,
   },
   grandTotalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     backgroundColor: NAVY,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     gap: 8,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -516,7 +520,7 @@ const styles = StyleSheet.create({
     borderTopColor: SLATE_200,
     backgroundColor: SLATE_50,
     paddingHorizontal: PAGE_PAD,
-    paddingVertical: 10,
+    paddingVertical: 6,
     justifyContent: "center",
   },
   footerThank: {
