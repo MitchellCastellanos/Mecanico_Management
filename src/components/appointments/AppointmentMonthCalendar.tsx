@@ -10,7 +10,7 @@ interface Appointment {
   title: string;
   startsAt: Date | string;
   status: string;
-  client: { firstName: string; lastName?: string | null };
+  client?: { firstName: string; lastName?: string | null } | null;
   vehicle?: { make: string; model: string } | null;
 }
 

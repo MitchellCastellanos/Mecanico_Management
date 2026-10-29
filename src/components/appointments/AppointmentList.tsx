@@ -27,7 +27,7 @@ interface Appointment {
   durationMinutes: number;
   status: string;
   source?: string;
-  client: { firstName: string; lastName?: string | null; email?: string | null; phone?: string | null };
+  client?: { firstName: string; lastName?: string | null; email?: string | null; phone?: string | null } | null;
   vehicle?: { year: number; make: string; model: string; licensePlate: string } | null;
   mechanic?: { name: string } | null;
 }
@@ -71,7 +71,7 @@ function AppointmentRow({
 
   const canSendLink =
     isActive &&
-    (Boolean(appointment.client.phone?.trim()) || Boolean(appointment.client.email?.trim()));
+    (Boolean(appointment.client?.phone?.trim()) || Boolean(appointment.client?.email?.trim()));
   const canCancel = isActive;
 
   function handleStatusChange(

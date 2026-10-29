@@ -26,10 +26,11 @@ export function sortClientsByName<T extends { firstName: string; lastName?: stri
 
 /** Etiqueta de cita para el calendario: "Cliente - Marca Modelo" (solo el cliente si no hay vehículo). */
 export function formatAppointmentLabel(
-  client: { firstName: string; lastName?: string | null },
+  client: { firstName: string; lastName?: string | null } | null | undefined,
   vehicle?: { make: string; model: string } | null
 ): string {
-  const name = formatClientName(client);
+  // Una cita con cliente ausente no debe tumbar toda la página del calendario.
+  const name = client ? formatClientName(client) : "Sin cliente";
   const car = vehicle ? `${vehicle.make} ${vehicle.model}`.trim() : "";
   return car ? `${name} - ${car}` : name;
 }
