@@ -9,6 +9,7 @@ import { getShopId } from "@/lib/shop-context";
 import { reminderSchema, type ReminderFormData } from "@/lib/validations";
 import { sendReminderEmail } from "@/lib/email";
 import { shopToEmailConfig } from "@/lib/email-config";
+import { compareClientNames } from "@/lib/client-name";
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -115,9 +116,10 @@ export async function dismissReminder(reminderId: string) {
 
 export async function getReminderFormData() {
   const shopId = await getShopId();
-  return db.vehicle.findMany({
+  const vehicles = await db.vehicle.findMany({
     where: { client: { shopId } },
     include: { client: true },
-    orderBy: [{ client: { lastName: "asc" } }, { make: "asc" }],
+    orderBy: { make: "asc" },
   });
+  return vehicles.sort((a, b) => compareClientNames(a.client, b.client));
 }

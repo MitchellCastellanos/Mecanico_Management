@@ -11,13 +11,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { clientSchema, type ClientFormData } from "@/lib/validations";
+import { sortClientsByName } from "@/lib/client-name";
 
 // ── READ ────────────────────────────────────────────────────
 
 export async function getClients(search?: string) {
   const shopId = await getShopId();
 
-  return db.client.findMany({
+  const clients = await db.client.findMany({
     where: {
       shopId,
       ...(search
@@ -34,8 +35,9 @@ export async function getClients(search?: string) {
     include: {
       _count: { select: { vehicles: true, invoices: true } },
     },
-    orderBy: { lastName: "asc" },
   });
+
+  return sortClientsByName(clients);
 }
 
 export async function getClientById(id: string) {

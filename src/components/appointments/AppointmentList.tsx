@@ -9,7 +9,7 @@ import {
   updateAppointmentStatus,
 } from "@/actions/appointments";
 import { APPOINTMENT_STATUS_BADGE, APPOINTMENT_STATUS_LABEL } from "@/lib/appointment-status";
-import { formatClientName } from "@/lib/client-name";
+import { formatAppointmentLabel } from "@/lib/client-name";
 import {
   formatShopDate,
   formatShopDayHeader,
@@ -102,13 +102,10 @@ function AppointmentRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-slate-900 text-sm">{appointment.title}</p>
-        <p className="text-sm text-slate-600">{formatClientName(appointment.client)}</p>
-        {appointment.vehicle && (
-          <p className="text-xs text-slate-400">
-            {appointment.vehicle.year} {appointment.vehicle.make} {appointment.vehicle.model}
-          </p>
-        )}
+        <p className="font-medium text-slate-900 text-sm">
+          {formatAppointmentLabel(appointment.client, appointment.vehicle)}
+        </p>
+        <p className="text-sm text-slate-600">{appointment.title}</p>
         {appointment.mechanic && (
           <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
             <User className="w-3 h-3" />

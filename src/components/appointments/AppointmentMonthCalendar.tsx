@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ADMIN } from "@/lib/routes";
-import { formatClientName } from "@/lib/client-name";
+import { formatAppointmentLabel } from "@/lib/client-name";
 import { formatShopDate, formatShopTime, getShopDayOfWeek } from "@/lib/shop-timezone";
 
 interface Appointment {
@@ -11,6 +11,7 @@ interface Appointment {
   startsAt: Date | string;
   status: string;
   client: { firstName: string; lastName?: string | null };
+  vehicle?: { make: string; model: string } | null;
 }
 
 interface AppointmentMonthCalendarProps {
@@ -106,12 +107,12 @@ export function AppointmentMonthCalendar({
                         ? "bg-slate-100 text-slate-400 line-through hover:bg-slate-200"
                         : "bg-teal-100 text-teal-800 hover:bg-teal-200"
                     }`}
-                    title={`${formatShopTime(new Date(apt.startsAt), timeZone)} — ${apt.title} (${formatClientName(apt.client)})`}
+                    title={`${formatShopTime(new Date(apt.startsAt), timeZone)} — ${formatAppointmentLabel(apt.client, apt.vehicle)} (${apt.title})`}
                   >
                     <span className="font-medium">
                       {formatShopTime(new Date(apt.startsAt), timeZone)}
                     </span>{" "}
-                    {apt.title}
+                    {formatAppointmentLabel(apt.client, apt.vehicle)}
                   </Link>
                 ))}
                 {dayAppointments.length > 3 && (

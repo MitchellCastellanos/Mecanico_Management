@@ -11,6 +11,7 @@ import { generateAppointmentManageToken, ensureAppointmentManageToken } from "@/
 import { notifyAppointmentEvent, type NotifyAppointmentEventResult } from "@/lib/appointment-notify";
 import { buildAppointmentManageUrl } from "@/lib/appointment-notify";
 import { BRAND } from "@/config/brand";
+import { sortClientsByName } from "@/lib/client-name";
 import {
   type AppointmentView,
   addShopDays,
@@ -141,12 +142,11 @@ export async function getAppointmentFormData() {
     db.client.findMany({
       where: { shopId },
       include: { vehicles: true },
-      orderBy: { lastName: "asc" },
     }),
     getMechanics(),
   ]);
 
-  return { clients, mechanics };
+  return { clients: sortClientsByName(clients), mechanics };
 }
 
 // ── Conflict check ──────────────────────────────────────────
@@ -197,7 +197,9 @@ export async function createAppointment(formData: AppointmentFormData) {
     }
   }
 
-  await db.appointment.create({
+  const manageToken = generateAppointmentManageToken();
+
+  const appointment = await db.appointment.create({
     data: {
       shopId,
       clientId,
@@ -209,12 +211,46 @@ export async function createAppointment(formData: AppointmentFormData) {
       durationMinutes,
       notes: notes || null,
       status: "SCHEDULED",
-      manageToken: generateAppointmentManageToken(),
+      manageToken,
     },
+    include: { client: true, shop: true },
   });
 
+  // Misma confirmación inmediata que la reserva web (SMS + email). El resultado
+  // viaja en la URL para que el admin vea por qué canal salió y lo valide con el cliente.
+  let notified = "none";
+  if (appointment.client.phone?.trim() || appointment.client.email?.trim()) {
+    try {
+      const result = await notifyAppointmentEvent({
+        type: "confirmation",
+        shop: appointment.shop,
+        client: appointment.client,
+        appointmentId: appointment.id,
+        title: appointment.title,
+        startsAt: appointment.startsAt,
+        manageToken,
+      });
+      if (result.anySent) {
+        await db.appointment.update({
+          where: { id: appointment.id },
+          data: { confirmationSentAt: new Date(), status: "CONFIRMED" },
+        });
+        notified = [result.smsSent && "sms", result.emailSent && "email"]
+          .filter(Boolean)
+          .join(",");
+      } else {
+        notified = "failed";
+      }
+    } catch (err) {
+      console.error(`Error enviando confirmación de cita ${appointment.id}:`, err);
+      notified = "failed";
+    }
+  } else {
+    notified = "nocontact";
+  }
+
   revalidatePath(ADMIN.appointments);
-  redirect(`${ADMIN.appointments}?view=day&date=${date}`);
+  redirect(`${ADMIN.appointments}?view=day&date=${date}&notified=${notified}`);
 }
 
 export async function updateAppointment(id: string, formData: AppointmentEditFormData) {

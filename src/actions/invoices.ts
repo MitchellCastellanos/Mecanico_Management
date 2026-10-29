@@ -38,7 +38,7 @@ import {
 } from "@/lib/invoice-document-package";
 import { uploadToStorage } from "@/lib/storage";
 import { syncSavedLineItems } from "@/actions/line-items";
-import { formatClientName } from "@/lib/client-name";
+import { formatClientName, sortClientsByName } from "@/lib/client-name";
 import { INVOICE_PENDING_FILTER, INVOICE_PENDING_STATUSES } from "@/lib/invoice-status";
 import {
   paymentTargetAmount,
@@ -795,10 +795,9 @@ export async function getInvoiceFormData() {
     db.client.findMany({
       where: { shopId },
       include: { vehicles: true },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     db.shop.findUnique({ where: { id: shopId } }),
   ]);
 
-  return { clients, shop };
+  return { clients: sortClientsByName(clients), shop };
 }

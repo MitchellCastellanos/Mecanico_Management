@@ -21,7 +21,7 @@ import { shopToEmailConfig } from "@/lib/email-config";
 import { getPublicBookingUrl } from "@/lib/shop-slug";
 import { parseEmailAttachments } from "@/lib/email-attachments";
 import { syncSavedLineItems } from "@/actions/line-items";
-import { formatClientName } from "@/lib/client-name";
+import { formatClientName, sortClientsByName } from "@/lib/client-name";
 import Decimal from "decimal.js";
 
 // ── READ ────────────────────────────────────────────────────
@@ -474,10 +474,9 @@ export async function getQuoteFormData() {
     db.client.findMany({
       where: { shopId },
       include: { vehicles: true },
-      orderBy: [{ firstName: "asc" }, { lastName: "asc" }],
     }),
     db.shop.findUnique({ where: { id: shopId } }),
   ]);
 
-  return { clients, shop };
+  return { clients: sortClientsByName(clients), shop };
 }

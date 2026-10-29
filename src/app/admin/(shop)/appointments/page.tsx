@@ -5,11 +5,12 @@ import { getAppointments } from "@/actions/appointments";
 import { AppointmentList } from "@/components/appointments/AppointmentList";
 import { AppointmentMonthCalendar } from "@/components/appointments/AppointmentMonthCalendar";
 import { AppointmentViewControls } from "@/components/appointments/AppointmentViewControls";
+import { AppointmentNotifiedToast } from "@/components/appointments/AppointmentNotifiedToast";
 import type { AppointmentView } from "@/lib/shop-timezone";
 import { monthFromDate } from "@/lib/shop-timezone";
 
 interface PageProps {
-  searchParams: Promise<{ view?: string; date?: string; week?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; week?: string; notified?: string }>;
 }
 
 const VIEW_LABELS: Record<AppointmentView, string> = {
@@ -55,6 +56,8 @@ export default async function AppointmentsPage({ searchParams }: PageProps) {
           Nueva cita
         </Link>
       </div>
+
+      <AppointmentNotifiedToast notified={params.notified} />
 
       <AppointmentViewControls view={resolvedView} anchor={anchor} timeZone={timeZone} />
 
