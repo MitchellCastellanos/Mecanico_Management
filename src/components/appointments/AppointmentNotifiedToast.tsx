@@ -14,12 +14,19 @@ export function AppointmentNotifiedToast({ notified }: { notified?: string }) {
     if (!notified) return;
 
     if (notified === "nocontact") {
-      toast.warning("Cita creada, pero el cliente no tiene teléfono ni email: no se envió confirmación");
+      toast.warning("Cita guardada, pero el cliente no tiene teléfono ni email: no se envió confirmación");
     } else if (notified === "failed") {
-      toast.error("Cita creada, pero no se pudo enviar la confirmación. Usa «Confirmar» para reintentar");
+      toast.error("Cita guardada, pero no se pudo notificar al cliente. Usa «Confirmar» para reintentar");
     } else {
-      const channels = notified.split(",").map((c) => (c === "sms" ? "SMS" : "email"));
-      toast.success(`Cita creada. Confirmación enviada por ${channels.join(" y ")}`);
+      const [kind, list] = notified.includes(":") ? notified.split(":") : ["create", notified];
+      const channels = list.split(",").map((c) => (c === "sms" ? "SMS" : "email")).join(" y ");
+      toast.success(
+        kind === "cancel"
+          ? `Cita cancelada. Aviso enviado por ${channels}`
+          : kind === "update"
+          ? `Cita actualizada. Nueva confirmación enviada por ${channels}`
+          : `Cita creada. Confirmación enviada por ${channels}`
+      );
     }
 
     const params = new URLSearchParams(searchParams.toString());

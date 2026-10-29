@@ -283,7 +283,7 @@ export async function updateAppointment(id: string, formData: AppointmentEditFor
     }
   }
 
-  await db.appointment.update({
+  const updated = await db.appointment.update({
     where: { id },
     data: {
       clientId,
@@ -296,10 +296,60 @@ export async function updateAppointment(id: string, formData: AppointmentEditFor
       notes: notes || null,
       status,
     },
+    include: { client: true, shop: true },
   });
 
+  // Igual que en la web: cancelar avisa al cliente; si cambia el horario se le
+  // reenvía la confirmación con la nueva fecha.
+  const becameCancelled = status === "CANCELLED" && existing.status !== "CANCELLED";
+  const rescheduled =
+    startsAt.getTime() !== existing.startsAt.getTime() &&
+    (status === "SCHEDULED" || status === "CONFIRMED");
+
+  let notified = "";
+  if (becameCancelled || rescheduled) {
+    const kind = becameCancelled ? "cancellation" : "confirmation";
+    if (!updated.client.phone?.trim() && !updated.client.email?.trim()) {
+      notified = "nocontact";
+    } else {
+      try {
+        const manageToken = becameCancelled
+          ? updated.manageToken
+          : await ensureAppointmentManageToken(updated.id, updated.manageToken);
+        const result = await notifyAppointmentEvent({
+          type: kind,
+          shop: updated.shop,
+          client: updated.client,
+          appointmentId: updated.id,
+          title: updated.title,
+          startsAt: updated.startsAt,
+          manageToken,
+        });
+        if (result.anySent) {
+          await db.appointment.update({
+            where: { id },
+            data: becameCancelled
+              ? { cancellationSentAt: new Date() }
+              : { confirmationSentAt: new Date(), status: "CONFIRMED" },
+          });
+          const channels = [result.smsSent && "sms", result.emailSent && "email"]
+            .filter(Boolean)
+            .join(",");
+          notified = `${becameCancelled ? "cancel" : "update"}:${channels}`;
+        } else {
+          notified = "failed";
+        }
+      } catch (err) {
+        console.error(`Error notificando cambio de cita ${id}:`, err);
+        notified = "failed";
+      }
+    }
+  }
+
   revalidatePath(ADMIN.appointments);
-  redirect(`${ADMIN.appointments}?view=day&date=${date}`);
+  redirect(
+    `${ADMIN.appointments}?view=day&date=${date}${notified ? `&notified=${notified}` : ""}`
+  );
 }
 
 export async function updateAppointmentStatus(id: string, status: AppointmentEditFormData["status"]) {
