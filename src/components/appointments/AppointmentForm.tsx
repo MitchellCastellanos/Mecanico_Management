@@ -4,7 +4,8 @@ import { ADMIN } from "@/lib/routes";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { checkMechanicConflictForForm } from "@/actions/appointments";
 import {
   appointmentEditSchema,
   appointmentSchema,
@@ -41,11 +42,14 @@ type EditProps = {
 type AppointmentFormProps = (CreateProps | EditProps) & {
   clients: Client[];
   mechanics: Mechanic[];
+  /** Cita que se edita: su propio horario no cuenta como choque. */
+  appointmentId?: string;
 };
 
 export function AppointmentForm({
   clients,
   mechanics,
+  appointmentId,
   onSubmit,
   initialValues,
   mode = "create",
@@ -78,6 +82,41 @@ export function AppointmentForm({
   const selectedClientId = watch("clientId");
   const selectedClient = clients.find((c) => c.id === selectedClientId);
   const vehicles = selectedClient?.vehicles ?? [];
+
+  const watchedMechanicId = watch("mechanicId");
+  const watchedDate = watch("date");
+  const watchedTime = watch("time");
+  const watchedDuration = watch("durationMinutes");
+  const watchedStatus = watch("status");
+  const [conflict, setConflict] = useState(false);
+
+  // Aviso inmediato de choque de horario al elegir mecánico, fecha, hora o duración.
+  useEffect(() => {
+    const inactive = isEdit && (watchedStatus === "CANCELLED" || watchedStatus === "NO_SHOW");
+    if (inactive || !watchedMechanicId || !watchedDate || !watchedTime) {
+      setConflict(false);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const hasConflict = await checkMechanicConflictForForm({
+          mechanicId: watchedMechanicId,
+          date: watchedDate,
+          time: watchedTime,
+          durationMinutes: Number(watchedDuration),
+          excludeId: appointmentId,
+        });
+        if (!cancelled) setConflict(hasConflict);
+      } catch {
+        if (!cancelled) setConflict(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [watchedMechanicId, watchedDate, watchedTime, watchedDuration, watchedStatus, isEdit, appointmentId]);
 
   async function onValid(data: AppointmentEditFormData) {
     startTransition(async () => {
@@ -189,8 +228,14 @@ export function AppointmentForm({
               </option>
             ))}
           </select>
-          {errors.mechanicId && (
+          {errors.mechanicId ? (
             <p className="text-red-600 text-xs mt-1">{errors.mechanicId.message}</p>
+          ) : (
+            conflict && (
+              <p className="text-red-600 text-xs mt-1">
+                El mecánico ya tiene otra cita en ese horario
+              </p>
+            )
           )}
         </div>
 

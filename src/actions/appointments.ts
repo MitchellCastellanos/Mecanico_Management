@@ -188,6 +188,25 @@ export async function checkMechanicConflict(
   return Boolean(conflict);
 }
 
+/** Verificación en vivo desde el formulario (fecha/hora tal como las escribe el admin, en zona del taller). */
+export async function checkMechanicConflictForForm(input: {
+  mechanicId: string;
+  date: string;
+  time: string;
+  durationMinutes: number;
+  excludeId?: string;
+}): Promise<boolean> {
+  const { mechanicId, date, time, durationMinutes, excludeId } = input;
+  if (!mechanicId || !date || !time || !(durationMinutes > 0)) return false;
+
+  const shopId = await getShopId();
+  const timeZone = await getShopTimezone(shopId);
+  const startsAt = parseStartsAt(date, time, timeZone);
+  if (Number.isNaN(startsAt.getTime())) return false;
+  const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+  return checkMechanicConflict(mechanicId, startsAt, endsAt, excludeId);
+}
+
 // ── CREATE / UPDATE ─────────────────────────────────────────
 
 export async function createAppointment(formData: AppointmentFormData) {

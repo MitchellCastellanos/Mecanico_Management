@@ -75,6 +75,7 @@ export default async function EditAppointmentPage({ params }: PageProps) {
       <AppointmentForm
         clients={clients}
         mechanics={mechanics}
+        appointmentId={id}
         mode="edit"
         initialValues={initialValues}
         onSubmit={async (data: AppointmentEditFormData) => {
