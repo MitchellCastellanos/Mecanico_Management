@@ -37,6 +37,8 @@ interface NotifyAppointmentEventParams {
   title: string;
   startsAt: Date;
   manageToken: string | null;
+  /** Restringe los canales usados (por defecto ambos). Útil para reenvíos manuales desde el admin. */
+  channels?: { sms?: boolean; email?: boolean };
 }
 
 export interface NotifyAppointmentEventResult {
@@ -64,7 +66,7 @@ export async function notifyAppointmentEvent(
 
   let smsSent = false;
   const phone = params.client.phone?.trim();
-  if (params.shop.appointmentSmsEnabled && phone) {
+  if (params.channels?.sms !== false && params.shop.appointmentSmsEnabled && phone) {
     try {
       await sendAppointmentSms({
         type: params.type,
@@ -84,7 +86,7 @@ export async function notifyAppointmentEvent(
 
   let emailSent = false;
   const email = params.client.email?.trim();
-  if (params.shop.appointmentEmailsEnabled && email) {
+  if (params.channels?.email !== false && params.shop.appointmentEmailsEnabled && email) {
     try {
       await sendAppointmentEmail({
         shop: shopToEmailConfig(params.shop),

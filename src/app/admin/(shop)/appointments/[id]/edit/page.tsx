@@ -67,8 +67,18 @@ export default async function EditAppointmentPage({ params }: PageProps) {
 
       <div className="mb-6">
         <ClientManageLink
+          appointmentId={appointment.id}
           manageUrl={manageUrl}
           slugMissing={!appointment.shop.slug}
+          canResend={appointment.status === "SCHEDULED" || appointment.status === "CONFIRMED"}
+          canSms={Boolean(appointment.client.phone?.trim()) && appointment.shop.appointmentSmsEnabled}
+          canEmail={
+            Boolean(appointment.client.email?.trim()) && appointment.shop.appointmentEmailsEnabled
+          }
+          clientPhone={appointment.client.phone}
+          clientEmail={appointment.client.email}
+          confirmationSentAt={appointment.confirmationSentAt?.toISOString() ?? null}
+          timeZone={timeZone}
         />
       </div>
 

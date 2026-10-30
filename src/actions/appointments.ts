@@ -430,7 +430,10 @@ export async function getAppointmentManageUrl(id: string) {
 
 // ── Notificaciones (SMS principal, email secundario) ──────────
 
-export async function sendAppointmentConfirmation(id: string) {
+/** Canal de envío manual: ambos (por defecto), solo SMS o solo email. */
+export type AppointmentSendChannel = "all" | "sms" | "email";
+
+export async function sendAppointmentConfirmation(id: string, channel: AppointmentSendChannel = "all") {
   const shopId = await getShopId();
 
   const appointment = await db.appointment.findFirst({
@@ -446,6 +449,19 @@ export async function sendAppointmentConfirmation(id: string) {
     return { error: "El cliente no tiene teléfono ni email configurado" };
   }
 
+  if (channel === "sms") {
+    if (!appointment.client.phone?.trim()) return { error: "El cliente no tiene teléfono configurado" };
+    if (!appointment.shop.appointmentSmsEnabled) {
+      return { error: "Los SMS de citas están desactivados en Configuración" };
+    }
+  }
+  if (channel === "email") {
+    if (!appointment.client.email?.trim()) return { error: "El cliente no tiene email configurado" };
+    if (!appointment.shop.appointmentEmailsEnabled) {
+      return { error: "Los emails de citas están desactivados en Configuración" };
+    }
+  }
+
   const manageToken = await ensureAppointmentManageToken(appointment.id, appointment.manageToken);
 
   const result = await notifyAppointmentEvent({
@@ -456,6 +472,7 @@ export async function sendAppointmentConfirmation(id: string) {
     title: appointment.title,
     startsAt: appointment.startsAt,
     manageToken,
+    channels: { sms: channel !== "email", email: channel !== "sms" },
   });
 
   if (!result.anySent) {
