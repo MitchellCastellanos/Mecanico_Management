@@ -53,3 +53,26 @@ export function duplicateErrors(matches: DuplicateMatch[]): Record<string, strin
   }
   return errors;
 }
+
+/** IDs de clientes del taller que comparten teléfono o email con otro (necesitan fusión). */
+export async function findDuplicateClientIds(shopId: string): Promise<Set<string>> {
+  const all = await db.client.findMany({
+    where: { shopId },
+    select: { id: true, phone: true, email: true },
+  });
+
+  const byKey = new Map<string, string[]>();
+  for (const c of all) {
+    const pKey = phoneKey(c.phone);
+    const keys = [pKey.length >= 7 ? `p:${pKey}` : "", emailKey(c.email) ? `e:${emailKey(c.email)}` : ""];
+    for (const k of keys) {
+      if (k) byKey.set(k, [...(byKey.get(k) ?? []), c.id]);
+    }
+  }
+
+  const ids = new Set<string>();
+  for (const group of byKey.values()) {
+    if (group.length > 1) group.forEach((id) => ids.add(id));
+  }
+  return ids;
+}

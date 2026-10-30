@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getClients } from "@/actions/clients";
 import { formatDate } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
-import { Users, Plus, Search, Car, FileText } from "lucide-react";
+import { Users, Plus, Search, Car, FileText, AlertTriangle } from "lucide-react";
 import { ClientSearchBar } from "@/components/clients/ClientSearchBar";
 
 interface Props {
@@ -73,11 +73,20 @@ export default async function ClientsPage({ searchParams }: Props) {
                   <td className="px-5 py-4">
                     <Link
                       href={`/clients/${client.id}`}
-                      className="group"
+                      className="group flex items-center gap-2"
                     >
                       <p className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
                         {formatClientName(client)}
                       </p>
+                      {client.hasDuplicate && (
+                        <span
+                          title="Posible duplicado: comparte teléfono o email con otro cliente"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 text-xs font-medium px-2 py-0.5"
+                        >
+                          <AlertTriangle className="w-3 h-3" />
+                          Fusionar
+                        </span>
+                      )}
                     </Link>
                   </td>
                   <td className="px-5 py-4 hidden sm:table-cell">

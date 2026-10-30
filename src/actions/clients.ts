@@ -12,13 +12,15 @@ import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { clientSchema, type ClientFormData } from "@/lib/validations";
 import { sortClientsByName } from "@/lib/client-name";
-import { findDuplicateClients, duplicateErrors } from "@/lib/client-duplicates";
+import { findDuplicateClients, findDuplicateClientIds, duplicateErrors } from "@/lib/client-duplicates";
 import { mergeClientRecords } from "@/lib/merge-clients";
 
 // ── READ ────────────────────────────────────────────────────
 
 export async function getClients(search?: string) {
   const shopId = await getShopId();
+
+  const duplicateIds = await findDuplicateClientIds(shopId);
 
   const clients = await db.client.findMany({
     where: {
@@ -39,7 +41,7 @@ export async function getClients(search?: string) {
     },
   });
 
-  return sortClientsByName(clients);
+  return sortClientsByName(clients).map((c) => ({ ...c, hasDuplicate: duplicateIds.has(c.id) }));
 }
 
 export async function getClientById(id: string) {
