@@ -41,7 +41,7 @@ curl -X POST "https://garagecarlosainc.ca/api/setup/migrate" \
    - **Duración de cada cita** (minutos, ej. 60)
    - **Anticipación mínima** (horas antes de la cita, ej. 24)
    - **Reservar hasta** (días hacia adelante, ej. 30)
-6. En **Mecánicos disponibles**, marcar quién recibe citas web
+6. En **Mecánicos disponibles**, marcar quién **acepta citas** (aplica a la web y al admin)
 7. Guardar y copiar el enlace público
 
 Zona horaria por defecto: `America/Montreal`.

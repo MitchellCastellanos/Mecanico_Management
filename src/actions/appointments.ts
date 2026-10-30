@@ -71,17 +71,32 @@ function resolveRange(
 
 // ── READ ────────────────────────────────────────────────────
 
-export async function getMechanics() {
+/**
+ * Mecánicos que aceptan citas (mismo criterio que la reserva web). `keepId`
+ * conserva al mecánico ya asignado al editar, aunque hoy no acepte citas.
+ */
+export async function getMechanics(keepId?: string | null) {
   const shopId = await getShopId();
 
   return db.user.findMany({
     where: {
       shopId,
       role: { in: ["MECHANIC", "OWNER"] },
+      OR: [{ bookable: true }, ...(keepId ? [{ id: keepId }] : [])],
     },
     orderBy: { name: "asc" },
     select: { id: true, name: true, email: true, role: true },
   });
+}
+
+const MECHANIC_NOT_ACCEPTING = "Este mecánico no acepta citas";
+
+async function acceptsAppointments(shopId: string, mechanicId: string): Promise<boolean> {
+  const mechanic = await db.user.findFirst({
+    where: { id: mechanicId, shopId, role: { in: ["MECHANIC", "OWNER"] }, bookable: true },
+    select: { id: true },
+  });
+  return Boolean(mechanic);
 }
 
 export async function getAppointments(options?: {
@@ -135,7 +150,7 @@ export async function getAppointmentById(id: string) {
   return appointment;
 }
 
-export async function getAppointmentFormData() {
+export async function getAppointmentFormData(currentMechanicId?: string | null) {
   const shopId = await getShopId();
 
   const [clients, mechanics] = await Promise.all([
@@ -143,7 +158,7 @@ export async function getAppointmentFormData() {
       where: { shopId },
       include: { vehicles: true },
     }),
-    getMechanics(),
+    getMechanics(currentMechanicId),
   ]);
 
   return { clients: sortClientsByName(clients), mechanics };
@@ -191,6 +206,9 @@ export async function createAppointment(formData: AppointmentFormData) {
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   if (mechanicId) {
+    if (!(await acceptsAppointments(shopId, mechanicId))) {
+      return { error: { mechanicId: [MECHANIC_NOT_ACCEPTING] } };
+    }
     const hasConflict = await checkMechanicConflict(mechanicId, startsAt, endsAt);
     if (hasConflict) {
       return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };
@@ -277,6 +295,10 @@ export async function updateAppointment(id: string, formData: AppointmentEditFor
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   if (mechanicId && status !== "CANCELLED" && status !== "NO_SHOW") {
+    // Solo se exige al cambiar de mecánico: una cita ya asignada no se bloquea.
+    if (mechanicId !== existing.mechanicId && !(await acceptsAppointments(shopId, mechanicId))) {
+      return { error: { mechanicId: [MECHANIC_NOT_ACCEPTING] } };
+    }
     const hasConflict = await checkMechanicConflict(mechanicId, startsAt, endsAt, id);
     if (hasConflict) {
       return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };

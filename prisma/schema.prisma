@@ -67,7 +67,7 @@ model User {
   email        String   @unique
   passwordHash String?
   role         Role     @default(MECHANIC)
-  bookable     Boolean  @default(true) // aparece en reservas web
+  bookable     Boolean  @default(true) // acepta citas (web y admin)
   createdAt    DateTime @default(now())
 
   // NextAuth required

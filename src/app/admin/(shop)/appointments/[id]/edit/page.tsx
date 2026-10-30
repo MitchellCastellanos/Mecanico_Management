@@ -21,9 +21,9 @@ interface PageProps {
 export default async function EditAppointmentPage({ params }: PageProps) {
   const { id } = await params;
 
-  const [appointment, { clients, mechanics }, manageUrl] = await Promise.all([
-    getAppointmentById(id),
-    getAppointmentFormData(),
+  const appointment = await getAppointmentById(id);
+  const [{ clients, mechanics }, manageUrl] = await Promise.all([
+    getAppointmentFormData(appointment.mechanicId),
     getAppointmentManageUrl(id),
   ]);
 

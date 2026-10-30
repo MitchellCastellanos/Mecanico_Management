@@ -71,7 +71,7 @@ export function AppointmentBookingSettings({
   function toggleMechanicBookable(userId: string, bookable: boolean) {
     startMechanicTransition(async () => {
       const result = await updateMechanicBookable(userId, bookable);
-      if (result?.success) toast.success(bookable ? "Mecánico visible en reservas" : "Mecánico oculto en reservas");
+      if (result?.success) toast.success(bookable ? "Mecánico acepta citas" : "Mecánico ya no acepta citas");
       else toast.error(result?.error ?? "Error");
     });
   }
@@ -240,7 +240,7 @@ export function AppointmentBookingSettings({
           <h2 className="font-semibold text-slate-900">Mecánicos disponibles para citas</h2>
           <p className="text-sm text-slate-500 mt-1">
             Crea cuentas de mecánico en <strong>Equipo del taller</strong> (abajo). Aquí eliges quién
-            aparece en el calendario de reservas y recibe citas automáticamente.
+            acepta citas: solo ellos aparecen en el calendario de reservas web y al crear citas desde el admin.
           </p>
         </div>
 
@@ -264,7 +264,7 @@ export function AppointmentBookingSettings({
                   </label>
                   <div className="flex items-center gap-3 shrink-0">
                     <MechanicScheduleToggle mechanicId={m.id} />
-                    <span className="text-xs text-slate-500">Recibe citas web</span>
+                    <span className="text-xs text-slate-500">Acepta citas</span>
                     <input
                       type="checkbox"
                       defaultChecked={m.bookable}
