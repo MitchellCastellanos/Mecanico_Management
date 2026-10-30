@@ -12,6 +12,8 @@ import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
 import { clientSchema, type ClientFormData } from "@/lib/validations";
 import { sortClientsByName } from "@/lib/client-name";
+import { findDuplicateClients, duplicateErrors } from "@/lib/client-duplicates";
+import { mergeClientRecords } from "@/lib/merge-clients";
 
 // ── READ ────────────────────────────────────────────────────
 
@@ -72,6 +74,9 @@ export async function createClient(formData: ClientFormData) {
 
   const { firstName, lastName, email, phone, language, address, notes } = parsed.data;
 
+  const duplicates = await findDuplicateClients(shopId, { phone, email });
+  if (duplicates.length > 0) return { error: duplicateErrors(duplicates) };
+
   const client = await db.client.create({
     data: {
       shopId,
@@ -103,6 +108,9 @@ export async function updateClient(id: string, formData: ClientFormData) {
 
   const { firstName, lastName, email, phone, language, address, notes } = parsed.data;
 
+  const duplicates = await findDuplicateClients(shopId, { phone, email, excludeId: id });
+  if (duplicates.length > 0) return { error: duplicateErrors(duplicates) };
+
   // Verificar que el cliente pertenece a este shop antes de actualizar
   await db.client.updateMany({
     where: { id, shopId },
@@ -132,4 +140,32 @@ export async function deleteClient(id: string) {
 
   revalidatePath(ADMIN.clients);
   redirect(ADMIN.clients);
+}
+
+// ── DUPLICADOS / FUSIÓN ─────────────────────────────────────
+
+/** Otros clientes que comparten teléfono o email con este (candidatos a fusionar). */
+export async function getDuplicateCandidates(clientId: string) {
+  const shopId = await getShopId();
+  const client = await db.client.findFirst({ where: { id: clientId, shopId } });
+  if (!client) return [];
+
+  const matches = await findDuplicateClients(shopId, {
+    phone: client.phone,
+    email: client.email,
+    excludeId: clientId,
+  });
+  return [...new Map(matches.map((m) => [m.id, m])).values()];
+}
+
+/** Fusiona `duplicateId` dentro de `keepId`: mueve vehículos, facturas, cotizaciones y citas. */
+export async function mergeClients(keepId: string, duplicateId: string) {
+  const shopId = await getShopId();
+  if (keepId === duplicateId) return { error: "No se puede fusionar un cliente consigo mismo" };
+
+  const result = await mergeClientRecords(shopId, keepId, duplicateId);
+  if ("error" in result) return result;
+
+  revalidatePath(ADMIN.clients);
+  redirect(`${ADMIN.clients}/${keepId}`);
 }

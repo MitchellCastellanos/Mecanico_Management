@@ -5,16 +5,12 @@ import { resolveServiceDuration } from "@/lib/service-catalog";
 import { parseShopDateTime } from "@/lib/shop-timezone";
 import { publicBookingSchema } from "@/lib/validations";
 import { generateAppointmentManageToken } from "@/lib/appointment-token";
+import { phoneKey, emailKey } from "@/lib/client-duplicates";
 import {
   buildAppointmentManageUrl,
   notifyAppointmentEvent,
   notifyShopOfNewWebAppointment,
 } from "@/lib/appointment-notify";
-
-/** Solo dígitos — para emparejar el mismo teléfono aunque venga con distinto formato. */
-function phoneDigits(phone: string): string {
-  return phone.replace(/\D/g, "");
-}
 
 export async function POST(
   req: NextRequest,
@@ -69,12 +65,14 @@ export async function POST(
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
   const email = data.email?.trim().toLowerCase() || null;
-  const digits = phoneDigits(data.phone);
+  const digits = phoneKey(data.phone);
 
-  const candidates = await db.client.findMany({
-    where: { shopId: shop.id, phone: { not: null } },
-  });
-  let client = candidates.find((c) => c.phone && phoneDigits(c.phone) === digits) ?? null;
+  const candidates = await db.client.findMany({ where: { shopId: shop.id } });
+  // Mismo teléfono o mismo email = mismo cliente (evita duplicados).
+  let client =
+    candidates.find((c) => digits.length >= 7 && phoneKey(c.phone) === digits) ??
+    (email ? candidates.find((c) => emailKey(c.email) === email) : null) ??
+    null;
 
   if (!client) {
     client = await db.client.create({
@@ -94,7 +92,8 @@ export async function POST(
       data: {
         firstName: data.firstName,
         lastName: data.lastName || null,
-        email: email ?? client.email,
+        email: client.email ?? email,
+        phone: client.phone ?? data.phone,
         language: data.language,
       },
     });

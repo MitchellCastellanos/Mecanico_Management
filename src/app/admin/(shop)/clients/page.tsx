@@ -4,6 +4,7 @@ import { getClients } from "@/actions/clients";
 import { formatDate } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
 import { Users, Plus, Search, Car, FileText } from "lucide-react";
+import { ClientSearchBar } from "@/components/clients/ClientSearchBar";
 
 interface Props {
   searchParams: Promise<{ q?: string }>;
@@ -36,7 +37,7 @@ export default async function ClientsPage({ searchParams }: Props) {
       </div>
 
       {/* Búsqueda */}
-      <SearchBar defaultValue={q} />
+      <ClientSearchBar defaultValue={q} />
 
       {/* Lista o estado vacío */}
       {clients.length === 0 ? (
@@ -116,21 +117,6 @@ export default async function ClientsPage({ searchParams }: Props) {
 }
 
 // ── Sub-componentes ──────────────────────────────────────────
-
-function SearchBar({ defaultValue }: { defaultValue?: string }) {
-  return (
-    <form method="GET" className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-      <input
-        name="q"
-        type="search"
-        defaultValue={defaultValue}
-        placeholder="Buscar por nombre, email o teléfono..."
-        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-      />
-    </form>
-  );
-}
 
 function EmptyState({ hasSearch }: { hasSearch: boolean }) {
   if (hasSearch) {

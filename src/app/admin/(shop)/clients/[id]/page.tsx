@@ -1,5 +1,6 @@
 import { ADMIN, PLATFORM, adminPath } from "@/lib/routes";
-import { getClientById } from "@/actions/clients";
+import { getClientById, getDuplicateCandidates } from "@/actions/clients";
+import { MergeDuplicatesBanner } from "@/components/clients/MergeDuplicatesBanner";
 import { deleteClient } from "@/actions/clients";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { formatClientName } from "@/lib/client-name";
@@ -27,6 +28,7 @@ interface Props {
 export default async function ClientDetailPage({ params }: Props) {
   const { id } = await params;
   const client = await getClientById(id);
+  const duplicates = await getDuplicateCandidates(id);
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -58,6 +60,12 @@ export default async function ClientDetailPage({ params }: Props) {
           <DeleteButton clientId={id} clientName={formatClientName(client)} />
         </div>
       </div>
+
+      <MergeDuplicatesBanner
+        clientId={id}
+        clientName={formatClientName(client)}
+        duplicates={duplicates}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Información del cliente */}
