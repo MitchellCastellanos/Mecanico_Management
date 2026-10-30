@@ -6,12 +6,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getShopId } from "@/lib/shop-context";
+import { requireShopSession } from "@/lib/permissions";
 import { appointmentSchema, appointmentEditSchema, type AppointmentEditFormData, type AppointmentFormData } from "@/lib/validations";
 import { generateAppointmentManageToken, ensureAppointmentManageToken } from "@/lib/appointment-token";
 import { notifyAppointmentEvent, type NotifyAppointmentEventResult } from "@/lib/appointment-notify";
 import { buildAppointmentManageUrl } from "@/lib/appointment-notify";
 import { BRAND } from "@/config/brand";
-import { sortClientsByName } from "@/lib/client-name";
+import { formatClientName, sortClientsByName } from "@/lib/client-name";
 import {
   type AppointmentView,
   addShopDays,
@@ -166,15 +167,15 @@ export async function getAppointmentFormData(currentMechanicId?: string | null) 
 
 // ── Conflict check ──────────────────────────────────────────
 
-export async function checkMechanicConflict(
+async function findMechanicConflict(
   mechanicId: string,
   startsAt: Date,
   endsAt: Date,
   excludeId?: string
-): Promise<boolean> {
+) {
   const shopId = await getShopId();
 
-  const conflict = await db.appointment.findFirst({
+  return db.appointment.findFirst({
     where: {
       shopId,
       mechanicId,
@@ -183,9 +184,14 @@ export async function checkMechanicConflict(
       startsAt: { lt: endsAt },
       endsAt: { gt: startsAt },
     },
+    include: { client: { select: { firstName: true, lastName: true } } },
   });
+}
 
-  return Boolean(conflict);
+export interface MechanicConflictInfo {
+  label: string;
+  from: string;
+  to: string;
 }
 
 /** Verificación en vivo desde el formulario (fecha/hora tal como las escribe el admin, en zona del taller). */
@@ -195,16 +201,66 @@ export async function checkMechanicConflictForForm(input: {
   time: string;
   durationMinutes: number;
   excludeId?: string;
-}): Promise<boolean> {
+}): Promise<MechanicConflictInfo | null> {
   const { mechanicId, date, time, durationMinutes, excludeId } = input;
-  if (!mechanicId || !date || !time || !(durationMinutes > 0)) return false;
+  if (!mechanicId || !date || !time || !(durationMinutes > 0)) return null;
 
   const shopId = await getShopId();
   const timeZone = await getShopTimezone(shopId);
   const startsAt = parseStartsAt(date, time, timeZone);
-  if (Number.isNaN(startsAt.getTime())) return false;
+  if (Number.isNaN(startsAt.getTime())) return null;
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
-  return checkMechanicConflict(mechanicId, startsAt, endsAt, excludeId);
+
+  const conflict = await findMechanicConflict(mechanicId, startsAt, endsAt, excludeId);
+  if (!conflict) return null;
+  return {
+    label: `${formatClientName(conflict.client)} · ${conflict.title}`,
+    from: formatShopTime(conflict.startsAt, timeZone),
+    to: formatShopTime(conflict.endsAt, timeZone),
+  };
+}
+
+/**
+ * Resuelve qué hacer ante un choque de horario. Con `allowOverlap` cualquier
+ * usuario del taller puede forzar la doble agenda; solo quien no es dueño debe
+ * dar una razón. Devuelve el error de campo, o los datos de la marca de override.
+ */
+interface OverlapData {
+  overlapOverride: boolean;
+  overlapOverrideById: string | null;
+  overlapOverrideByName: string | null;
+  overlapOverrideReason: string | null;
+}
+
+type OverlapResult =
+  | { error: Record<string, string[]>; data?: undefined }
+  | { data: OverlapData; error?: undefined };
+
+async function resolveOverlap(
+  conflict: unknown,
+  allowOverlap: boolean | undefined,
+  reason: string | undefined
+): Promise<OverlapResult> {
+  if (!conflict) {
+    return { data: { overlapOverride: false, overlapOverrideById: null, overlapOverrideByName: null, overlapOverrideReason: null } };
+  }
+  if (!allowOverlap) {
+    return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };
+  }
+  const session = await requireShopSession();
+  const isOwner = session.user.role === "OWNER";
+  const trimmed = reason?.trim() ?? "";
+  if (!isOwner && !trimmed) {
+    return { error: { overlapReason: ["Indica la razón de la doble agenda"] } };
+  }
+  return {
+    data: {
+      overlapOverride: true,
+      overlapOverrideById: session.user.id,
+      overlapOverrideByName: session.user.name ?? null,
+      overlapOverrideReason: isOwner ? trimmed || null : trimmed,
+    },
+  };
 }
 
 // ── CREATE / UPDATE ─────────────────────────────────────────
@@ -218,20 +274,21 @@ export async function createAppointment(formData: AppointmentFormData) {
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes } =
+  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes, allowOverlap, overlapReason } =
     parsed.data;
 
   const startsAt = parseStartsAt(date, time, timeZone);
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
+  let overlapData: OverlapData | undefined;
   if (mechanicId) {
     if (!(await acceptsAppointments(shopId, mechanicId))) {
       return { error: { mechanicId: [MECHANIC_NOT_ACCEPTING] } };
     }
-    const hasConflict = await checkMechanicConflict(mechanicId, startsAt, endsAt);
-    if (hasConflict) {
-      return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };
-    }
+    const conflict = await findMechanicConflict(mechanicId, startsAt, endsAt);
+    const overlap = await resolveOverlap(conflict, allowOverlap, overlapReason);
+    if (overlap.error) return { error: overlap.error };
+    overlapData = overlap.data;
   }
 
   const manageToken = generateAppointmentManageToken();
@@ -249,6 +306,7 @@ export async function createAppointment(formData: AppointmentFormData) {
       notes: notes || null,
       status: "SCHEDULED",
       manageToken,
+      ...overlapData,
     },
     include: { client: true, shop: true },
   });
@@ -307,21 +365,22 @@ export async function updateAppointment(id: string, formData: AppointmentEditFor
     return { error: parsed.error.flatten().fieldErrors };
   }
 
-  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes, status } =
+  const { clientId, vehicleId, mechanicId, title, date, time, durationMinutes, notes, status, allowOverlap, overlapReason } =
     parsed.data;
 
   const startsAt = parseStartsAt(date, time, timeZone);
   const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
 
+  let overlapData: OverlapData | undefined;
   if (mechanicId && status !== "CANCELLED" && status !== "NO_SHOW") {
     // Solo se exige al cambiar de mecánico: una cita ya asignada no se bloquea.
     if (mechanicId !== existing.mechanicId && !(await acceptsAppointments(shopId, mechanicId))) {
       return { error: { mechanicId: [MECHANIC_NOT_ACCEPTING] } };
     }
-    const hasConflict = await checkMechanicConflict(mechanicId, startsAt, endsAt, id);
-    if (hasConflict) {
-      return { error: { mechanicId: ["El mecánico ya tiene otra cita en ese horario"] } };
-    }
+    const conflict = await findMechanicConflict(mechanicId, startsAt, endsAt, id);
+    const overlap = await resolveOverlap(conflict, allowOverlap, overlapReason);
+    if (overlap.error) return { error: overlap.error };
+    overlapData = overlap.data;
   }
 
   const updated = await db.appointment.update({
@@ -336,6 +395,7 @@ export async function updateAppointment(id: string, formData: AppointmentEditFor
       durationMinutes,
       notes: notes || null,
       status,
+      ...overlapData,
     },
     include: { client: true, shop: true },
   });

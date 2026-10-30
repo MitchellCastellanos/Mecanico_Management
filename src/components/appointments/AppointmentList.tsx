@@ -27,6 +27,9 @@ interface Appointment {
   durationMinutes: number;
   status: string;
   source?: string;
+  overlapOverride?: boolean;
+  overlapOverrideByName?: string | null;
+  overlapOverrideReason?: string | null;
   client?: { firstName: string; lastName?: string | null; email?: string | null; phone?: string | null } | null;
   vehicle?: { year: number; make: string; model: string; licensePlate: string } | null;
   mechanic?: { name: string } | null;
@@ -127,6 +130,20 @@ function AppointmentRow({
         {appointment.source === "PUBLIC_WEB" && (
           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
             Web
+          </span>
+        )}
+
+        {appointment.overlapOverride && (
+          <span
+            title={[
+              appointment.overlapOverrideByName && `Autorizó: ${appointment.overlapOverrideByName}`,
+              appointment.overlapOverrideReason && `Razón: ${appointment.overlapOverrideReason}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
+            className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+          >
+            Doble agenda
           </span>
         )}
 

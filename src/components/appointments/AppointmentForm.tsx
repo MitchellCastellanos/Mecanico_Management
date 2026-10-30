@@ -4,8 +4,8 @@ import { ADMIN } from "@/lib/routes";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState, useTransition } from "react";
-import { checkMechanicConflictForForm } from "@/actions/appointments";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { checkMechanicConflictForForm, type MechanicConflictInfo } from "@/actions/appointments";
 import {
   appointmentEditSchema,
   appointmentSchema,
@@ -44,12 +44,15 @@ type AppointmentFormProps = (CreateProps | EditProps) & {
   mechanics: Mechanic[];
   /** Cita que se edita: su propio horario no cuenta como choque. */
   appointmentId?: string;
+  /** El dueño no necesita dar razón para forzar una doble agenda. */
+  isOwner?: boolean;
 };
 
 export function AppointmentForm({
   clients,
   mechanics,
   appointmentId,
+  isOwner = false,
   onSubmit,
   initialValues,
   mode = "create",
@@ -88,13 +91,17 @@ export function AppointmentForm({
   const watchedTime = watch("time");
   const watchedDuration = watch("durationMinutes");
   const watchedStatus = watch("status");
-  const [conflict, setConflict] = useState(false);
+  const [conflict, setConflict] = useState<MechanicConflictInfo | null>(null);
+  const [overrideOpen, setOverrideOpen] = useState(false);
+  const [overrideAck, setOverrideAck] = useState(false);
+  const [overrideReason, setOverrideReason] = useState("");
+  const overrideRef = useRef<{ reason: string } | null>(null);
 
   // Aviso inmediato de choque de horario al elegir mecánico, fecha, hora o duración.
   useEffect(() => {
     const inactive = isEdit && (watchedStatus === "CANCELLED" || watchedStatus === "NO_SHOW");
     if (inactive || !watchedMechanicId || !watchedDate || !watchedTime) {
-      setConflict(false);
+      setConflict(null);
       return;
     }
     let cancelled = false;
@@ -109,7 +116,7 @@ export function AppointmentForm({
         });
         if (!cancelled) setConflict(hasConflict);
       } catch {
-        if (!cancelled) setConflict(false);
+        if (!cancelled) setConflict(null);
       }
     }, 300);
     return () => {
@@ -119,6 +126,11 @@ export function AppointmentForm({
   }, [watchedMechanicId, watchedDate, watchedTime, watchedDuration, watchedStatus, isEdit, appointmentId]);
 
   async function onValid(data: AppointmentEditFormData) {
+    const override = conflict ? overrideRef.current : null;
+    overrideRef.current = null;
+    if (override) {
+      data = { ...data, allowOverlap: true, overlapReason: override.reason };
+    }
     startTransition(async () => {
       const result = isEdit
         ? await (onSubmit as EditProps["onSubmit"])(data)
@@ -134,6 +146,15 @@ export function AppointmentForm({
       }
     });
   }
+
+  function confirmOverride() {
+    overrideRef.current = { reason: overrideReason.trim() };
+    setOverrideOpen(false);
+    setOverrideAck(false);
+    void handleSubmit(onValid)();
+  }
+
+  const overrideReady = overrideAck && (isOwner || overrideReason.trim().length > 0);
 
   return (
     <form onSubmit={handleSubmit(onValid)} className="space-y-6 max-w-2xl">
@@ -232,10 +253,23 @@ export function AppointmentForm({
             <p className="text-red-600 text-xs mt-1">{errors.mechanicId.message}</p>
           ) : (
             conflict && (
-              <p className="text-red-600 text-xs mt-1">
-                El mecánico ya tiene otra cita en ese horario
-              </p>
+              <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                <p className="font-medium">El mecánico ya tiene otra cita en ese horario</p>
+                <p className="mt-0.5">
+                  {conflict.label} · {conflict.from}–{conflict.to}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOverrideOpen(true)}
+                  className="mt-2 rounded-lg border border-red-300 bg-white px-2.5 py-1 font-medium text-red-700 hover:bg-red-100"
+                >
+                  Agendar de todos modos…
+                </button>
+              </div>
             )
+          )}
+          {errors.overlapReason && (
+            <p className="text-red-600 text-xs mt-1">{errors.overlapReason.message}</p>
           )}
         </div>
 
@@ -301,6 +335,63 @@ export function AppointmentForm({
           Cancelar
         </a>
       </div>
+
+      {overrideOpen && conflict && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="font-semibold text-slate-900">Agendar con doble agenda</h3>
+            <p className="text-sm text-slate-600">
+              Este mecánico quedará asignado a dos citas al mismo tiempo. La cita se marcará como
+              &quot;Doble agenda&quot; y quedará registrado quién lo autorizó.
+            </p>
+            <p className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600">
+              Choca con: {conflict.label} · {conflict.from}–{conflict.to}
+            </p>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-slate-700">
+                Razón {isOwner ? "(opcional)" : "*"}
+              </label>
+              <textarea
+                value={overrideReason}
+                onChange={(e) => setOverrideReason(e.target.value)}
+                rows={2}
+                maxLength={500}
+                placeholder="Ej. trabajo rápido en paralelo"
+                className={inputClass(false)}
+              />
+            </div>
+            <label className="flex items-start gap-2 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={overrideAck}
+                onChange={(e) => setOverrideAck(e.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-teal-600"
+              />
+              Entiendo que esto genera doble agenda
+            </label>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setOverrideOpen(false);
+                  setOverrideAck(false);
+                }}
+                className="text-sm text-slate-500 hover:text-slate-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!overrideReady || isPending}
+                onClick={confirmOverride}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+              >
+                Agendar de todos modos
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

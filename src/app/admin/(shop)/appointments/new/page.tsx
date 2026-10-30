@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { AppointmentForm } from "@/components/appointments/AppointmentForm";
 import { createAppointment, getAppointmentFormData } from "@/actions/appointments";
 import { type AppointmentFormData } from "@/lib/validations";
+import { requireShopSession } from "@/lib/permissions";
 
 export default async function NewAppointmentPage() {
   const { clients, mechanics } = await getAppointmentFormData();
+  const session = await requireShopSession();
 
   if (clients.length === 0) {
     redirect(`${ADMIN.clients}/new?hint=appointment`);
@@ -23,6 +25,7 @@ export default async function NewAppointmentPage() {
       <AppointmentForm
         clients={clients}
         mechanics={mechanics}
+        isOwner={session.user.role === "OWNER"}
         onSubmit={async (data: AppointmentFormData) => {
           "use server";
           return createAppointment(data);

@@ -13,6 +13,7 @@ import { ClientManageLink } from "@/components/appointments/ClientManageLink";
 import { type AppointmentEditFormData } from "@/lib/validations";
 import { APPOINTMENT_STATUS_LABEL } from "@/lib/appointment-status";
 import { formatShopDate } from "@/lib/shop-timezone";
+import { requireShopSession } from "@/lib/permissions";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,6 +22,7 @@ interface PageProps {
 export default async function EditAppointmentPage({ params }: PageProps) {
   const { id } = await params;
 
+  const session = await requireShopSession();
   const appointment = await getAppointmentById(id);
   const [{ clients, mechanics }, manageUrl] = await Promise.all([
     getAppointmentFormData(appointment.mechanicId),
@@ -76,6 +78,7 @@ export default async function EditAppointmentPage({ params }: PageProps) {
         clients={clients}
         mechanics={mechanics}
         appointmentId={id}
+        isOwner={session.user.role === "OWNER"}
         mode="edit"
         initialValues={initialValues}
         onSubmit={async (data: AppointmentEditFormData) => {

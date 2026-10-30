@@ -86,6 +86,9 @@ export const appointmentSchema = z.object({
   time: z.string().regex(/^\d{2}:\d{2}$/, "Hora inválida (HH:mm)"),
   durationMinutes: z.number().int().min(15).max(480).default(60),
   notes: z.string().max(1000).optional().or(z.literal("")),
+  /** Override consciente de doble agenda (el servidor igual re-verifica el choque). */
+  allowOverlap: z.boolean().optional(),
+  overlapReason: z.string().max(500).optional().or(z.literal("")),
 });
 
 export type AppointmentFormData = z.infer<typeof appointmentSchema>;

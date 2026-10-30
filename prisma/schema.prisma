@@ -444,6 +444,11 @@ model Appointment {
   cancellationSentAt   DateTime?
   source               AppointmentSource @default(INTERNAL)
   manageToken          String?           @unique
+  /// Doble agenda autorizada a propósito desde el admin (mismo mecánico, mismo horario).
+  overlapOverride      Boolean           @default(false)
+  overlapOverrideById  String?
+  overlapOverrideByName String?
+  overlapOverrideReason String?          @db.Text
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 }

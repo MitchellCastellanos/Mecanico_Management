@@ -293,6 +293,11 @@ export const INCREMENTAL_MIGRATE_STATEMENTS = [
   // ── Cliente puede editar su propia cita vía link con token ────
   `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "manageToken" TEXT`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "Appointment_manageToken_key" ON mecanico."Appointment"("manageToken")`,
+  // ── Doble agenda autorizada (override) desde el admin ────
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "overlapOverride" BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "overlapOverrideById" TEXT`,
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "overlapOverrideByName" TEXT`,
+  `ALTER TABLE mecanico."Appointment" ADD COLUMN IF NOT EXISTS "overlapOverrideReason" TEXT`,
   // ── Teléfono como canal principal: notificaciones de citas por SMS ────
   `ALTER TABLE mecanico."Shop" ADD COLUMN IF NOT EXISTS "appointmentSmsEnabled" BOOLEAN NOT NULL DEFAULT true`,
   // ── Idioma preferido del cliente — SMS y emails de citas ────
