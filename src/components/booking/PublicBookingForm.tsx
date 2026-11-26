@@ -280,6 +280,17 @@ export function PublicBookingForm({ slug, shop, services }: PublicBookingFormPro
       {hasService && (
         <div ref={dayStepRef} className="border-t border-slate-100 pt-5 scroll-mt-24">
           <h3 className={stepHeadingClass}>2. {t.form.stepPickDay}</h3>
+          <p className="text-xs text-slate-500 mb-3">
+            {t.form.earlyRequestNotice}
+            {shop.phone && (
+              <>
+                {" "}
+                <a href={`tel:${shop.phone}`} className="text-brand-red-dark font-medium whitespace-nowrap">
+                  {shop.phone}
+                </a>
+              </>
+            )}
+          </p>
           {loadingDates ? (
             <div className="flex items-center justify-center gap-2 text-slate-500 text-sm py-4">
               <Loader2 className="w-4 h-4 animate-spin" />

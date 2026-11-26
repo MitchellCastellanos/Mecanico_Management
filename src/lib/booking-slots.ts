@@ -27,6 +27,13 @@ const DEFAULT_HOURS = [
 
 export { DEFAULT_HOURS as DEFAULT_WORKING_HOURS };
 
+/**
+ * Reservas web cerradas hasta esta fecha (inclusive, hora del taller).
+ * Para solicitudes antes de esa fecha el cliente debe llamar al taller
+ * (ver aviso `earlyRequestNotice` en PublicBookingForm). Poner null para reabrir.
+ */
+export const BOOKING_BLOCKED_THROUGH: string | null = "2026-12-15";
+
 function parseMinutes(time: string): number {
   const [h, m] = time.split(":").map(Number);
   return h * 60 + m;
@@ -197,6 +204,8 @@ export async function getAvailableSlots(
   /** Duración real del servicio a reservar — si no se da, usa el default del taller. */
   durationMinutes?: number
 ): Promise<AvailableSlot[]> {
+  if (BOOKING_BLOCKED_THROUGH && dateStr <= BOOKING_BLOCKED_THROUGH) return [];
+
   const dayOfWeek = getShopDayOfWeek(dateStr, shop.timezone);
   const hours =
     shop.workingHours.find((h) => h.dayOfWeek === dayOfWeek) ??
