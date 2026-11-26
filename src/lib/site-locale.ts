@@ -62,6 +62,7 @@ export interface SiteDictionary {
     nextMonth: string;
     loadingAvailability: string;
     noSlots: string;
+    earlyRequestNotice: string;
     notesOptional: string;
     confirmAppointment: (minutes: number) => string;
     couldNotLoadAvailability: string;
@@ -167,6 +168,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       nextMonth: "Mois suivant",
       loadingAvailability: "Chargement des disponibilités...",
       noSlots: "Aucune disponibilité ce jour-là.",
+      earlyRequestNotice: "Vous avez une demande avant le 15 décembre ? Appelez-nous pour que nous évaluions votre cas.",
       notesOptional: "Notes (optionnel)",
       confirmAppointment: (min) => `Confirmer le rendez-vous (${min} min)`,
       couldNotLoadAvailability: "Impossible de charger les disponibilités",
@@ -270,6 +272,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       nextMonth: "Next month",
       loadingAvailability: "Loading availability...",
       noSlots: "No availability that day.",
+      earlyRequestNotice: "Need an appointment before December 15? Give us a call and we'll look at your case.",
       notesOptional: "Notes (optional)",
       confirmAppointment: (min) => `Confirm appointment (${min} min)`,
       couldNotLoadAvailability: "Could not load availability",
@@ -373,6 +376,7 @@ export const SITE_DICTIONARIES: Record<SiteLocale, SiteDictionary> = {
       nextMonth: "Mes siguiente",
       loadingAvailability: "Cargando horarios...",
       noSlots: "No hay horarios disponibles este día.",
+      earlyRequestNotice: "¿Necesitas una cita antes del 15 de diciembre? Llámanos para evaluar tu caso.",
       notesOptional: "Notas (opcional)",
       confirmAppointment: (min) => `Confirmar cita (${min} min)`,
       couldNotLoadAvailability: "No se pudo cargar disponibilidad",
